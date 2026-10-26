@@ -55,6 +55,20 @@ WSL 用户目录中已安装 Node.js 22.23.4，脚本自动将它加入 PATH。P
 
 ### 真实 Agent 模式
 
+`main` 与标签 `v0.1.0-stable` 保存最初稳定演示版本；后续开发在 `dev`，当前优先桌面 Web，手机端功能开发暂停。见 [开发规划](docs/ROADMAP.md)。
+
+DeepSeek 配置模板为 `.env.deepseek.example`。本机已把用户提供的密钥保存到 **WSL 本地 `.env`**，没有上传 GitHub。使用 `MODEL_PROVIDER=deepseek`、`MODEL_NAME=deepseek-flash`、`DEEPSEEK_API_KEY` 和官方地址 `https://api.deepseek.com`；接入层显式关闭思考模式，使用 Chat Completions 完成多轮工具调用。
+
+如需重新配置，可把 `.env.deepseek.example` 的内容复制到 `.env` 后填写密钥。不要覆盖已有本地密钥配置。模型名称应以账户 `/models` 返回值为准。
+
+可在独立临时数据库做真实 DeepSeek 联调（会产生少量模型费用，不改变网页数据库）：
+
+```bash
+uv run --frozen python -m scripts.smoke_deepseek --run-live
+```
+
+常规 `pytest` 强制使用离线模式，不会因本地 `.env` 切换到 live 而消耗模型 API。
+
 首次配置可执行 `cp .env.example .env`（若已有 `.env`，直接编辑）。
 
 ```dotenv

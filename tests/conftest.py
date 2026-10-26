@@ -4,6 +4,14 @@ from backend.retail import RetailService
 from backend.store import Store
 
 
+@pytest.fixture(autouse=True)
+def offline_model(monkeypatch):
+    """Local .env may be live; ordinary tests must never call a paid provider."""
+    from backend import config
+
+    monkeypatch.setattr(config, "MODE", "demo")
+
+
 @pytest.fixture
 def service(tmp_path):
     return RetailService(Store(tmp_path / "test.sqlite3"))

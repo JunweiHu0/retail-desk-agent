@@ -170,7 +170,7 @@ def get_model():
     if config.MODE != "live":
         raise ValueError("AGENT_MODE 必须是 demo 或 live")
     if not config.API_KEY:
-        raise ValueError("真实模型模式需要配置 MODEL_API_KEY 或 OPENAI_API_KEY")
+        raise ValueError("真实模型模式需要配置 MODEL_API_KEY 或对应服务商的 API Key")
     return ChatOpenAI(
         model=config.MODEL,
         api_key=config.API_KEY,
@@ -179,6 +179,8 @@ def get_model():
         timeout=60,
         max_retries=1,
         model_kwargs={"parallel_tool_calls": False},
+        use_responses_api=False,
+        extra_body={"thinking": {"type": "disabled"}} if config.IS_DEEPSEEK else None,
     )
 
 
@@ -238,6 +240,8 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
 
 APPLICATION CONTRACT (web customer-service mode):
 - Reply in the customer's language. Answer only Retail service requests.
+- The chat interface renders plain text. Use short paragraphs and simple bullet lists;
+  do not use Markdown tables, headings, code fences or emphasis markers.
 - Always identify the customer with lookup tools first. Never invent tool results.
 - Call exactly ONE business tool at a time. Do not output prose alongside a tool call.
 - All write tools stage an exact validated preview; they DO NOT mutate the actual database.
