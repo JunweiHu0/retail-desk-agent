@@ -1,0 +1,28 @@
+[project]
+name = "retail-agent"
+version = "0.1.0"
+description = "Retail tool-use customer service with Vue, FastAPI and Deep Agents"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "deepagents>=0.4,<1",
+  "langchain-openai>=1,<2",
+  "python-dotenv>=1,<2",
+  "tau2",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
+
+[tool.uv.sources]
+tau2 = { path = "../tau2-bench", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
