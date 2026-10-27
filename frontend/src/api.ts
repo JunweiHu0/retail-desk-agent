@@ -7,13 +7,15 @@ import type {
   SessionRef,
 } from "./types";
 
+const endpoint = (path: string) => `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}`;
+
 async function request<T>(
   url: string,
   ref?: SessionRef,
   init: RequestInit = {},
 ): Promise<T> {
   void ref;
-  const response = await fetch(url, {
+  const response = await fetch(endpoint(url), {
     ...init,
     credentials: "same-origin",
     headers: {
@@ -74,7 +76,7 @@ export const api = {
     message: string,
     onEvent: (event: Record<string, unknown>) => void,
   ) {
-    const response = await fetch(`/api/sessions/${ref.id}/messages`, {
+    const response = await fetch(endpoint(`/api/sessions/${ref.id}/messages`), {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },

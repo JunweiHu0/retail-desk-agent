@@ -26,6 +26,7 @@ import {
   Zap,
 } from "lucide-vue-next";
 import { api } from "./api";
+const homeUrl = import.meta.env.BASE_URL;
 import type {
   Health,
   Order,
@@ -351,7 +352,7 @@ onMounted(async () => {
 <template>
   <div class="workspace">
     <aside class="sidebar">
-      <a class="brand" href="/" aria-label="Retail Desk 首页"
+       <a class="brand" :href="homeUrl" aria-label="Retail Desk 首页"
         ><span class="brand-icon"><ShoppingBag :size="23" /></span
         ><span
           >retail<span class="brand-light">desk</span

@@ -35,7 +35,9 @@ def create_app(store=None):
         app.state.tasks = set()
         yield
 
-    app = FastAPI(title="Retail Agent API", version="0.1.0", lifespan=lifespan)
+    prefix = os.getenv("APP_BASE_PATH", "").rstrip("/")
+    cookie_path = prefix + "/"
+    app = FastAPI(title="Retail Agent API", version="0.1.0", lifespan=lifespan, root_path=prefix)
 
     @app.middleware("http")
     async def same_origin(request, call_next):
@@ -48,7 +50,10 @@ def create_app(store=None):
             from fastapi.responses import JSONResponse
 
             return JSONResponse({"detail": "请求来源不匹配"}, status_code=403)
-        return await call_next(request)
+        response = await call_next(request)
+        if request.url.path.startswith(prefix + "/api/") or request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     def identity(request: Request):
         uid = app.state.auth.current(request.cookies.get("retail_auth"))
@@ -97,13 +102,14 @@ def create_app(store=None):
             samesite="lax",
             secure=request.url.scheme == "https",
             max_age=SESSION_TTL,
+            path=cookie_path,
         )
         return customer(uid)
 
     @app.post("/api/auth/logout")
     def logout(request: Request, response: Response):
         app.state.auth.logout(request.cookies.get("retail_auth"))
-        response.delete_cookie("retail_auth")
+        response.delete_cookie("retail_auth", path=cookie_path)
         return {"message": "已退出"}
 
     @app.get("/api/me")

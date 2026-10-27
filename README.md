@@ -27,6 +27,8 @@ bash scripts/start.sh
 
 登录页提供演示客户快捷填入。示例账号 `li.ming@retail-demo.example.com`，演示密码 `Demo@Retail2026!`。顶部可切换客服助手、订单管理、个人信息；支持注册独立新账号。详见 [登录与订单管理](docs/accounts-and-orders.md)。
 
+团队线上演示：**https://junweihu.site/retail/**，需额外的团队访问凭据（单独交付，不存仓库）。部署、运行路径与回退方式见 [VPS 部署说明](deploy/README.md)。
+
 ```bash
 # 查看或停止本项目后台服务
 uv run --frozen python -m backend.server status

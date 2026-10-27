@@ -13,3 +13,4 @@ test-results/
 *.log
 *.tsbuildinfo
 frontend/playwright-report/
+.deployment/
