@@ -1,20 +1,22 @@
 """FastAPI transport. Localhost by default; session capabilities protect customer data."""
 
 import asyncio
-import hmac
 import json
 import logging
+import os
 import threading
 import uuid
 from contextlib import asynccontextmanager, contextmanager
+from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend import config
 from backend.agent import AgentRunner
+from backend.auth import SESSION_TTL, AuthService
 from backend.retail import RetailService
 from backend.store import Store
 
@@ -27,6 +29,7 @@ def create_app(store=None):
         app.state.store = store or Store()
         app.state.retail = RetailService(app.state.store)
         app.state.runner = AgentRunner(app.state.retail)
+        app.state.auth = AuthService(app.state.store, os.getenv("DEMO_ACCOUNTS", "1") == "1")
         app.state.busy = set()
         app.state.guard = threading.Lock()
         app.state.tasks = set()
@@ -34,13 +37,138 @@ def create_app(store=None):
 
     app = FastAPI(title="Retail Agent API", version="0.1.0", lifespan=lifespan)
 
-    def authorized(sid: str, authorization: str = Header(default="")):
+    @app.middleware("http")
+    async def same_origin(request, call_next):
+        origin = request.headers.get("origin")
+        if (
+            request.method not in {"GET", "HEAD", "OPTIONS"}
+            and origin
+            and urlparse(origin).netloc != request.headers.get("host")
+        ):
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse({"detail": "请求来源不匹配"}, status_code=403)
+        return await call_next(request)
+
+    def identity(request: Request):
+        uid = app.state.auth.current(request.cookies.get("retail_auth"))
+        if not uid:
+            raise HTTPException(401, "请先登录")
+        return uid
+
+    def customer(uid):
+        with app.state.store.tx() as cx:
+            return app.state.store.dataset(cx)["users"][uid]
+
+    class Login(BaseModel):
+        email: str = Field(min_length=3, max_length=254)
+        password: str = Field(min_length=1, max_length=128)
+
+    class Registration(Login):
+        password: str = Field(min_length=10, max_length=128)
+        first_name: str = Field(min_length=1, max_length=60)
+        last_name: str = Field(min_length=1, max_length=60)
+
+    @app.post("/api/auth/register", status_code=201)
+    def register(body: Registration):
+        if "@" not in body.email or not body.first_name.strip() or not body.last_name.strip():
+            raise HTTPException(422, "请填写有效邮箱和姓名")
+        try:
+            app.state.auth.register(
+                body.email, body.password, body.first_name.strip(), body.last_name.strip()
+            )
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        return {"message": "注册成功，请登录"}
+
+    @app.post("/api/auth/login")
+    def login(body: Login, request: Request, response: Response):
+        try:
+            token, uid = app.state.auth.login(body.email, body.password, request.client.host)
+        except PermissionError as exc:
+            raise HTTPException(401, str(exc)) from None
+        except TimeoutError as exc:
+            raise HTTPException(429, str(exc)) from None
+        app.state.auth.logout(request.cookies.get("retail_auth"))
+        response.set_cookie(
+            "retail_auth",
+            token,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+            max_age=SESSION_TTL,
+        )
+        return customer(uid)
+
+    @app.post("/api/auth/logout")
+    def logout(request: Request, response: Response):
+        app.state.auth.logout(request.cookies.get("retail_auth"))
+        response.delete_cookie("retail_auth")
+        return {"message": "已退出"}
+
+    @app.get("/api/me")
+    def me(uid=Depends(identity)):
+        return customer(uid)
+
+    @app.get("/api/orders")
+    def orders(uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            return {
+                "orders": [
+                    o for o in app.state.store.dataset(cx)["orders"].values() if o["user_id"] == uid
+                ]
+            }
+
+    @app.get("/api/orders/{oid}")
+    def order(oid: str, uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            value = app.state.store.dataset(cx)["orders"].get(oid)
+        if not value or value["user_id"] != uid:
+            raise HTTPException(404, "订单不存在")
+        return value
+
+    class Action(BaseModel):
+        tool: str
+        args: dict = Field(default_factory=dict)
+
+    def stage(uid, tool, args):
+        sid = app.state.store.create_session(uid)["id"]
+        result = app.state.retail.call(sid, tool, args)
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(422, result["error"])
+        with app.state.store.tx() as cx:
+            app.state.store.update(
+                cx,
+                sid,
+                title="订单 / 资料变更确认",
+                messages=[
+                    {
+                        "id": uuid.uuid4().hex,
+                        "role": "assistant",
+                        "content": "已生成操作预览。请核对变更后确认执行，确认前数据不会改变。",
+                    }
+                ],
+            )
+        return snapshot(sid)
+
+    @app.post("/api/orders/{oid}/actions", status_code=201)
+    def order_action(oid: str, body: Action, uid=Depends(identity)):
+        order(oid, uid)
+        if body.tool not in app.state.retail.writes - {"modify_user_address"}:
+            raise HTTPException(422, "不支持的订单操作")
+        return stage(uid, body.tool, body.args | {"order_id": oid})
+
+    @app.post("/api/me/address", status_code=201)
+    def address(body: dict, uid=Depends(identity)):
+        return stage(uid, "modify_user_address", body | {"user_id": uid})
+
+    def authorized(sid: str, uid=Depends(identity)):
         try:
             session = app.state.store.session(sid)
         except LookupError:
             raise HTTPException(404, "会话不存在") from None
-        if not hmac.compare_digest(authorization, f"Bearer {session['token']}"):
-            raise HTTPException(403, "无权访问此会话")
+        if session["owner_user_id"] != uid:
+            raise HTTPException(404, "会话不存在")
         return session
 
     @contextmanager
@@ -74,12 +202,38 @@ def create_app(store=None):
         }
 
     @app.get("/api/samples")
-    def samples():
-        return {"samples": app.state.retail.samples()}
+    def samples(uid=Depends(identity)):
+        user = customer(uid)
+        return {
+            "samples": [
+                {
+                    "email": user["email"],
+                    "name": " ".join(user["name"].values()),
+                    "order_id": o["order_id"],
+                    "status": o["status"],
+                    "items": len(o["items"]),
+                }
+                for o in orders(uid)["orders"]
+            ]
+        }
+
+    @app.get("/api/sessions")
+    def list_sessions(uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            return {
+                "sessions": [
+                    dict(r)
+                    for r in cx.execute(
+                        "SELECT id,title,updated_at FROM sessions WHERE owner_user_id=? ORDER BY updated_at DESC",
+                        (uid,),
+                    )
+                ]
+            }
 
     @app.post("/api/sessions", status_code=201)
-    def create_session():
-        return app.state.store.create_session()
+    def create_session(uid=Depends(identity)):
+        value = app.state.store.create_session(uid)
+        return {k: v for k, v in value.items() if k != "token"}
 
     @app.get("/api/sessions/{sid}")
     def get_session(sid: str, session=Depends(authorized)):

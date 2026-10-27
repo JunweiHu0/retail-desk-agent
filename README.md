@@ -25,6 +25,8 @@ bash scripts/start.sh
 
 打开 **http://localhost:8000**。接口文档：**http://localhost:8000/docs**。
 
+登录页提供演示客户快捷填入。示例账号 `li.ming@retail-demo.example.com`，演示密码 `Demo@Retail2026!`。顶部可切换客服助手、订单管理、个人信息；支持注册独立新账号。详见 [登录与订单管理](docs/accounts-and-orders.md)。
+
 ```bash
 # 查看或停止本项目后台服务
 uv run --frozen python -m backend.server status
@@ -43,7 +45,7 @@ WSL 用户目录中已安装 Node.js 22.23.4，脚本自动将它加入 PATH。P
 
 `AGENT_MODE=demo` 使用确定性的 `DemoRetailModel`，依然在真实 deepagents 图中调用官方工具。支持身份核验、订单查询、取消 pending 订单、全部商品按原支付方式退货。
 
-首页的三个场景会从当前数据库选择合适的虚拟客户；可以一键体验。也可以输入：
+登录后场景仅展示当前客户自己的订单，可一键体验。也可以输入：
 
 ```text
 我的邮箱是 <页面中场景所使用的邮箱>，请查询订单 #Wxxxxxxx。
@@ -81,7 +83,7 @@ MODEL_BASE_URL=
 
 修改后停止并重新启动后端。模型必须支持 **tool calling**；API Key 仅在后端读取，前端不保存也不接收密钥。真实模型调用会产生服务商费用。
 
-真实模式向 Agent 提供全部 16 个 Retail 工具，包括：
+服务实现全部 16 个 Retail 工具；登录网页客户已通过密码核验，Agent 隐藏两个身份查找工具并锁定当前账户。包括：
 
 - 邮箱 / 姓名和邮编核验，客户、订单、商品和规格查询；
 - 取消待处理订单，修改订单地址、商品、支付方式；
@@ -110,7 +112,7 @@ sequenceDiagram
   A-->>U: 执行回执及最新订单
 ```
 
-- 只有邮箱或姓名 + 邮编查找成功后，才允许访问客户和订单；提供 user_id 不视为核验。
+- 网页必须登录，后端绑定当前账户；独立 benchmark / 匿名内部会话仍需邮箱或姓名 + 邮编查找，提供 user_id 不视为核验。
 - 单一会话锁定一个客户，订单工具强制检查订单归属。
 - 所有七种写工具先在副本上验证。原始数据、支付记录和礼品卡余额在确认前均不变。
 - 确认接口消费一次性 action_id，不接受前端重传或替换工具参数；重复提交不重复退款。
@@ -124,13 +126,19 @@ sequenceDiagram
 | 方法 | 路径 | 功能 |
 | --- | --- | --- |
 | GET | `/api/health` | 模式、模型准备状态与工具数量，不返回密钥 |
-| GET | `/api/samples` | benchmark 虚拟客户场景 |
-| POST | `/api/sessions` | 新建会话，返回会话 ID 与随机 capability token |
+| POST | `/api/auth/register` | 注册新客户（不能接管已有邮箱） |
+| POST | `/api/auth/login`、`/api/auth/logout` | 登录、退出，撤销登录凭证 |
+| GET | `/api/me`、`/api/orders` | 当前用户资料、所属订单 |
+| POST | `/api/me/address` | 预览默认地址修改 |
+| POST | `/api/orders/{id}/actions` | 通过 Retail 工具生成订单变更预览 |
+| GET | `/api/samples` | 当前登录客户的订单场景 |
+| GET | `/api/sessions` | 当前账户历史咨询 |
+| POST | `/api/sessions` | 新建归属于当前账户的会话，不返回敏感 token |
 | GET | `/api/sessions/{id}` | 消息、客户、订单、待确认操作和审计事件 |
 | POST | `/api/sessions/{id}/messages` | `{ "message": "..." }`，返回 SSE |
 | POST | `/api/sessions/{id}/decisions` | `{ "action_id": "...", "approve": true/false }` |
 
-已有会话接口都需要 `Authorization: Bearer <token>`。前端在当前浏览器 localStorage 保存其自己的会话能力凭证，不能列举其他浏览器会话。SSE 事件为 `status`、`tool_start`、`tool_end`、`done`、`error`，另有 keepalive。当前实时展示工具进度，助手文本在本轮完成后展示。
+网页接口使用 HttpOnly 登录 cookie，服务端按账号检查会话和订单归属，前端不保存密码或登录 token。SSE 事件为 `status`、`tool_start`、`tool_end`、`done`、`error`，另有 keepalive。当前实时展示工具进度，助手文本在本轮完成后展示。
 
 ## 运行官方 Retail 评测
 

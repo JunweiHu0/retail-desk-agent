@@ -43,6 +43,12 @@ class Store:
                     created_at TEXT NOT NULL
                 );
             """)
+            columns = {row[1] for row in cx.execute("PRAGMA table_info(sessions)")}
+            if "owner_user_id" not in columns:
+                cx.execute("ALTER TABLE sessions ADD COLUMN owner_user_id TEXT")
+            cx.execute(
+                "CREATE INDEX IF NOT EXISTS sessions_owner ON sessions(owner_user_id,updated_at)"
+            )
             if not cx.execute("SELECT 1 FROM dataset WHERE id=1").fetchone():
                 cx.execute("INSERT INTO dataset VALUES(1,?)", (seed.read_text(),))
 
@@ -62,12 +68,12 @@ class Store:
         finally:
             cx.close()
 
-    def create_session(self):
+    def create_session(self, owner_user_id=None):
         sid, token, stamp = uuid.uuid4().hex, uuid.uuid4().hex, now()
         with self.tx() as cx:
             cx.execute(
-                "INSERT INTO sessions(id,token,title,created_at,updated_at) VALUES(?,?,?,?,?)",
-                (sid, token, "新的零售咨询", stamp, stamp),
+                "INSERT INTO sessions(id,token,title,created_at,updated_at,owner_user_id,user_id) VALUES(?,?,?,?,?,?,?)",
+                (sid, token, "新的零售咨询", stamp, stamp, owner_user_id, owner_user_id),
             )
         return {"id": sid, "token": token, "title": "新的零售咨询", "created_at": stamp}
 

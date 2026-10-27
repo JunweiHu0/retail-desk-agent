@@ -77,6 +77,8 @@ class RetailService:
     def authorize(self, session, db, name, args):
         uid = session["user_id"]
         if name in AUTH_TOOLS:
+            if session.get("owner_user_id"):
+                raise PermissionError("当前账号已登录，不能查询或切换其他客户身份。")
             return
         if not uid:
             raise PermissionError("请先通过邮箱或姓名和邮编核验身份。")
