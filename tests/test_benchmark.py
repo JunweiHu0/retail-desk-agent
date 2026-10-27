@@ -29,3 +29,28 @@ def test_benchmark_adapter_yields_external_tools_without_executing(service, pend
     assert response.tool_calls[0].name == "get_user_details"
     assert dataset(service) == original
     assert len(state.messages) == 4
+
+
+def test_model_enrichment_keeps_official_tool_message_unchanged(service):
+    adapter = DeepRetailAgent(
+        list(service.catalog.values()), "Retail policy", model=DemoRetailModel()
+    )
+    adapter.call_names["product-call"] = "get_product_details"
+    original = ToolMessage(
+        role="tool",
+        id="product-call",
+        content=json.dumps(
+            {
+                "product_id": "arbitrary",
+                "variants": {
+                    "available": {"available": True, "price": 2},
+                    "sold-out": {"available": False, "price": 1},
+                },
+            }
+        ),
+    )
+    text = original.content
+    converted = adapter.convert(original)[0]
+    assert original.content == text
+    assert "_computed" not in json.loads(original.content)
+    assert json.loads(converted.content)["_computed"]["available_variant_count"] == 1

@@ -21,6 +21,7 @@ from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from backend import config
+from backend.observations import RETAIL_REASONING_RULES, enrich_observation
 
 
 class DemoRetailModel(BaseChatModel):
@@ -189,7 +190,7 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
     for name, upstream in service.catalog.items():
 
         def invoke(_name=name, **args):
-            return service.call(sid, _name, args, emit)
+            return enrich_observation(_name, service.call(sid, _name, args, emit))
 
         description = upstream.short_desc + "\n" + upstream.long_desc
         if name in service.writes:
@@ -236,6 +237,7 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
 
     prompt = (
         config.POLICY_PATH.read_text()
+        + RETAIL_REASONING_RULES
         + """
 
 APPLICATION CONTRACT (web customer-service mode):

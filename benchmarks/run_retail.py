@@ -11,6 +11,11 @@ from backend import config
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-tasks", type=int, default=2)
+    parser.add_argument(
+        "--all", action="store_true", help="Run every registered English Retail base task"
+    )
+    parser.add_argument("--task-ids", nargs="+", default=None)
+    parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--user-model", default=None)
     parser.add_argument("--judge-model", default=None)
     parser.add_argument("--max-steps", type=int, default=80)
@@ -61,9 +66,10 @@ def main():
             communicate_scoring=CommunicateScoring(
                 judge=SemanticCommunicateSettings(model=judge_model, model_args=provider_args)
             ),
-            num_tasks=args.num_tasks,
+            num_tasks=None if args.all or args.task_ids else args.num_tasks,
+            task_ids=args.task_ids,
             num_trials=1,
-            max_concurrency=1,
+            max_concurrency=args.concurrency,
             max_steps=args.max_steps,
             timeout=args.timeout,
             seed=args.seed,

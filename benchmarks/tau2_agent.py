@@ -17,6 +17,7 @@ from tau2.agent.base_agent import HalfDuplexAgent
 from tau2.data_model.message import AssistantMessage, MultiToolMessage, ToolCall, ToolMessage
 
 from backend.agent import get_model
+from backend.observations import RETAIL_REASONING_RULES, enrich_tool_content
 
 
 @dataclass
@@ -61,7 +62,9 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         self.graph = create_deep_agent(
             model=model or get_model(),
             tools=langchain_tools,
-            system_prompt=domain_policy + "\nFollow the Retail policy exactly. "
+            system_prompt=domain_policy
+            + RETAIL_REASONING_RULES
+            + "\nFollow the Retail policy exactly. "
             "Use one Retail tool per turn. Ask the customer for explicit confirmation "
             "before mutations. Do not refer to a UI or confirmation card. "
             "Use only Retail tools; no planning, files, or delegation.",
@@ -74,7 +77,9 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         if isinstance(message, ToolMessage):
             return [
                 LCToolMessage(
-                    content=message.content or "",
+                    content=enrich_tool_content(
+                        self.call_names.get(message.id), message.content or ""
+                    ),
                     tool_call_id=message.id,
                     name=self.call_names.get(message.id),
                 )
