@@ -17,7 +17,7 @@ from tau2.agent.base_agent import HalfDuplexAgent
 from tau2.data_model.message import AssistantMessage, MultiToolMessage, ToolCall, ToolMessage
 
 from backend.agent import get_model
-from backend.observations import RETAIL_REASONING_RULES, enrich_tool_content
+from backend.observations import RETAIL_REASONING_RULES, enrich_tool_content, variant_change_error
 
 
 @dataclass
@@ -55,6 +55,10 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
             if self.last.tool_calls:
                 self.last.tool_calls = self.last.tool_calls[:1]
                 self.last.content = ""
+                call = self.last.tool_calls[0]
+                error = variant_change_error(call["name"], call["args"])
+                if error:
+                    self.last = AIMessage(content=error)
             # End this graph invocation BEFORE any tool execution. Return the captured
             # original message to tau2, which supplies the real ToolMessage next turn.
             return ModelResponse(result=[AIMessage(content="External benchmark turn completed.")])

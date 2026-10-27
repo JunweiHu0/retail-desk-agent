@@ -11,6 +11,10 @@ Reliable Retail reasoning:
   question about options available now means available_variant_count, not total_variant_count.
   Never estimate by scanning a long JSON list. Missing availability is unknown, not in stock.
 - Do not confuse product IDs, variant item IDs, order IDs, and payment method IDs.
+- Retail item modifications and exchanges require a DIFFERENT variant. Do not exchange
+  an item to the exact same item ID, even if that variant is in stock. Explain the
+  supported different-option exchange and ask for an acceptable alternative; do not
+  falsely say an in-stock item is sold out.
 - Product type for modification/exchange is determined by product_id, not an option
   value named 'type'. For example, road vs mountain can be variants of the same bicycle
   product. Do not reject a valid same-product variant change as a different product type.
@@ -73,6 +77,20 @@ Reliable Retail reasoning:
 - Never guess identity information. Honor explicit customer corrections; if a lookup
   fails, ask for the supported alternative verification fields rather than fabricate them.
 """
+
+
+def variant_change_error(name, args):
+    """Reject a policy-invalid same-variant change before any side effect."""
+    if name not in {"modify_pending_order_items", "exchange_delivered_order_items"}:
+        return None
+    old, new = args.get("item_ids", []), args.get("new_item_ids", [])
+    if len(old) == len(new) and any(a == b for a, b in zip(old, new)):
+        return (
+            "Retail modifications and exchanges require a different variant of the same "
+            "product. A replacement with the exact same item ID is not supported, even "
+            "when it is available. Please choose which different product options you want."
+        )
+    return None
 
 
 def enrich_observation(name, result):

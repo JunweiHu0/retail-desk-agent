@@ -3,7 +3,14 @@ import json
 
 import pytest
 
-from backend.observations import enrich_observation, enrich_tool_content
+from backend.observations import enrich_observation, enrich_tool_content, variant_change_error
+
+
+@pytest.mark.parametrize("name", ["modify_pending_order_items", "exchange_delivered_order_items"])
+def test_same_variant_is_rejected_but_two_identical_source_items_can_change(name):
+    assert variant_change_error(name, {"item_ids": ["a"], "new_item_ids": ["a"]})
+    assert variant_change_error(name, {"item_ids": ["a", "a"], "new_item_ids": ["b", "c"]}) is None
+    assert variant_change_error(name, {"item_ids": ["a", "b"], "new_item_ids": ["c", "b"]})
 
 
 @pytest.mark.parametrize(

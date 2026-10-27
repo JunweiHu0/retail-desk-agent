@@ -12,6 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
+from backend.observations import variant_change_error
 from backend.store import encode, now
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
@@ -90,6 +91,9 @@ class RetailService:
             return
 
     def validate_write(self, name, args):
+        error = variant_change_error(name, args)
+        if error:
+            raise ValueError(error)
         if "item_ids" in args and not args["item_ids"]:
             raise ValueError("必须选择至少一件商品。")
         if "new_item_ids" in args and len(args["new_item_ids"]) != len(args["item_ids"]):

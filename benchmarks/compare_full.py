@@ -47,6 +47,7 @@ def compare(before_path, after_path):
         "- Agent：Deep Agents + deepseek-flash；用户模拟器和 NL 评分器同为 DeepSeek Flash。",
         "- 前后两轮均 seed=42、并发 3、最多 100 步、每任务 600 秒、不按失败分数重试。",
         "- 未修改官方业务工具、任务、预期答案和 reward。网页沙盒与评测数据隔离。",
+        "- 中间候选版本发现同规格换货政策回归后在 35 条停止，检查点保留在 retail-full-after-20261027；最终优化版从头重跑 114 条，不拼接中间成绩。",
         "- 不是官方 frozen leaderboard 提交；这是根据完整集失败分析后的同集回归，不是独立未见集成绩。",
         "",
         "## 前后对比",
