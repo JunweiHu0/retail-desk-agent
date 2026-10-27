@@ -19,6 +19,9 @@ def compare(before_path, after_path):
     fixed = [tid for tid in a if a[tid]["reward"] < 1 and b[tid]["reward"] == 1]
     regressed = [tid for tid in a if a[tid]["reward"] == 1 and b[tid]["reward"] < 1]
     unresolved = [tid for tid in a if a[tid]["reward"] < 1 and b[tid]["reward"] < 1]
+    fixed, regressed, unresolved = (
+        sorted(values, key=int) for values in (fixed, regressed, unresolved)
+    )
     result = {
         "date": "2026-10-27",
         "domain": "retail",
@@ -47,7 +50,7 @@ def compare(before_path, after_path):
         "- Agent：Deep Agents + deepseek-flash；用户模拟器和 NL 评分器同为 DeepSeek Flash。",
         "- 前后两轮均 seed=42、并发 3、最多 100 步、每任务 600 秒、不按失败分数重试。",
         "- 未修改官方业务工具、任务、预期答案和 reward。网页沙盒与评测数据隔离。",
-        "- 中间候选版本发现同规格换货政策回归后在 35 条停止，检查点保留在 retail-full-after-20261027；最终优化版从头重跑 114 条，不拼接中间成绩。",
+        "- 两个中间候选分别在 35 条和 76 条停止：前者补同规格政策防护，后者修正混合计划整单拒绝过严。检查点分别保存在 retail-full-after-20261027、retail-full-optimized-20261027。最终版从头跑完 114 条，不拼接中间成绩。",
         "- 不是官方 frozen leaderboard 提交；这是根据完整集失败分析后的同集回归，不是独立未见集成绩。",
         "",
         "## 前后对比",
@@ -59,6 +62,8 @@ def compare(before_path, after_path):
         f"| 成功率 | {before['passed'] / n:.1%} | {after['passed'] / n:.1%} |",
         f"| 最终数据库状态匹配 | {before['db_matches']}/{n} | {after['db_matches']}/{n} |",
         f"| 平均对话执行耗时（不含后置评分） | {sum(r['duration'] for r in a.values()) / n:.1f}s | {sum(r['duration'] for r in b.values()) / n:.1f}s |",
+        "",
+        f"净增加 {after['passed'] - before['passed']} 条通过；提升 {(after['passed'] - before['passed']) / n * 100:.2f} 个百分点。修复与回退同时存在，属于小幅净改善，不能视为稳定的大幅提升。保持 dev 实验分支，不合入 main。",
         "",
         f"修复任务：{', '.join(fixed) or '无'}。",
         "",
@@ -108,6 +113,7 @@ def compare(before_path, after_path):
     lines += [
         "## 解释限制",
         "",
+        "仍有真实 Agent 错误，例如未严格执行备选偏好、漏掉可查询地址、把 17.99 口头说成 18.00，不能将所有失败都归因于数据或评分器。",
         "用户模拟器、模型与评分器仍有随机性。部分任务会出现用户明确选择/规格要求与预设写操作不一致，或订单数据缺乏日期却要求判定最近订单。",
         "这些失败保留官方原分，不通过猜测未暴露信息、硬编码任务答案、强制改写用户选择来提升分数。",
         "额外人工/安全 LLM 复审未运行，不能将空复审统计当作零问题。DeepSeek 的费用映射缺失，成本为不可用，不视作免费。",
@@ -117,6 +123,8 @@ def compare(before_path, after_path):
         f"- 基线：`{before['source']}`",
         f"- 优化后：`{after['source']}`",
         "- 完整逐任务汇总：[JSON](retail-full-20261027.json)。",
+        "- [失败审查与候选回归](retail-full-audit-20261027.md)。",
+        "- [原始轨迹与检查点 ZIP](retail-full-20261027.zip)。",
         "- 两轮完整对话和官方 reward_info 保留在上述 runtime/benchmarks 目录。",
         "",
     ]

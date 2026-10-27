@@ -148,6 +148,15 @@ uv run --frozen python -m benchmarks.run_retail --num-tasks 2 \
 
 ## 测试
 
+最新完整 Retail 评测覆盖 114 条任务、每条 1 次：基线 96/114（84.2%），修正版 98/114（86.0%），净提升 1.75 个百分点。13 条修复、11 条回退，数据库状态匹配均为 101/114；收益有限，保留为 dev 实验版本，没有合入稳定 main。
+
+[完整前后对比、全部失败与原始轨迹](docs/reports/retail-full-20261027.md)。确定性统计、政策校验、无变化项归一化等共 34 项测试通过。
+
+```bash
+uv run --frozen python -m benchmarks.run_retail --all --concurrency 3 \
+  --max-steps 100 --timeout 600 --seed 42 --save-to /absolute/path/to/new-run
+```
+
 2026-10-27 已新增 6 个客户和 18 笔订单，写入网页 SQLite，并完成首轮 5 个官方 Retail 任务：3/5 通过，数据库状态 5/5 匹配。两个失败项为可用商品规格计数错误；这是 DeepSeek 用户模拟器 / 评分器配置下的小样本基线。
 
 - [客户与订单清单](docs/demo-customers.json)
