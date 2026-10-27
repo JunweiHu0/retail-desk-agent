@@ -12,7 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
-from backend.observations import variant_change_error
+from backend.observations import normalize_variant_changes, variant_change_error
 from backend.store import encode, now
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
@@ -112,6 +112,7 @@ class RetailService:
                 if name not in self.catalog:
                     raise ValueError("Unknown retail tool")
                 args = self.catalog[name].params.model_validate(args).model_dump()
+                args = normalize_variant_changes(name, args)
                 self.authorize(session, db, name, args)
                 tools = RetailTools(db).get_tools()
                 if name in self.writes:

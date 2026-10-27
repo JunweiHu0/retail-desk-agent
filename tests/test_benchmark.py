@@ -1,5 +1,7 @@
 import json
 
+from langchain_core.messages import AIMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
 from tau2.data_model.message import ToolMessage, UserMessage
 
 from backend.agent import DemoRetailModel
@@ -54,3 +56,80 @@ def test_model_enrichment_keeps_official_tool_message_unchanged(service):
     assert original.content == text
     assert "_computed" not in json.loads(original.content)
     assert json.loads(converted.content)["_computed"]["available_variant_count"] == 1
+
+
+def test_benchmark_never_emits_same_variant_mutation(service):
+    class SameVariantModel(DemoRetailModel):
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[
+                                {
+                                    "id": "invalid-same",
+                                    "name": "exchange_delivered_order_items",
+                                    "args": {
+                                        "order_id": "#W0000000",
+                                        "item_ids": ["same"],
+                                        "new_item_ids": ["same"],
+                                        "payment_method_id": "method",
+                                    },
+                                }
+                            ],
+                        )
+                    )
+                ]
+            )
+
+    adapter = DeepRetailAgent(
+        list(service.catalog.values()), "Retail policy", model=SameVariantModel()
+    )
+    output, state = adapter.generate_next_message(
+        UserMessage(role="user", content="Replace this with the exact same variant"),
+        adapter.get_init_state(),
+    )
+    assert not output.tool_calls
+    assert "different variant" in output.content
+    assert not state.messages[-1].tool_calls
+
+
+def test_benchmark_emits_only_real_changes_for_a_mixed_plan(service):
+    class MixedPlanModel(DemoRetailModel):
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[
+                                {
+                                    "id": "mixed",
+                                    "name": "modify_pending_order_items",
+                                    "args": {
+                                        "order_id": "order",
+                                        "item_ids": ["old", "keep"],
+                                        "new_item_ids": ["new", "keep"],
+                                        "payment_method_id": "chosen",
+                                    },
+                                }
+                            ],
+                        )
+                    )
+                ]
+            )
+
+    adapter = DeepRetailAgent(
+        list(service.catalog.values()), "Retail policy", model=MixedPlanModel()
+    )
+    output, _ = adapter.generate_next_message(
+        UserMessage(role="user", content="Apply my confirmed plan"), adapter.get_init_state()
+    )
+    args = output.tool_calls[0].arguments
+    assert args == {
+        "order_id": "order",
+        "item_ids": ["old"],
+        "new_item_ids": ["new"],
+        "payment_method_id": "chosen",
+    }

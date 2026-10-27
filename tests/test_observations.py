@@ -3,7 +3,29 @@ import json
 
 import pytest
 
-from backend.observations import enrich_observation, enrich_tool_content, variant_change_error
+from backend.observations import (
+    enrich_observation,
+    enrich_tool_content,
+    normalize_variant_changes,
+    variant_change_error,
+)
+
+
+@pytest.mark.parametrize("name", ["modify_pending_order_items", "exchange_delivered_order_items"])
+def test_mixed_noop_plan_keeps_real_changes_quantity_and_payment(name):
+    args = {
+        "item_ids": ["a", "a", "keep"],
+        "new_item_ids": ["b", "c", "keep"],
+        "payment_method_id": "chosen",
+        "order_id": "order",
+    }
+    original = copy.deepcopy(args)
+    actual = normalize_variant_changes(name, args)
+    assert args == original
+    assert actual == {**args, "item_ids": ["a", "a"], "new_item_ids": ["b", "c"]}
+    assert variant_change_error(name, actual) is None
+    pure = {"item_ids": ["keep"], "new_item_ids": ["keep"]}
+    assert variant_change_error(name, normalize_variant_changes(name, pure))
 
 
 @pytest.mark.parametrize("name", ["modify_pending_order_items", "exchange_delivered_order_items"])

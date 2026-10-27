@@ -17,7 +17,12 @@ from tau2.agent.base_agent import HalfDuplexAgent
 from tau2.data_model.message import AssistantMessage, MultiToolMessage, ToolCall, ToolMessage
 
 from backend.agent import get_model
-from backend.observations import RETAIL_REASONING_RULES, enrich_tool_content, variant_change_error
+from backend.observations import (
+    RETAIL_REASONING_RULES,
+    enrich_tool_content,
+    normalize_variant_changes,
+    variant_change_error,
+)
 
 
 @dataclass
@@ -56,6 +61,7 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
                 self.last.tool_calls = self.last.tool_calls[:1]
                 self.last.content = ""
                 call = self.last.tool_calls[0]
+                call["args"] = normalize_variant_changes(call["name"], call["args"])
                 error = variant_change_error(call["name"], call["args"])
                 if error:
                     self.last = AIMessage(content=error)
