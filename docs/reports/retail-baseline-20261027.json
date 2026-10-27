@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-27",
+  "agent": "deepseek-flash",
+  "user_simulator": "openai/deepseek-flash",
+  "nl_judge": "openai/deepseek-flash",
+  "configured_seed": 42,
+  "num_trials": 1,
+  "sample_selection": "first five English Retail base tasks, IDs 0-4; not a random representative sample",
+  "task_count": 5,
+  "passed": 3,
+  "success_rate": 0.6,
+  "db_matches": 5,
+  "read_action_matches": {
+    "matched": 37,
+    "expected": 40
+  },
+  "write_action_matches": {
+    "matched": 6,
+    "expected": 6
+  },
+  "mean_conversation_duration_seconds": 18.834887500398327,
+  "cost_usd": null,
+  "cost_note": "Provider cost unavailable; do not interpret a zero fallback as free usage.",
+  "rows": [
+    {
+      "task_id": "0",
+      "reward": 1.0,
+      "db_match": true,
+      "duration_seconds": 17.746434830998624,
+      "tool_calls": 5,
+      "trial_seed": 670487,
+      "termination": "user_stop",
+      "first_tool": "find_user_id_by_name_zip",
+      "scenario": "You received your order #W2378156 and wish to exchange the mechanical keyboard for the same one but with clicky switches and the smart thermostat for one compatible with Google Home instead of Apple HomeKit. If there is no keyboard that is clicky, RGB backlight, full size, you'd go for no backlight.",
+      "failed_assertions": []
+    },
+    {
+      "task_id": "1",
+      "reward": 1.0,
+      "db_match": true,
+      "duration_seconds": 14.606497921999107,
+      "tool_calls": 5,
+      "trial_seed": 670487,
+      "termination": "user_stop",
+      "first_tool": "find_user_id_by_name_zip",
+      "scenario": "You received your order #W2378156 and wish to exchange the mechanical keyboard for the same one but with clicky switches and the smart thermostat for one compatible with Google Home instead of Apple HomeKit. If there is no keyboard that is clicky, RGB backlight, full size, you'd rather only exchange the thermostat.",
+      "failed_assertions": []
+    },
+    {
+      "task_id": "2",
+      "reward": 1.0,
+      "db_match": true,
+      "duration_seconds": 20.26076605399794,
+      "tool_calls": 10,
+      "trial_seed": 670487,
+      "termination": "user_stop",
+      "first_tool": "find_user_id_by_name_zip",
+      "scenario": "You want to know exactly how many tshirt options are available in the online store right now. You want to also return the cleaner, headphone, and smart watch.",
+      "failed_assertions": []
+    },
+    {
+      "task_id": "3",
+      "reward": 0.0,
+      "db_match": true,
+      "duration_seconds": 20.04905192499791,
+      "tool_calls": 10,
+      "trial_seed": 670487,
+      "termination": "user_stop",
+      "first_tool": "find_user_id_by_name_zip",
+      "scenario": "You want to know exactly how many tshirt options are available in the online store right now. You want to modify all your pending small tshirt to purple, same size, same v-neck, and prefer polyester.",
+      "failed_assertions": [
+        {
+          "nl_assertion": "Agent should tell the user that there are 10 t-shirt options available.",
+          "met": false,
+          "justification": "The agent stated there are 12 variant options in total, not 10. Therefore, the expected outcome is not met."
+        }
+      ]
+    },
+    {
+      "task_id": "4",
+      "reward": 0.0,
+      "db_match": true,
+      "duration_seconds": 21.51168676999805,
+      "tool_calls": 11,
+      "trial_seed": 670487,
+      "termination": "user_stop",
+      "first_tool": "find_user_id_by_name_zip",
+      "scenario": "You want to know exactly how many tshirt options are available in the online store right now. You want to modify all your pending tshirts to purple, s size, same v-neck, and prefer polyester.",
+      "failed_assertions": [
+        {
+          "nl_assertion": "Agent should tell the user that there are 10 t-shirt options available.",
+          "met": false,
+          "justification": "The agent told the user there are 12 total t-shirt variants and 11 available, not 10. Therefore, the expected outcome is not met."
+        }
+      ]
+    }
+  ]
+}

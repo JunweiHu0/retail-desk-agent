@@ -148,6 +148,13 @@ uv run --frozen python -m benchmarks.run_retail --num-tasks 2 \
 
 ## 测试
 
+2026-10-27 已新增 6 个客户和 18 笔订单，写入网页 SQLite，并完成首轮 5 个官方 Retail 任务：3/5 通过，数据库状态 5/5 匹配。两个失败项为可用商品规格计数错误；这是 DeepSeek 用户模拟器 / 评分器配置下的小样本基线。
+
+- [客户与订单清单](docs/demo-customers.json)
+- [逐任务评测与失败分析](docs/reports/retail-baseline-20261027.md)
+- 示例邮箱：`li.ming@retail-demo.example.com`，订单：`#W9000001`、`#W9000002`、`#W9000003`。
+- `uv run --frozen python -m scripts.seed_demo --apply` 可重复追加演示数据，不会覆盖已有订单变更。
+
 ```bash
 uv run --frozen pytest -q
 uv run --frozen ruff check backend benchmarks tests

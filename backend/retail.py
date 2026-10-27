@@ -251,8 +251,12 @@ class RetailService:
         with self.store.tx() as cx:
             data = self.store.dataset(cx)
             samples = []
+            candidates = sorted(
+                data["orders"].values(),
+                key=lambda order: (not order["user_id"].startswith("demo_"), order["order_id"]),
+            )
             for status in ("pending", "delivered", "processed"):
-                order = next((o for o in data["orders"].values() if o["status"] == status), None)
+                order = next((o for o in candidates if o["status"] == status), None)
                 if order:
                     user = data["users"][order["user_id"]]
                     samples.append(

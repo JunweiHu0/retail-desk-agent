@@ -5,6 +5,7 @@ never invokes those tools locally or touches the web application's SQLite databa
 """
 
 from dataclasses import dataclass, field
+from time import perf_counter
 
 from deepagents import create_deep_agent
 from langchain.agents.middleware import wrap_model_call
@@ -96,6 +97,7 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
 
     def generate_next_message(self, message, state):
         state.messages.extend(self.convert(message))
+        started = perf_counter()
         self.graph.invoke({"messages": state.messages}, config={"recursion_limit": 15})
         original = self.last
         self.call_names.update({t["id"]: t["name"] for t in original.tool_calls})
@@ -111,6 +113,13 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
                 for t in original.tool_calls
             ]
             or None,
+            usage={
+                "prompt_tokens": original.usage_metadata["input_tokens"],
+                "completion_tokens": original.usage_metadata["output_tokens"],
+            }
+            if original.usage_metadata
+            else None,
+            generation_time_seconds=perf_counter() - started,
         )
         return output, state
 
