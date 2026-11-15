@@ -1,6 +1,13 @@
+import os
+
 import pytest
 
-from backend.retail import RetailService
+# Tests exercise the offline demo model. A developer's .env may set
+# AGENT_MODE=live; set this before backend.config is imported (dotenv never
+# overrides an existing variable).
+os.environ.setdefault("AGENT_MODE", "demo")
+
+from backend.retail import RetailService  # noqa: E402
 from backend.store import Store
 
 

@@ -82,6 +82,20 @@ cp deploy/tacc/env.example deploy/tacc/env    # 填 SSH 账号/私钥
 
 细节、排错表、时限与合规说明见 [`tacc/README.md`](tacc/README.md)。
 
+## 看 infra：/infra 面板
+
+应用自带一个 infra 页面，和 agent 同一个端口，不需要额外开作业或端口：
+
+- 本地：`http://127.0.0.1:8000/infra/`
+- TACC：走已有的隧道，`http://localhost:8080/infra/`
+
+页面分两块：上半屏是 vLLM 引擎的实时序列（服务端每 2 s 采样 `/metrics` 并算窗口增量，
+所以能看到 **TPOT**、解码吞吐、TTFT、排队、KV 占用和前缀命中率）；下半屏是每次进程运行的
+落盘记录（`turn → model call → tool call`），用来对比两次配置。
+
+运行记录默认写到 `runtime/infra/<run_id>/`；TACC 上写在
+`$TACC_USERDIR/retail-agent/infra/<run_id>/`，作业结束后仍可回看。要换位置就设 `INFRA_DIR`。
+
 ## 目录
 
 ```

@@ -63,6 +63,10 @@ fi
 # SQLite on NFS is slow and WAL-unfriendly; the session DB is disposable.
 export TAU2_ROOT="$ROOT/tau2-bench"
 export RETAIL_DB_PATH="${RETAIL_DB_PATH:-/tmp/retail-agent-$SLURM_JOB_ID.sqlite3}"
+# Per-run telemetry survives the job (small JSONL), so the /infra page can show
+# this run after the fact. The model endpoint is read server-side, no key leaks.
+export INFRA_DIR="${INFRA_DIR:-$ROOT/infra}"
+export INFRA_TAGS="${INFRA_TAGS:-tacc}"
 export AGENT_MODE MODEL_NAME MODEL_API_KEY
 export MODEL_BASE_URL="$SERVER_URL"
 export HOST=0.0.0.0 PORT

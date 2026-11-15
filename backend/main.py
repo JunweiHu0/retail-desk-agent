@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import config
+from backend import config, infra
 from backend.agent import AgentRunner
 from backend.retail import RetailService
 from backend.store import Store
@@ -163,6 +163,12 @@ def create_app(store=None):
             except (ValueError, PermissionError) as exc:
                 raise HTTPException(409, str(exc)) from None
         return {"receipt": receipt, "session": snapshot(sid)}
+
+    app.include_router(infra.router)
+
+    web = config.ROOT / "web"
+    if (web / "infra/index.html").is_file():
+        app.mount("/infra", StaticFiles(directory=web / "infra", html=True), name="infra")
 
     dist = config.ROOT / "frontend/dist"
     if dist.is_dir():

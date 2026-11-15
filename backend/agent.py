@@ -2,6 +2,7 @@
 
 import json
 import re
+import time
 import uuid
 from typing import Any
 
@@ -20,7 +21,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
-from backend import config
+from backend import config, telemetry
 
 
 class DemoRetailModel(BaseChatModel):
@@ -182,7 +183,7 @@ def get_model():
     )
 
 
-def build_agent(service, sid, emit=lambda event: None, model=None):
+def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
     tools = []
     for name, upstream in service.catalog.items():
 
@@ -225,7 +226,22 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
                 ]
             )
         # Keep Deep Agents orchestration but expose only Retail business tools.
+        started = time.perf_counter()
         response = handler(request.override(tools=[t for t in request.tools if t.name in allowed]))
+        if rec is not None:
+            usage, finish, calls = {}, None, []
+            for message in response.result:
+                usage = getattr(message, "usage_metadata", None) or usage
+                meta = getattr(message, "response_metadata", None) or {}
+                finish = meta.get("finish_reason") or finish
+                calls += [c.get("name") for c in (getattr(message, "tool_calls", None) or [])]
+            rec.model_call(
+                (time.perf_counter() - started) * 1000,
+                usage.get("input_tokens"),
+                usage.get("output_tokens"),
+                finish,
+                calls,
+            )
         for message in response.result:
             if isinstance(message, AIMessage) and message.tool_calls:
                 message.tool_calls = message.tool_calls[:1]
@@ -277,10 +293,22 @@ class AgentRunner:
                 cx, sid, messages=ui, title=session["title"] if session["messages"] else text[:30]
             )
             history = messages_from_dict(session["history"])
-        graph = build_agent(self.service, sid, emit, model)
-        result = graph.invoke(
-            {"messages": history + [HumanMessage(content=text)]}, config={"recursion_limit": 60}
-        )
+        rec = telemetry.recorder().start_turn(sid, text)
+
+        def recording_emit(event):
+            if isinstance(event, dict) and event.get("type") == "tool_end":
+                rec.tool(event.get("name"), event.get("duration_ms"), event.get("ok", True))
+            emit(event)
+
+        graph = build_agent(self.service, sid, recording_emit, model, rec)
+        try:
+            result = graph.invoke(
+                {"messages": history + [HumanMessage(content=text)]}, config={"recursion_limit": 60}
+            )
+        except Exception as exc:
+            rec.error = type(exc).__name__
+            rec.finish()
+            raise
         messages = result["messages"]
         last = next(
             (m for m in reversed(messages) if isinstance(m, AIMessage) and not m.tool_calls), None
@@ -299,6 +327,7 @@ class AgentRunner:
                 messages=current["messages"]
                 + [{"id": uuid.uuid4().hex, "role": "assistant", "content": str(content)}],
             )
+        rec.finish(str(content))
         return str(content)
 
     def decide(self, sid, action_id, approve):
