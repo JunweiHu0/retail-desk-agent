@@ -1,0 +1,12 @@
+# Runtime dependencies of the app, pinned to what was verified on TACC.
+# Installed into a node-local venv, then shipped to $TACC_USERDIR as ONE tarball.
+# tau2 is installed separately by job.sh: it is not on PyPI (the PyPI `tau2`
+# is a materials-science package with the same name) and needs the GitHub commit.
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+python-dotenv==1.2.4
+deepagents==0.7.32
+langchain==1.4.7
+langchain-core==1.7.0
+langchain-openai==1.7.2

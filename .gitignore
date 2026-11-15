@@ -10,3 +10,6 @@ test-results/
 *.log
 *.tsbuildinfo
 frontend/playwright-report/
+deploy/tacc/env
+deploy/tacc/.run/
+deploy/tacc/.stage/
