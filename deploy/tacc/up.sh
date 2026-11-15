@@ -67,6 +67,25 @@ render_serve_conf() {
     fi
 }
 
+# The agent job does not care about GPU memory, so it keeps its own list: a
+# node whose view of the shared course env is broken fails stdlib imports and
+# must be retried elsewhere without poisoning the serve exclusions.
+render_agent_conf() {
+    local conf="$STAGE/agent/tuxiv.conf" excludes
+    excludes=$(
+        {
+            printf '%s\n' "${AGENT_EXCLUDE:-}" | tr ',' '\n'
+            cat "$STATE/agent_exclude" 2>/dev/null || true
+        } | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort -u | paste -sd, -
+    )
+    printf '%s\n' "$excludes" | tr ',' '\n' | sed '/^$/d' > "$STATE/agent_exclude"
+    if [ -n "$excludes" ]; then
+        sed "s/__EXCLUDE__/${excludes}/" "$TACC_DIR/agent/tuxiv.conf" > "$conf"
+    else
+        grep -v '^    - exclude=' "$TACC_DIR/agent/tuxiv.conf" > "$conf"
+    fi
+}
+
 stage_app() {
     local dest="$STAGE/agent/app"
     rm -rf "$dest"
@@ -101,6 +120,7 @@ stage_job setup "$TACC_DIR/setup" >/dev/null
 stage_job serve "$TACC_DIR/serve" >/dev/null
 stage_job agent "$TACC_DIR/agent" >/dev/null
 render_serve_conf
+render_agent_conf
 ensure_frontend_dist
 stage_app
 log "staged under $STAGE"
@@ -202,6 +222,21 @@ while :; do
         job_running "$agent_id" && "$TCLOUD" cancel -j "$agent_id" >/dev/null 2>&1 || true
         AGENT_PORT=$((AGENT_PORT + 1))
         log "port ${AGENT_PORT-1} is taken on that node; retrying on $AGENT_PORT"
+        continue
+    fi
+    # Seen on a partly broken node: stdlib imports (ast, typing) fail inside the
+    # proot even though the same files read fine moments later elsewhere. Retry
+    # on another node instead of burning the whole deployment on it.
+    if cat_log "$STAGE/agent" "$agent_log" | grep -qE 'ModuleNotFoundError|ImportError'; then
+        node=$(cat_log "$STAGE/agent" "$agent_log" | sed -n 's/^NODE=//p' | head -1)
+        job_running "$agent_id" && "$TCLOUD" cancel -j "$agent_id" >/dev/null 2>&1 || true
+        if [ -n "$node" ]; then
+            printf '%s\n' "$node" >> "$STATE/agent_exclude"
+            log "stdlib imports failed on $node; excluding it and retrying"
+        else
+            log "stdlib imports failed before the node was reported; retrying"
+        fi
+        render_agent_conf
         continue
     fi
     die "agent failed; see $agent_log"
