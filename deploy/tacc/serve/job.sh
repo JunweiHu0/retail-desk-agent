@@ -24,9 +24,35 @@ PORT="${PORT:-8000}"
 ROOT="$TACC_USERDIR/retail-agent"
 URL_FILE="$ROOT/server-url.txt"
 
+# Node port 8000 is shared with everyone else on the machine; someone else's
+# leftover can be sitting on it. Walk up to the first free port instead of
+# dying with "Address already in use".
+port_busy() {
+    (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -qE ":$1[[:space:]]"
+}
+port_try=0
+while port_busy "$PORT"; do
+    printf 'PORT_BUSY %s on %s\n' "$PORT" "$(hostname)"
+    PORT=$((PORT + 1))
+    port_try=$((port_try + 1))
+    if [ "$port_try" -ge 10 ]; then
+        printf 'no free port in %s..+9\n' "${PORT}" >&2
+        exit 1
+    fi
+done
+
 mkdir -p "$ROOT"
 # Slurm node names look like 10-0-1-11; peers reach the node as 10.0.1.11.
-IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+# The job runs inside the course's proot container, so `hostname -I` also lists
+# the container bridge (172.17.0.2) and the order is not stable — take the
+# cluster address, and fall back to converting the node name itself.
+node_ip() {
+    local ip
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^10\.' | head -1)
+    [ -n "$ip" ] || ip=$(hostname 2>/dev/null | sed -nE 's/^([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)$/\1.\2.\3.\4/p')
+    printf '%s' "$ip"
+}
+IP=$(node_ip)
 HOST="${IP:-$(hostname)}"
 printf '%s\n' "http://${HOST}:${PORT}/v1" > "$URL_FILE.tmp"
 mv -f "$URL_FILE.tmp" "$URL_FILE"

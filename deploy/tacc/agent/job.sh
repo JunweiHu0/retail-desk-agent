@@ -108,7 +108,20 @@ if [ "$ready" != 1 ]; then
     exit 1
 fi
 
-IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+# The job runs inside the course's proot container; `hostname -I` may list the
+# 172.17.0.2 bridge first, which nobody outside can reach. Falls back to the
+# node name (10-0-1-11 -> 10.0.1.11), which is what serve does too.
+node_ip() {
+    local ip
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^10\.' | head -1)
+    [ -n "$ip" ] || ip=$(hostname 2>/dev/null | sed -nE 's/^([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)$/\1.\2.\3.\4/p')
+    printf '%s' "$ip"
+}
+IP=$(node_ip)
+[ -n "$IP" ] || {
+    printf 'could not determine the node IP (hostname -I: %s)\n' "$(hostname -I 2>/dev/null)" >&2
+    exit 1
+}
 printf 'RETAIL_IP=%s\n' "$IP"
 printf 'RETAIL_PORT=%s\n' "$PORT"
 printf 'RETAIL_URL=http://%s:%s\n' "$IP" "$PORT"

@@ -76,20 +76,36 @@ my_running_count() {
 
 # submit_job <job-dir>: prints the job id; tcloud output goes to stderr.
 submit_job() {
-    local dir=$1 out id
-    out=$(cd "$dir" && "$TCLOUD" submit 2>&1) || {
+    local dir=$1 out id attempt=1
+    while :; do
+        # tcloud mixes progress bars/NULs into its output; strip them before parsing.
+        out=$( { cd "$dir" && "$TCLOUD" submit; } 2>&1 | tr -d '\0') || true
+        id=$(printf '%s\n' "$out" | sed -n 's/.*[Ss]ubmitted[^0-9]*\([0-9][0-9]*\).*/\1/p' | tail -1)
+        if [ -n "$id" ]; then
+            printf '%s\n' "$out" >&2
+            printf '%s\n' "$id"
+            return 0
+        fi
+        # Laptop-side DNS/network hiccups ("Failed to dial ... lookup
+        # gw.turing.ust.hk") abort before any job exists; retry those.
+        if printf '%s' "$out" | grep -qE 'Failed to dial|Failed to create remote session'; then
+            if [ "$attempt" -lt 3 ]; then
+                printf 'submit: transient network error, retrying (%s/3)\n' "$attempt" >&2
+                attempt=$((attempt + 1))
+                sleep 10
+                continue
+            fi
+        fi
         printf '%s\n' "$out" >&2
         return 1
-    }
-    printf '%s\n' "$out" >&2
-    id=$(printf '%s\n' "$out" | sed -n 's/.*[Ss]ubmitted[^0-9]*\([0-9][0-9]*\).*/\1/p' | tail -1)
-    [ -n "$id" ] || return 1
-    printf '%s\n' "$id"
+    done
 }
 
 cat_log() {
     local dir=$1 file=$2
-    (cd "$dir" && "$TCLOUD" cat "$file" 2>/dev/null) || true
+    # tcloud writes CRLF here; a stray \r in a parsed value (e.g. a node name)
+    # breaks later sed/grep use. Strip it at the source.
+    (cd "$dir" && "$TCLOUD" cat "$file" 2>/dev/null | tr -d '\r') || true
 }
 
 # wait_log <job-dir> <logfile> <timeout-s> <extended-regex> [<label>]

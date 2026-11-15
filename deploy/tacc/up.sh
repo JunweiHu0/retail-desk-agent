@@ -27,7 +27,7 @@ AGENT_BASE_PORT="$AGENT_PORT"
 SETUP_TIMEOUT=${SETUP_TIMEOUT:-1900}
 SERVE_START_TIMEOUT=${SERVE_START_TIMEOUT:-900}
 AGENT_START_TIMEOUT=${AGENT_START_TIMEOUT:-300}
-MAX_SERVE_TRIES=3
+MAX_SERVE_TRIES=4
 MAX_AGENT_TRIES=3
 
 # ---------------------------------------------------------------- preflight
@@ -51,16 +51,20 @@ stage_job() {  # stage_job <name> <source-dir>
 
 render_serve_conf() {
     local conf="$STAGE/serve/tuxiv.conf" excludes
-    excludes="$EXCLUDE"
-    if [ -f "$STATE/exclude" ]; then
-        excludes=$(printf '%s,%s' "$EXCLUDE" "$(cat "$STATE/exclude")" | sed 's/^,//')
-    fi
+    # Merge env EXCLUDE with nodes learned from earlier CUDA OOMs; dedupe so a
+    # node is only listed once no matter how often it failed.
+    excludes=$(
+        {
+            printf '%s\n' "$EXCLUDE" | tr ',' '\n'
+            cat "$STATE/exclude" 2>/dev/null || true
+        } | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort -u | paste -sd, -
+    )
+    printf '%s\n' "$excludes" | tr ',' '\n' | sed '/^$/d' > "$STATE/exclude"
     if [ -n "$excludes" ]; then
         sed "s/__EXCLUDE__/${excludes}/" "$TACC_DIR/serve/tuxiv.conf" > "$conf"
     else
         grep -v '^    - exclude=' "$TACC_DIR/serve/tuxiv.conf" > "$conf"
     fi
-    printf '%s\n' "$excludes" > "$STATE/exclude.current"
 }
 
 stage_app() {
