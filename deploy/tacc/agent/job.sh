@@ -30,10 +30,17 @@ test -f "$ROOT/tau2-bench/data/tau2/domains/retail/db.json" || {
 if [ ! -x "$VENV/bin/python" ]; then
     export VENV_TGZ="$ROOT/venv.tgz"
     VENV="/tmp/retail-venv-$SLURM_JOB_ID"
-    rm -rf "$VENV"
+    # /tmp is shared by every user on the node. Extracting to the tarball's
+    # own top-level name lands in a fixed path that another job may already
+    # own (tar then dies with "File exists" / "Cannot utime"), so unpack into
+    # a directory only this job can name.
+    UNPACK="/tmp/retail-unpack-$SLURM_JOB_ID"
+    rm -rf "$VENV" "$UNPACK"
+    mkdir -p "$UNPACK"
     printf 'EXTRACT_BEGIN %s\n' "$VENV"
-    tar -C /tmp -xzf "$VENV_TGZ"
-    mv /tmp/retail-venv "$VENV"
+    tar -C "$UNPACK" -xzf "$VENV_TGZ"
+    mv "$UNPACK/retail-venv" "$VENV"
+    rmdir "$UNPACK"
     printf 'EXTRACT_DONE\n'
 fi
 

@@ -14,16 +14,43 @@ QWEN_ACTIVATE=${QWEN_ACTIVATE:-/mnt/home/public/course-envs/CSIT6000V/project/ac
 source "$QWEN_ACTIVATE"
 
 ROOT="$TACC_USERDIR/retail-agent"
-VENV=/tmp/retail-venv
+# /tmp is shared across users on the node, so never build into a fixed path:
+# another job may already own /tmp/retail-venv and tar would refuse to write.
+VENV="/tmp/retail-venv-${SLURM_JOB_ID}"
+DATA_DIR="$ROOT/tau2-bench/data/tau2/domains/retail"
 TAU2_COMMIT=0c69df456a96aa76a1162591574dad9c427a34d7
 TAU2_URL="https://github.com/sierra-research/tau2-bench/archive/${TAU2_COMMIT}.tar.gz"
 REQ="$TACC_WORKDIR/requirements.txt"
 
 mkdir -p "$ROOT"
 
-# Reuse an existing venv when the pinned requirements have not changed.
+fetch_data() {
+    qwen-python - "$TAU2_COMMIT" <<'PY'
+import os, ssl, sys, urllib.request, certifi
+commit = sys.argv[1]
+base = f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{commit}/data/tau2/domains/retail/"
+out = os.path.join(os.environ["TACC_USERDIR"], "retail-agent", "tau2-bench",
+                   "data", "tau2", "domains", "retail")
+os.makedirs(out, exist_ok=True)
+ctx = ssl.create_default_context(cafile=certifi.where())
+for name in ("db.json", "policy.md", "tasks.json", "split_tasks.json"):
+    path = os.path.join(out, name)
+    with urllib.request.urlopen(base + name, timeout=60, context=ctx) as r:
+        data = r.read()
+    with open(path, "wb") as f:
+        f.write(data)
+    print("DATA", name, len(data))
+PY
+}
+
+# Reuse an existing venv when the pinned requirements have not changed. The
+# data check lives here too: skipping the build must not skip a missing dataset.
 STAMP=$(sha256sum "$REQ" | cut -c1-16)
 if [ -f "$ROOT/venv.tgz" ] && [ "$(cat "$ROOT/venv.stamp" 2>/dev/null || true)" = "$STAMP" ]; then
+    if [ ! -f "$DATA_DIR/db.json" ]; then
+        printf 'DATA_BEGIN\n'
+        fetch_data
+    fi
     printf 'SETUP_SKIP %s\n' "$STAMP"
     printf 'SETUP_DONE\n'
     exit 0
@@ -73,28 +100,14 @@ PY
 
 printf 'TAR_BEGIN\n'
 du -sh "$VENV" || true
-tar -C /tmp -cf - retail-venv | gzip -1 > "$ROOT/venv.tgz.tmp"
+tar -C /tmp -cf - --transform "s#^retail-venv-${SLURM_JOB_ID}#retail-venv#" \
+    "retail-venv-${SLURM_JOB_ID}" | gzip -1 > "$ROOT/venv.tgz.tmp"
 mv -f "$ROOT/venv.tgz.tmp" "$ROOT/venv.tgz"
 printf '%s\n' "$STAMP" > "$ROOT/venv.stamp"
 ls -lh "$ROOT/venv.tgz"
 printf 'TAR_DONE\n'
 
 printf 'DATA_BEGIN\n'
-venv_py - "$TAU2_COMMIT" <<'PY'
-import os, ssl, sys, urllib.request, certifi
-commit = sys.argv[1]
-base = f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{commit}/data/tau2/domains/retail/"
-out = os.path.join(os.environ["TACC_USERDIR"], "retail-agent", "tau2-bench",
-                   "data", "tau2", "domains", "retail")
-os.makedirs(out, exist_ok=True)
-ctx = ssl.create_default_context(cafile=certifi.where())
-for name in ("db.json", "policy.md", "tasks.json", "split_tasks.json"):
-    path = os.path.join(out, name)
-    with urllib.request.urlopen(base + name, timeout=60, context=ctx) as r:
-        data = r.read()
-    with open(path, "wb") as f:
-        f.write(data)
-    print("DATA", name, len(data))
-PY
+fetch_data
 
 printf 'SETUP_DONE\n'
