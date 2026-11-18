@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-PLANNER_VERSION = "explicit-task-plan-v1"
+PLANNER_VERSION = "explicit-task-plan-v2"
 WRITE_NAMES = (
     "cancel_pending_order",
     "exchange_delivered_order_items",
@@ -39,7 +39,6 @@ class TaskDraft(BaseModel):
     ]
     request: str = Field(min_length=1)
     source_message_id: str
-    source_quote: str = Field(min_length=1, max_length=120)
     scope: Literal["single", "all_orders", "all_pending_orders", "all_delivered_orders"]
     object_id: str
     arguments: list[Argument]
@@ -92,7 +91,6 @@ class Supersession(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: str
     source_message_id: str
-    source_quote: str = Field(min_length=1, max_length=120)
 
 
 class PlanDelta(BaseModel):
@@ -103,10 +101,9 @@ class PlanDelta(BaseModel):
 
 PLANNER_PROMPT = """Extract/update the customer's retail tasks. This is planning only, not execution.
 Return the required JSON object. Never claim execution or approval. No business tools are available.
-Preserve every unfinished request. Use the customer messages as intent evidence, with exact message
-id and a short exact quote (5-12 verbatim words, at most 120 characters). Do not reproduce
-embedded address JSON in the quote; copy a short plain-text action phrase instead. Facts and
-identifiers may come from public context or observed tools.
+Preserve every unfinished request. Use the exact customer message ID as intent evidence.
+The application attaches the original text by that ID; do not copy or rewrite source quotations.
+Facts and identifiers may come from public context or observed tools.
 Use existing task IDs as keys when updating a task; new tasks need distinct descriptive keys.
 Omit unchanged tasks: omission never deletes them. Supersede only when a customer explicitly cancels
 or replaces a request. Do not supersede or change an executed task; a new request needs a new task.
@@ -152,7 +149,10 @@ def planner_messages(policy, context, messages, state, observations, catalog):
                     "customer_messages": [m for m in messages if m["role"] == "user"],
                     "visible_conversation": messages,
                     "customer_context": context,
-                    "tasks": state.get("tasks", []),
+                    "tasks": [
+                        {k: v for k, v in t.items() if k != "source_quote"}
+                        for t in state.get("tasks", [])
+                    ],
                     "observed_tool_results": observations,
                     "business_parameters": {
                         name: catalog[name].params.model_json_schema() for name in WRITE_NAMES
@@ -177,10 +177,8 @@ def parse_plan(content, messages, context, state, catalog):
         known_ids.add(context["user"]["user_id"])
     parsed = []
     for task in delta.tasks:
-        if task.source_quote not in users.get(task.source_message_id, ""):
-            raise ValueError(
-                f"Task {task.key}: evidence must quote a real customer message. Copy a SHORT exact plain-text phrase, retaining punctuation; do not paraphrase or copy address JSON."
-            )
+        if task.source_message_id not in users:
+            raise ValueError(f"Task {task.key}: evidence must reference a real customer message ID")
         if task.object_id and task.object_id not in known_ids:
             raise ValueError("Task object is not in the observed customer context")
         if (
@@ -216,10 +214,8 @@ def parse_plan(content, messages, context, state, catalog):
         object_key = "user_id" if task.operation == "modify_user_address" else "order_id"
         if object_key in args and args[object_key] != task.object_id:
             raise ValueError("Argument object differs from task object")
-        parsed.append((task, args))
+        parsed.append((task, args, users[task.source_message_id]))
     for drop in delta.supersede:
-        if drop.task_id not in existing or drop.source_quote not in users.get(
-            drop.source_message_id, ""
-        ):
+        if drop.task_id not in existing or drop.source_message_id not in users:
             raise ValueError("Supersession needs a known task and customer evidence")
     return delta, parsed

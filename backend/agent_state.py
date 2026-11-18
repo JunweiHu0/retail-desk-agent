@@ -78,7 +78,7 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
     by_id = {t["id"]: t for t in tasks}
     aliases = {t["id"]: [t["id"]] for t in tasks}
     dependency_updates = []
-    for draft, constraints in parsed:
+    for draft, constraints, source_quote in parsed:
         if draft.scope == "single":
             objects = [draft.object_id]
         else:
@@ -105,7 +105,8 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
                     (
                         t
                         for t in tasks
-                        if draft.operation != "answer"
+                        if oid
+                        and draft.operation != "answer"
                         and t["operation"] == draft.operation
                         and t["object_id"] == oid
                         and (
@@ -139,7 +140,7 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
                 "request": draft.request,
                 "scope": draft.scope,
                 "source_message_id": draft.source_message_id,
-                "source_quote": draft.source_quote,
+                "source_quote": source_quote,
                 "known_args": args,
                 "missing": draft.missing,
                 "status": "needs_info"

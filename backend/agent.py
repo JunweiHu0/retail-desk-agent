@@ -536,6 +536,22 @@ class AgentRunner:
         def plan_tasks(observations):
             current = self.store.session(sid)
             users = [m for m in current["messages"] if m["role"] == "user"]
+            schema = PlanDelta.model_json_schema()
+            for definition in schema.get("$defs", {}).values():
+                prop = definition.get("properties", {}).get("source_message_id")
+                if prop is not None:
+                    prop["enum"] = [user["id"] for user in users]
+            planner = runtime_model.bind(
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "retail_task_delta",
+                        "strict": True,
+                        "schema": schema,
+                    },
+                },
+                max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
+            )
             messages = planner_messages(
                 policy, context, current["messages"], state, observations, self.service.catalog
             )
@@ -582,17 +598,6 @@ class AgentRunner:
             bound = build_agent(self.service, sid, emit, runtime_model, rec)
             resolved_scope = False
             if with_tasks:
-                planner = runtime_model.bind(
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "retail_task_delta",
-                            "strict": True,
-                            "schema": PlanDelta.model_json_schema(),
-                        },
-                    },
-                    max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
-                )
                 latest_user_id = next(
                     m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
                 )
@@ -637,7 +642,18 @@ class AgentRunner:
                 )
                 if with_state:
                     system_content += "\nSTRUCTURED LEDGER:\n" + json.dumps(
-                        {key: value for key, value in state.items() if key != "planning_attempts"},
+                        {
+                            key: (
+                                [
+                                    {k: v for k, v in task.items() if k != "source_quote"}
+                                    for task in value
+                                ]
+                                if key == "tasks"
+                                else value
+                            )
+                            for key, value in state.items()
+                            if key != "planning_attempts"
+                        },
                         ensure_ascii=False,
                     )
                 conversation, receipts = [], []

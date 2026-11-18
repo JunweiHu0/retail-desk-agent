@@ -23,7 +23,6 @@ def task(key, operation, oid, args, message, **extra):
         "object_id": oid,
         "request": message["content"],
         "source_message_id": message["id"],
-        "source_quote": message["content"][:110],
         "scope": "single",
         "arguments": [{"name": k, "value_json": json.dumps(v)} for k, v in args.items()],
         "missing": [],
@@ -316,7 +315,7 @@ def test_plan_evidence_cycles_and_omissions(service, episode):
     apply_task_plan(state, delta, parsed, context, m["id"])
     assert len(state["tasks"]) == 2
     bad = copy.deepcopy(raw)
-    bad["tasks"][0]["source_quote"] = "invented request"
+    bad["tasks"][0]["source_message_id"] = "invented-message"
     with pytest.raises(ValueError, match="evidence"):
         parse_plan(json.dumps(bad), [m], context, state, service.catalog)
     a, b = state["tasks"]
@@ -413,9 +412,7 @@ def test_customer_change_supersedes_only_unexecuted_task(service, episode):
     old_id = state["tasks"][0]["id"]
     revised = {
         "tasks": [task("new", "cancel_pending_order", "#W9000002", {}, second)],
-        "supersede": [
-            {"task_id": old_id, "source_message_id": "u2", "source_quote": second["content"]}
-        ],
+        "supersede": [{"task_id": old_id, "source_message_id": "u2"}],
     }
     delta, parsed = parse_plan(
         json.dumps(revised), [first, second], context, state, service.catalog
@@ -511,3 +508,24 @@ def test_planner_scope_schema_does_not_mix_single_order_arguments():
     raw["tasks"][0]["object_id"] = ""
     raw["tasks"][0]["arguments"].append({"name": "order_id", "value_json": '"#W9000001"'})
     assert not validate(raw)
+
+
+def test_two_unresolved_order_requests_remain_distinct(service, episode):
+    m = {
+        "id": "u1",
+        "role": "user",
+        "content": "Return the watch from one order and the vacuum from another.",
+    }
+    raw = {
+        "tasks": [
+            task("watch", "return_delivered_order_items", "", {}, m, missing=["watch order"]),
+            task("vacuum", "return_delivered_order_items", "", {}, m, missing=["vacuum order"]),
+        ],
+        "supersede": [],
+    }
+    state = {}
+    context = service.context(episode["id"])
+    delta, parsed = parse_plan(json.dumps(raw), [m], context, state, service.catalog)
+    apply_task_plan(state, delta, parsed, context, "u1")
+    assert len(state["tasks"]) == 2
+    assert all(t["status"] == "needs_info" for t in state["tasks"])
