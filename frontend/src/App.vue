@@ -147,31 +147,28 @@ function openChat(target: ChatTarget) {
 </script>
 
 <template>
-  <header class="masthead">
-    <div :class="['frame masthead-inner portal-header', { signed: account }]">
-      <a class="brand" :href="account ? '#assistant' : '.'" aria-label="Retail Desk 购物服务中心">
+  <header v-if="account" class="masthead">
+    <div class="frame masthead-inner portal-header signed">
+      <a class="brand" href="#assistant" aria-label="Retail Desk 购物服务中心">
         <span class="brand-mark"><ShoppingBag :size="23" :stroke-width="2" /></span>
         <span class="wordmark">Retail<span>Desk</span></span>
       </a>
-      <span v-if="!account" class="brand-section">服务中心</span>
-      <template v-else>
-        <nav class="portal-nav" aria-label="账户导航">
-          <a v-for="tab in pages" :key="tab.id" :href="'#' + tab.id" :aria-current="page === tab.id ? 'page' : undefined">
-            <component :is="tab.icon" :size="17" />{{ tab.label }}
-          </a>
-        </nav>
-        <div class="portal-account">
-          <span>{{ fullName(account) }}</span>
-          <button class="button secondary" aria-label="退出登录" title="退出登录"
-            :disabled="signingOut || assistantBusy || orderActionBusy || profileActionBusy" @click="signOut">
-            <LoaderCircle v-if="signingOut" :size="16" class="spin" /><LogOut v-else :size="16" />退出登录
-          </button>
-        </div>
-      </template>
+      <nav class="portal-nav" aria-label="账户导航">
+        <a v-for="tab in pages" :key="tab.id" :href="'#' + tab.id" :aria-current="page === tab.id ? 'page' : undefined">
+          <component :is="tab.icon" :size="17" />{{ tab.label }}
+        </a>
+      </nav>
+      <div class="portal-account">
+        <span>{{ fullName(account) }}</span>
+        <button class="button secondary" aria-label="退出登录" title="退出登录"
+          :disabled="signingOut || assistantBusy || orderActionBusy || profileActionBusy" @click="signOut">
+          <LoaderCircle v-if="signingOut" :size="16" class="spin" /><LogOut v-else :size="16" />退出登录
+        </button>
+      </div>
     </div>
   </header>
 
-  <main v-if="loadingAccount" class="frame loading-account" role="status"><LoaderCircle :size="18" class="spin" />正在查看登录状态</main>
+  <main v-if="loadingAccount" class="loading-account" role="status"><LoaderCircle :size="18" class="spin" />正在查看登录状态</main>
   <LoginView v-else-if="!account" :notice="sessionNote" @authenticated="authenticated" />
 
   <template v-else>
