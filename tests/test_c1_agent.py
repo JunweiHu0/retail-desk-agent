@@ -24,7 +24,7 @@ def task(key, operation, oid, args, message, **extra):
         "request": message["content"],
         "source_message_id": message["id"],
         "scope": "single",
-        "arguments": [{"name": k, "value_json": json.dumps(v)} for k, v in args.items()],
+        "arguments": [{"name": k, "value": v} for k, v in args.items()],
         "missing": [],
         "depends_on": [],
         **extra,
@@ -494,7 +494,7 @@ def test_planner_scope_schema_does_not_mix_single_order_arguments():
     raw["tasks"][0]["object_id"] = "#W9000001"
     assert not validate(raw)
     raw["tasks"][0]["object_id"] = ""
-    raw["tasks"][0]["arguments"].append({"name": "order_id", "value_json": '"#W9000001"'})
+    raw["tasks"][0]["arguments"].append({"name": "order_id", "value": "#W9000001"})
     assert not validate(raw)
 
 
@@ -517,3 +517,31 @@ def test_two_unresolved_order_requests_remain_distinct(service, c1_episode):
     apply_task_plan(state, delta, parsed, context, "u1")
     assert len(state["tasks"]) == 2
     assert all(t["status"] == "needs_info" for t in state["tasks"])
+
+
+def test_planner_context_schema_separates_products_orders_and_missing(service, c1_episode):
+    from jsonschema import Draft202012Validator
+
+    from backend.agent_planner import plan_response_schema
+
+    context = service.context(c1_episode["id"])
+    product = context["orders"][0]["items"][0]["product_id"]
+    m = {
+        "id": "user-1",
+        "role": "user",
+        "content": "What options exist, and change my pending order?",
+    }
+    schema = plan_response_schema([m], context, service.catalog)
+    validate = Draft202012Validator(schema).is_valid
+    raw = {"tasks": [task("write", "modify_pending_order_items", product, {}, m)], "supersede": []}
+    assert not validate(raw)
+    raw["tasks"][0]["object_id"] = "#W9000001"
+    assert validate(raw)
+    raw["tasks"][0]["arguments"] = [{"name": "missing", "value": "new_item_ids"}]
+    assert not validate(raw)
+    raw["tasks"][0]["arguments"] = [{"name": "item_ids", "value": ["item-1", "item-2"]}]
+    assert validate(raw)
+    raw["tasks"] = [task("read", "answer", product, {}, m)]
+    assert validate(raw)
+    delta, parsed = parse_plan(json.dumps(raw), [m], context, {}, service.catalog)
+    assert parsed[0][0].object_id == product

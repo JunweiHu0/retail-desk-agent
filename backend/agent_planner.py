@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-PLANNER_VERSION = "explicit-task-plan-v2"
+PLANNER_VERSION = "explicit-task-plan-v3"
 WRITE_NAMES = (
     "cancel_pending_order",
     "exchange_delivered_order_items",
@@ -21,7 +21,7 @@ WRITE_NAMES = (
 class Argument(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str
-    value_json: str
+    value: str | list[str]
 
 
 class TaskDraft(BaseModel):
@@ -46,9 +46,15 @@ class TaskDraft(BaseModel):
     depends_on: list[str]
 
 
-class AccountOrAnswerTask(TaskDraft):
-    operation: Literal["answer", "modify_user_address"]
+class AccountTask(TaskDraft):
+    operation: Literal["modify_user_address"]
     scope: Literal["single"]
+
+
+class AnswerTask(TaskDraft):
+    operation: Literal["answer"]
+    scope: Literal["single"]
+    arguments: list[Argument] = Field(max_length=0)
 
 
 class OrderTask(TaskDraft):
@@ -95,7 +101,7 @@ class Supersession(BaseModel):
 
 class PlanDelta(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    tasks: list[AccountOrAnswerTask | SingleOrderTask | OrderScopeTask] = Field(max_length=24)
+    tasks: list[AccountTask | AnswerTask | SingleOrderTask | OrderScopeTask] = Field(max_length=24)
     supersede: list[Supersession] = Field(max_length=24)
 
 
@@ -112,12 +118,15 @@ For 'all orders' use ONE all_* scope with object_id empty and no order_id argume
 expands the observed order set. For a specific order use scope=single and its exact object_id. A user-default
 address update is a separate modify_user_address task. Record informational requests with answer.
 Unknown object IDs are empty strings. Unknown arguments stay absent and are described in missing.
-arguments are KNOWN constraints, not suggestions: each value_json is a JSON-encoded value, e.g.
-\"\\\"no longer needed\\\"\" or \"[\\\"item-id\\\"]\". Do not guess replacement IDs or payment choices.
+arguments are KNOWN constraints, not suggestions: use name/value pairs with direct strings or
+arrays of strings. Missing information belongs only in the missing list, never in arguments.
+An order operation's object_id is an ORDER ID (#W...), never a product or item ID. For an
+informational answer you may identify an observed product. Do not guess replacement IDs or choices.
 Never choose a refund/payment method unless the customer selected it or explicitly requested the
 original method. Keep natural-language requirements in request until a query resolves exact IDs.
 Use missing only for unresolved information. The executor can obtain missing facts via read tools.
-For dependencies use task keys/IDs. Address/payment changes should precede one-time item changes
+For dependencies use WRITE task keys/IDs, not informational answer tasks (the executor can read
+necessary facts before writing). Address/payment changes should precede one-time item changes
 when the same order needs both, according to policy. Avoid circular dependencies.
 A rejection is not permission to repeat: reactivate a rejected task only after a new user instruction.
 Do not convert assistant assertions into customer intent. No target/reference/score is available.
@@ -138,6 +147,28 @@ Do not say all tasks are complete while an operation remains unexecuted. Describ
 or ask a focused question. If the user insists on an unsupported request, use the handoff tool.
 Do not output task JSON: task updates are owned by the separate planning stage.
 """
+
+
+def plan_response_schema(messages, context, catalog):
+    schema = PlanDelta.model_json_schema()
+    definitions = schema["$defs"]
+    user_ids = [m["id"] for m in messages if m["role"] == "user"]
+    for definition in definitions.values():
+        prop = definition.get("properties", {}).get("source_message_id")
+        if prop is not None:
+            prop["enum"] = user_ids
+    orders = [o["order_id"] for o in context["orders"]]
+    uid = (context.get("user") or {}).get("user_id", "")
+    products = sorted({i["product_id"] for o in context["orders"] for i in o["items"]})
+    definitions["AccountTask"]["properties"]["object_id"]["enum"] = list(dict.fromkeys(["", uid]))
+    definitions["SingleOrderTask"]["properties"]["object_id"]["enum"] = ["", *orders]
+    definitions["AnswerTask"]["properties"]["object_id"]["enum"] = list(
+        dict.fromkeys(["", uid, *orders, *products])
+    )
+    definitions["Argument"]["properties"]["name"]["enum"] = sorted(
+        {field for name in WRITE_NAMES for field in catalog[name].params.model_fields}
+    )
+    return schema
 
 
 def planner_messages(policy, context, messages, state, observations, catalog):
@@ -179,7 +210,12 @@ def parse_plan(content, messages, context, state, catalog):
     for task in delta.tasks:
         if task.source_message_id not in users:
             raise ValueError(f"Task {task.key}: evidence must reference a real customer message ID")
-        if task.object_id and task.object_id not in known_ids:
+        allowed_ids = known_ids | (
+            {i["product_id"] for o in context["orders"] for i in o["items"]}
+            if task.operation == "answer"
+            else set()
+        )
+        if task.object_id and task.object_id not in allowed_ids:
             raise ValueError("Task object is not in the observed customer context")
         if (
             task.operation == "modify_user_address"
@@ -208,7 +244,7 @@ def parse_plan(content, messages, context, state, catalog):
                 or item.name not in catalog[task.operation].params.model_fields
             ):
                 raise ValueError("Unknown business argument")
-            args[item.name] = json.loads(item.value_json)
+            args[item.name] = item.value
         if task.scope != "single" and "order_id" in args:
             raise ValueError("Order scopes bind each order_id during expansion")
         object_key = "user_id" if task.operation == "modify_user_address" else "order_id"

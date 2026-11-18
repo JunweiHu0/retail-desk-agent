@@ -28,6 +28,7 @@ from backend.agent_planner import (
     PLANNER_VERSION,
     PlanDelta,
     parse_plan,
+    plan_response_schema,
     planner_messages,
 )
 from backend.agent_review import (
@@ -553,11 +554,7 @@ class AgentRunner:
         def plan_tasks(observations):
             current = self.store.session(sid)
             users = [m for m in current["messages"] if m["role"] == "user"]
-            schema = PlanDelta.model_json_schema()
-            for definition in schema.get("$defs", {}).values():
-                prop = definition.get("properties", {}).get("source_message_id")
-                if prop is not None:
-                    prop["enum"] = [user["id"] for user in users]
+            schema = plan_response_schema(current["messages"], context, self.service.catalog)
             planner = runtime_model.bind(
                 response_format={
                     "type": "json_schema",
