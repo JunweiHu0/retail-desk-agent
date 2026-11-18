@@ -13,6 +13,16 @@ from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
 from backend.store import encode, now
+from backend.tool_profiles import (
+    DESCRIPTIONS,
+    EXTRA_READ_TOOLS,
+    PREVIEW_DESCRIPTION,
+    STRUCTURED_VARIANTS,
+    TOOL_PROFILES,
+    ToolDefinition,
+    format_result,
+    read_helper,
+)
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
 
@@ -73,6 +83,59 @@ class RetailService:
             if getattr(RetailTools, name).__tool_type__ == ToolType.WRITE
         }
 
+    def tool_definitions(self, variant):
+        definitions = []
+        for name, upstream in self.catalog.items():
+            if variant in TOOL_PROFILES:
+                description = DESCRIPTIONS[name]
+                if name in self.writes:
+                    description += PREVIEW_DESCRIPTION
+            else:
+                description = upstream.short_desc + "\n" + upstream.long_desc
+                if name in self.writes:
+                    description += (
+                        "\nAPPLICATION: Only stages a validated preview. It does NOT execute a write. "
+                        "On awaiting_confirmation stop immediately for the application confirmation card."
+                    )
+            if (
+                variant in STRUCTURED_VARIANTS
+                and name not in self.writes
+                and name != "transfer_to_human_agents"
+            ):
+                description += " Successful reads return {status: observed, tool, read_only: true, data: original result}. Errors retain a top-level error. Product reads also report total_variant_count and available_variant_count in summary."
+            definitions.append(ToolDefinition(name, description, upstream.params))
+        if variant == "tools_extended":
+            definitions.extend(
+                ToolDefinition(
+                    t.name,
+                    t.description
+                    + " Result is in the read-only observation envelope's data field.",
+                    t.params,
+                )
+                for t in EXTRA_READ_TOOLS.values()
+            )
+        return definitions
+
+    def tool_manifest(self, variant):
+        definitions = self.tool_definitions(variant)
+        specifications = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.params.model_json_schema(),
+            }
+            for t in definitions
+        ]
+        return {
+            "profile": TOOL_PROFILES.get(variant, "official-v1"),
+            "count": len(definitions),
+            "names": [t.name for t in definitions],
+            "spec_sha256": fingerprint(specifications),
+            "return_format": "observation-envelope-v1"
+            if variant in STRUCTURED_VARIANTS
+            else "official-with-preview-v1",
+        }
+
     def authorize(self, session, db, name, args):
         uid = session["user_id"]
         if name in AUTH_TOOLS:
@@ -102,15 +165,25 @@ class RetailService:
         try:
             with self.store.tx() as cx:
                 session = self.store.session(sid, cx)
+                if session["status"] == "finished":
+                    raise ValueError("会话已结束，请新建会话继续。")
                 if session["transferred"]:
                     raise ValueError("会话已转人工，请新建会话继续。")
-                db = RetailDB.model_validate(self.store.dataset(cx))
-                if name not in self.catalog:
+                db = RetailDB.model_validate(self.store.dataset(cx, sid))
+                helper = (
+                    EXTRA_READ_TOOLS.get(name) if session["variant"] == "tools_extended" else None
+                )
+                if helper is None and name not in self.catalog:
                     raise ValueError("Unknown retail tool")
-                args = self.catalog[name].params.model_validate(args).model_dump()
+                params = (helper.params if helper else self.catalog[name].params).model_validate(
+                    args
+                )
+                args = params.model_dump()
                 self.authorize(session, db, name, args)
                 tools = RetailTools(db).get_tools()
-                if name in self.writes:
+                if helper:
+                    result = read_helper(name, params, db, session["user_id"])
+                elif name in self.writes:
                     if session["pending"]:
                         raise ValueError("已有待确认操作，请先确认或取消。")
                     self.validate_write(name, args)
@@ -140,7 +213,7 @@ class RetailService:
                         "fingerprint": fingerprint(before),
                         "created_at": now(),
                     }
-                    self.store.update(cx, sid, pending=pending)
+                    self.store.update(cx, sid, pending=pending, status="awaiting_confirmation")
                     result = {
                         "status": "awaiting_confirmation",
                         "action_id": pending["id"],
@@ -158,7 +231,11 @@ class RetailService:
                             raise PermissionError("不能在同一会话切换客户。请新建会话。")
                         self.store.update(cx, sid, user_id=result)
                     if name == "transfer_to_human_agents":
-                        self.store.update(cx, sid, transferred=1)
+                        self.store.update(
+                            cx, sid, transferred=1, status="finished", termination_reason="handoff"
+                        )
+                if session["variant"] in STRUCTURED_VARIANTS:
+                    result = format_result(name, result, self.writes)
                 event = {
                     "type": "tool_end",
                     "name": name,
@@ -178,6 +255,8 @@ class RetailService:
                 "duration_ms": round((time.monotonic() - start) * 1000),
             }
             with self.store.tx() as cx:
+                if self.store.session(sid, cx)["variant"] in STRUCTURED_VARIANTS:
+                    event["result"] = format_result(name, event["result"], self.writes)
                 self.store.event(cx, sid, "tool", event)
         emit(event)
         return event["result"]
@@ -186,14 +265,24 @@ class RetailService:
         """Atomically consume a one-time approval and apply the exact previewed operation."""
         with self.store.tx() as cx:
             session = self.store.session(sid, cx)
+            if session["status"] == "finished":
+                raise ValueError("会话已结束，请新建会话继续。")
             pending = session["pending"]
             if not pending or pending["id"] != action_id:
                 raise ValueError("操作已处理或不存在，请刷新会话。")
             if not approve:
-                self.store.update(cx, sid, pending=None)
-                self.store.event(cx, sid, "decision", {"id": action_id, "approved": False})
-                return {"status": "rejected", "message": "已取消本次操作，数据未变更。"}
-            db = RetailDB.model_validate(self.store.dataset(cx))
+                self.store.update(cx, sid, pending=None, status="ready")
+                receipt = {
+                    "status": "rejected",
+                    "action_id": action_id,
+                    "tool": pending["tool"],
+                    "args": pending["args"],
+                    "message": "已取消本次操作，数据未变更。",
+                }
+                self.store.event(cx, sid, "decision", receipt | {"approved": False})
+                self.store.event(cx, sid, "receipt", receipt)
+                return receipt
+            db = RetailDB.model_validate(self.store.dataset(cx, sid))
             name, args = pending["tool"], pending["args"]
             self.authorize(session, db, name, args)
             if fingerprint(subject(db, session["user_id"], args)) != pending["fingerprint"]:
@@ -202,7 +291,7 @@ class RetailService:
             self.validate_write(name, args)
             result = plain(RetailTools(db).get_tools()[name](**args))
             after = subject(db, session["user_id"], args)
-            self.store.save_dataset(cx, db.model_dump(mode="json"))
+            self.store.save_dataset(cx, db.model_dump(mode="json"), sid)
             cx.execute(
                 "INSERT INTO actions VALUES(?,?,?,?,?,?,?)",
                 (
@@ -215,30 +304,37 @@ class RetailService:
                     now(),
                 ),
             )
-            self.store.update(cx, sid, pending=None)
+            self.store.update(cx, sid, pending=None, status="ready")
             event = {
                 "id": action_id,
+                "action_id": action_id,
                 "tool": name,
                 "args": args,
                 "approved": True,
                 "before": pending["before"],
                 "after": after,
+                "result": result,
             }
             self.store.event(cx, sid, "decision", event)
-            return {
+            receipt = {
                 "status": "executed",
                 "tool": name,
+                "args": args,
+                "before": pending["before"],
+                "after": after,
                 "result": result,
                 "message": "操作已完成，变更已持久化。",
                 "action_id": action_id,
             }
+            self.store.event(cx, sid, "receipt", receipt)
+            return receipt
 
     def context(self, sid):
         with self.store.tx() as cx:
             session = self.store.session(sid, cx)
             if not session["user_id"]:
                 return {"user": None, "orders": [], "pending": None}
-            db = self.store.dataset(cx)
+            db = self.store.dataset(cx, sid)
             user = db["users"][session["user_id"]]
             return {
                 "user": user,
@@ -257,6 +353,8 @@ class RetailService:
                     user = data["users"][order["user_id"]]
                     samples.append(
                         {
+                            "scenario_id": user["user_id"],
+                            "customer_id": user["user_id"],
                             "email": user["email"],
                             "name": " ".join(user["name"].values()),
                             "order_id": order["order_id"],

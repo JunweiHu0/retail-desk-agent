@@ -39,9 +39,10 @@ class RunRecorder:
     """Append-only writer for one process run."""
 
     def __init__(self):
-        self.run_id = os.getenv("INFRA_RUN_ID") or datetime.now(timezone.utc).strftime(
-            "%Y%m%d-%H%M%S-"
-        ) + uuid.uuid4().hex[:6]
+        self.run_id = (
+            os.getenv("INFRA_RUN_ID")
+            or datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]
+        )
         self.dir = _dir() / self.run_id
         self.lock = threading.Lock()
         self.seq = 0
@@ -57,7 +58,9 @@ class RunRecorder:
                 "mode": config.MODE,
                 "model": config.MODEL,
                 "base_url": config.BASE_URL or "https://api.openai.com/v1",
-                "policy_chars": len(config.POLICY_PATH.read_text()) if config.POLICY_PATH.exists() else 0,
+                "policy_chars": len(config.POLICY_PATH.read_text())
+                if config.POLICY_PATH.exists()
+                else 0,
                 "slurm_job_id": os.getenv("SLURM_JOB_ID"),
                 "tags": os.getenv("INFRA_TAGS", ""),
             }
@@ -93,10 +96,19 @@ class TurnRecord:
         self.error = None
         self.answer_chars = 0
 
-    def model_call(self, wall_ms, prompt_tokens, completion_tokens, finish_reason=None, tool_names=None):
+    def model_call(
+        self,
+        wall_ms,
+        prompt_tokens,
+        completion_tokens,
+        finish_reason=None,
+        tool_names=None,
+        phase="executor",
+    ):
         self.model_calls.append(
             {
                 "seq": len(self.model_calls) + 1,
+                "phase": phase,
                 "wall_ms": round(wall_ms),
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,

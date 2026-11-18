@@ -1,187 +1,91 @@
-# Retail Desk — Tool-use 智能零售客服
+# Retail Desk — 业务操作与最终数据库评测
 
-前后端分离的客服框架，范围限定为 **tau2-bench Retail**。客服通过工具查询客户、订单和商品，并能在客户确认后真正改变本地零售数据。
+Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询数据、生成修改预览，在用户确认后提交真实的沙盒数据库变更。每个会话对应独立 episode，互不污染。
 
-## 技术选型
+当前默认 agent 是 **B1：政策全文 + 原生工具调用循环 + 会话历史**。`state`、`errors`、`guide`、`enhanced` 是可单独比较的增强配置；尚未经过真实模型评测的配置不代表已获得性能提升。`guide` 初始内容来自公开政策，不能称为训练轨迹学习结果。
 
-| 部分 | 选择 | 原因 |
-| --- | --- | --- |
-| 前端 | Vue 3 / TypeScript / Vite | 组件化聊天、订单上下文、操作确认与工具轨迹 |
-| API | Python 3.12 / FastAPI | 与 deepagents、tau2 原生共用 Python 类型和工具，无需 Go/Rust 跨进程桥接；支持 SSE 和 OpenAPI |
-| Agent | deepagents / LangChain ChatOpenAI | 使用真实 Deep Agents 执行图；支持 OpenAI 兼容模型服务 |
-| 存储 | SQLite / WAL | 本地零配置，持久化业务数据、会话、工具轨迹与审计；写入采用事务 |
-| 业务 | 官方 RetailDB + RetailTools + policy.md | 复用 benchmark 状态转换、退款和商品校验，不另造一套业务规则 |
+`state` 增加任务状态记录，并按 action ID 将实际执行/拒绝回执合入对应工具观察，解除已完成确认的暂停提示；原始审计轨迹保留。`errors` 为工具错误附加已观察到的相关信息，`guide` 注入冻结操作指南，`enhanced` 同时启用三项。默认指南为 `backend/guides/retail_seed.md`，来源标记为 `policy_seed`。后端可通过 `AGENT_GUIDE_PATH` 指定开发集产生的指南文件；每个 episode 记录实际内容 SHA256，自定义文件默认标记为未核实来源。指南版本、开发来源及冻结要求见 [指南说明](backend/guides/README.md)。
 
-开发时前端 `5173`、API `8000`，通过 Vite 代理请求。构建后可由 FastAPI 在 `8000` 同源提供静态页面，仍保留独立 Vue 源码与 HTTP API。
+后端与 agent harness 的软件测试套件（`pytest`）共 171 项通过。真实模型的效果与部署验收需结合具体模型服务单独记录，不以离线测试代替。
 
-## 在你的 WSL 中运行
+## 入口
 
-项目位于 `/home/mnyh/projects/retail-agent`，依赖的原始仓库位于同级 `/home/mnyh/projects/tau2-bench`。
+- [指南说明](backend/guides/README.md)
+- [TACC 部署](deploy/tacc/README.md)
 
-```bash
-cd /home/mnyh/projects/retail-agent
-bash scripts/start.sh
-```
+源码从 `deploy/tacc` 的 `a3173371079b53779a933e50ed79d528b7843a96` 开始。tau2 固定为 `0c69df456a96aa76a1162591574dad9c427a34d7`，同级 `../tau2-bench` 或通过 `TAU2_ROOT` 指定源码与数据。
 
-打开 **http://localhost:8000**。接口文档：**http://localhost:8000/docs**。
+`c1` 是新增的实验候选：显式提取需求、展开多订单任务、按真实回执结算、校验写操作与任务约束。规划和修复调用计入同一预算，B1 仍为默认。C1 的真实模型效果以验收记录为准；它需要支持 JSON Schema 的模型服务。
 
-```bash
-# 查看或停止本项目后台服务
-uv run --frozen python -m backend.server status
-uv run --frozen python -m backend.server stop
+`c2` 在 C1 上增加有界的回复前完成检查，优先消除参数已齐全时的额外聊天确认；缺少用户选择时继续提问，业务写入仍必须经卡片批准。C1/C2 的规划与检查成本分阶段记录，均计入公共预算。
 
-# 前后端分别热更新（先停止后台服务，避免 8000 端口冲突）
-bash scripts/dev.sh
-# 浏览器打开 http://localhost:5173
-```
+## 业务流程
 
-WSL 用户目录中已安装 Node.js 22.23.4，脚本自动将它加入 PATH。Python 固定 3.12，因为当前 tau2 导入链使用已在 3.13 删除的 audioop。依赖版本由 `uv.lock`、`frontend/package-lock.json` 固定。
+1. 选择合成客户场景与 agent 配置，创建独立数据库会话。
+2. 发送消息；后端调用模型，执行一个业务工具，将结果交回模型继续决策。
+3. 写工具先在副本上预演；页面显示具体商品、支付/退款及修改前后信息。
+4. 通过确认卡批准或拒绝；只有后端执行回执才证明数据库已改变。
+5. 确认后的回执交给 agent，继续处理同一客户的剩余需求。
 
-## 两种模式
-
-### 免 Key 演示模式（默认）
-
-`AGENT_MODE=demo` 使用确定性的 `DemoRetailModel`，依然在真实 deepagents 图中调用官方工具。支持身份核验、订单查询、取消 pending 订单、全部商品按原支付方式退货。
-
-首页的三个场景会从当前数据库选择合适的虚拟客户；可以一键体验。也可以输入：
-
-```text
-我的邮箱是 <页面中场景所使用的邮箱>，请查询订单 #Wxxxxxxx。
-取消订单 #Wxxxxxxx，原因是不再需要。
-订单 #Wxxxxxxx 的全部商品退货，退回原支付方式。
-```
-
-演示模型不是通用 LLM，不代表 benchmark 通过率，不支持任意自然语言推理或全部修改工具。页面会明确标识。
-
-### 真实 Agent 模式
-
-首次配置可执行 `cp .env.example .env`（若已有 `.env`，直接编辑）。
-
-```dotenv
-AGENT_MODE=live
-MODEL_NAME=你的模型名
-MODEL_API_KEY=你的API密钥
-# 可选：OpenAI 兼容服务地址，例如 https://your-gateway.example/v1
-MODEL_BASE_URL=
-```
-
-修改后停止并重新启动后端。模型必须支持 **tool calling**；API Key 仅在后端读取，前端不保存也不接收密钥。真实模型调用会产生服务商费用。
-
-真实模式向 Agent 提供全部 16 个 Retail 工具，包括：
-
-- 邮箱 / 姓名和邮编核验，客户、订单、商品和规格查询；
-- 取消待处理订单，修改订单地址、商品、支付方式；
-- 修改客户默认地址，已送达订单退货、换货；
-- 金额计算、人工转接记录。
-
-工具数量以 `/api/health` 为准。deepagents 自带的文件与委派工具不会暴露给客服模型，避免偏离零售场景。
-
-## 业务链路
-
-```mermaid
-sequenceDiagram
-  participant U as 用户 / Vue
-  participant A as FastAPI + Deep Agents
-  participant T as 官方 RetailTools
-  participant D as SQLite
-  U->>A: 查询或售后请求
-  A->>T: 核验身份、查询自己的订单
-  T-->>A: 真实客户与订单上下文
-  A-->>U: SSE 工具执行轨迹
-  A->>T: 在数据副本校验拟执行的写操作
-  A->>D: 保存待确认操作与前后快照
-  A-->>U: 变更确认卡片（尚未提交）
-  U->>A: 确认指定 action_id
-  A->>D: 事务内复核快照、执行、保存数据与审计
-  A-->>U: 执行回执及最新订单
-```
-
-- 只有邮箱或姓名 + 邮编查找成功后，才允许访问客户和订单；提供 user_id 不视为核验。
-- 单一会话锁定一个客户，订单工具强制检查订单归属。
-- 所有七种写工具先在副本上验证。原始数据、支付记录和礼品卡余额在确认前均不变。
-- 确认接口消费一次性 action_id，不接受前端重传或替换工具参数；重复提交不重复退款。
-- 确认时比较客户和订单快照。若已被其他会话修改，拒绝执行，要求取消后重新请求。
-- SQLite 事务内一起保存业务数据、操作审计和待处理状态；不修改原始 tau2-bench 数据文件。
-- 每次工具调用和用户确认都进入持久化事件表；刷新、重启后可恢复。
-- 同会话请求互斥；启动脚本只运行单个 API worker。
+聊天文本中的“yes”不代替确认接口。刷新页面会恢复会话和待确认操作。工具进度通过 SSE 展示，正文在本轮完成后展示；不将进度事件称为 token 流。
 
 ## API
 
-| 方法 | 路径 | 功能 |
+普通会话接口继续使用 `Authorization: Bearer <session token>`。
+
+| 方法 | 路径 | 内容 |
 | --- | --- | --- |
-| GET | `/api/health` | 模式、模型准备状态与工具数量，不返回密钥 |
-| GET | `/api/samples` | benchmark 虚拟客户场景 |
-| POST | `/api/sessions` | 新建会话，返回会话 ID 与随机 capability token |
-| GET | `/api/sessions/{id}` | 消息、客户、订单、待确认操作和审计事件 |
-| POST | `/api/sessions/{id}/messages` | `{ "message": "..." }`，返回 SSE |
-| POST | `/api/sessions/{id}/decisions` | `{ "action_id": "...", "approve": true/false }` |
+| GET | `/api/health` | 模式、模型配置、工具数、可用变体 |
+| GET | `/api/samples` | 合成客户场景 |
+| POST | `/api/sessions` | `{scenario_id?, variant?}`，返回独立 episode 与 capability |
+| GET | `/api/sessions/{id}` | 消息、订单、pending、真实回执、状态和 usage |
+| POST | `/api/sessions/{id}/messages` | `{message}`，返回 SSE |
+| POST | `/api/sessions/{id}/decisions` | `{action_id, approve}`，返回 SSE，提交后继续 agent |
 
-已有会话接口都需要 `Authorization: Bearer <token>`。前端在当前浏览器 localStorage 保存其自己的会话能力凭证，不能列举其他浏览器会话。SSE 事件为 `status`、`tool_start`、`tool_end`、`done`、`error`，另有 keepalive。当前实时展示工具进度，助手文本在本轮完成后展示。
+评测接口使用独立的 `EVAL_API_TOKEN`；未配置时关闭。
 
-## 运行官方 Retail 评测
+| 方法 | 路径 | 内容 |
+| --- | --- | --- |
+| POST | `/internal/eval/episodes` | 公开初始 DB、客户、variant、task/trial/seed |
+| POST | `/internal/eval/episodes/{id}/finish` | `{reason}`，冻结并导出状态 |
+| GET | `/internal/eval/episodes/{id}/snapshot` | 完整实际 RetailDB、会话与运行 manifest |
 
-`benchmarks/tau2_agent.py` 提供 `HalfDuplexAgent` 适配器。它每次从 deepagents 获取一个模型动作，交给官方 tau2 orchestrator 执行；不会使用网页数据库或自动点击确认。benchmark 中的修改确认遵循原始用户对话协议。
+`done` 只代表本轮结束；任务完成状态和最终 DB 评分由独立 evaluator 处理。接口不能接收 target DB。私有评测 metadata 不进入模型上下文。
 
-```bash
-# 先在 .env 配置真实模型；需要 Agent 和用户模拟器的模型服务可用
-uv run --frozen python -m benchmarks.run_retail --num-tasks 2 \
-  --user-model openai/gpt-4.1-mini --save-to deep-retail
-```
+## 模式与运行
 
-`--user-model` 是 tau2 / LiteLLM 使用的模型名，和 Agent 的 `MODEL_NAME` 分开配置。若使用不同供应商，为用户模拟器设置对应供应商环境变量；当前脚本会将配置的兼容服务 Key 和地址用于其 OpenAI 用户模拟器默认配置。结果写入 tau2 的 simulations 路径，可用官方 `tau2 view` 查看。
+`AGENT_MODE=demo` 使用确定性模型，仅供软件验证，不产生有效模型 benchmark 成绩。`live` 使用 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY` 配置的 OpenAI-compatible 工具调用服务，凭据只保留在后端。
 
-该入口为当前检出版本的 Retail domain 评测，**不是官方 frozen text-v1 leaderboard 提交工作流**。真实模型评测需要 API Key；未配置时脚本会明确停止，不产生虚构分数。
-
-## 测试
+本机仅做轻量开发和小测试。完整服务、目标重放及真实模型评测需在实际部署的模型服务环境中运行。应用使用独立 Python 3.12 环境；不要更改共享环境。
 
 ```bash
-uv run --frozen pytest -q
-uv run --frozen ruff check backend benchmarks tests
-uv run --frozen ruff format --check backend benchmarks tests
-
-export PATH="$HOME/.local/opt/node-v22.23.4-linux-x64/bin:$PATH"
+uv sync --frozen --python 3.12
+uv run --frozen python -m pytest tests/test_reference_eval.py -q
 cd frontend
 npm ci
 npm run build
-npx playwright install chromium
-npm run test:e2e
 ```
 
-Python 测试均用临时数据库，覆盖身份与越权、七类修改、预览无副作用、确认/拒绝、重复提交、并发修改失效、重启恢复、SSE、真实 ChatOpenAI 兼容接口协议（本地 MockTransport，不产生费用）和 benchmark 适配器。
+完整验证：后端 pytest、Ruff、前端类型构建、Playwright 浏览器场景，以及经同一 HTTP 路径的 evaluator 闭环。执行位置、规模和结果记录在实验报告；可控模型测试不表示真实 Qwen 通过率。
 
-**浏览器测试使用运行中的本地服务，会确认一笔模拟取消订单，并拒绝一笔退货。** 若希望保持演示库全新，请单独以临时数据库启动测试服务：
+## 评测口径
 
-```bash
-RETAIL_DB_PATH=runtime/e2e.sqlite3 uv run --frozen uvicorn backend.main:app \
-  --host 127.0.0.1 --port 8001
-# 另一个终端
-cd frontend
-BASE_URL=http://127.0.0.1:8001 npm run test:e2e
-```
+参考 evaluator 入口是 `python -m benchmarks.run_http`，支持 `build-targets`、`run`、`compare`、`analyze` 和只读 `audit-reference`。预设已核验客户与其订单，比较该客户完整对象及其全部初始订单与目标状态。身份发现不计分，结果应称为 **适配后的 Retail HTTP DB 评测**。
 
-## 目录
+开发54、验证20来自官方 train74；test40 全部保留。首轮 smoke8 各运行一次；正式对比 B1 与冻结候选，各执行 test40 × 3。目标和评分范围只存在于 evaluator，不能传给 agent 或用户模拟器。有效 DB 在预算/错误截止后仍按约定比较；缺快照则报告 suite 未完成。
 
-```text
-backend/
-  main.py       HTTP / SSE / 会话权限
-  agent.py      Deep Agents、真实模型与离线演示模型
-  retail.py     官方业务工具桥接、预览和确认提交
-  store.py      SQLite 会话、数据与审计
-  config.py     环境配置
-  server.py     本地后台服务管理
-frontend/       Vue 3 聊天与订单工作台
-benchmarks/     tau2 Retail 评测适配器和入口
-tests/          无真实模型费用的后端集成测试
-scripts/        启动及热更新脚本
-runtime/        自动生成的数据与日志，不进入 Git
-```
+私有开发诊断可运行 `python -m benchmarks.run_http analyze --run RUN_DIR --output FRESH.json`，汇总主尝试的逐任务结果、终止原因、DB 不匹配类别、重复失败工具调用和用户拒绝次数。仅 development 输出标记为 guide feedback 可用；validation/test 输出不得用于学习或更新 guide。该命令不调用 LLM，不自动学习。
 
-## 使用边界
+固定 pin 的全114题只读审计确认两个无状态变化的参考 WRITE 异常（task64/action64_6、task105/action106_0）。构建器仅精确允许这两个已审计异常，随后继续参考动作；未知 WRITE 异常仍中止。task105 保留初始 DB 目标及私有 `reference_issue` 标签，任务不删除、分母不变；本适配指标只评 DB，不声称该题 NL assertion 通过。审计证据与异常冻结规则见协议。
 
-这是可运行、可继续开发的 **本地 benchmark 沙盒框架**。客户、订单和支付记录来自公开合成数据；确认会真实改变本地 SQLite 数据，但不会连接商家、支付或邮件系统。人工转接仅创建本地记录，未接外部工单渠道。
+原有 `benchmarks/run_retail.py` 与 `tau2_agent.py` 保留作原生 tau2 适配兼容入口，其环境独立于网页 DB，不能用其分数代表新的 HTTP 后端链路。
 
-邮箱 / 姓名邮编核验遵循 benchmark 策略，不是生产级账户认证。对公网部署前需要增加正式登录、权限、限流、密钥管理，并将 SQLite 与单 worker 会话互斥改为适合多实例的数据库和任务协调。当前默认仅监听 localhost。
+## 数据与使用范围
 
-当前使用官方仓库提交 `0c69df4`、tau2 2.0.0；升级上游后应重新运行测试。原始项目采用 MIT 许可，许可证保留在同级原始仓库中。
+全部客户、订单、支付数据均为公开合成沙盒数据。业务写入不会连接真实商户、支付或邮件服务。保留原始 tau2 数据，实验输出使用独立目录，并记录源码、数据、policy/guide 摘要及完成状态。
 
-参考：[tau2-bench](https://github.com/sierra-research/tau2-bench)、[Deep Agents 文档](https://docs.langchain.com/oss/python/deepagents/overview)。
+真实 Qwen 服务可通过 `MODEL_THINKING=auto|on|off` 选择思考模式（默认 `auto`，沿用服务模板）。显式设置会发送 `chat_template_kwargs.enable_thinking`；服务需支持该参数。评测必须传相同的 `--thinking`，preflight 会检查 agent 与 simulator 一致，配对报告拒绝混用设置。单次模型 HTTP 请求上限为 300 秒，episode 仍以 600 秒为预算。
+
+`lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。
+
+后端工具接口实验通过现有 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API 契约与比较口径以后端实现为准。这些是独立工具实验，尚无成功率提升结论。
