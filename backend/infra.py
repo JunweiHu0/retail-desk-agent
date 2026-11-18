@@ -10,7 +10,6 @@ import re
 import threading
 import time
 import urllib.request
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -96,7 +95,7 @@ def run_detail(run_id: str):
 
 
 # ------------------------------------------------------------------ live view
-_LINE = re.compile(r'(vllm:[a-z0-9_]+)\{(.*)\}\s+([0-9.eE+-]+)')
+_LINE = re.compile(r"(vllm:[a-z0-9_]+)\{(.*)\}\s+([0-9.eE+-]+)")
 
 
 def _scrape():
@@ -190,12 +189,20 @@ def _sample():
             d = {k: c[k] - prev[k] for k in c}
             sample["gen_rate"] = round(d["gen"] / dt, 1)
             sample["prompt_rate"] = round(d["prompt"] / dt, 1)
-            sample["tpot_ms"] = round(1000 * d["itl_sum"] / d["itl_n"], 2) if d["itl_n"] > 0 else None
-            sample["ttft_ms"] = round(1000 * d["ttft_sum"] / d["ttft_n"], 1) if d["ttft_n"] > 0 else None
-            sample["e2e_ms"] = round(1000 * d["e2e_sum"] / d["e2e_n"], 1) if d["e2e_n"] > 0 else None
+            sample["tpot_ms"] = (
+                round(1000 * d["itl_sum"] / d["itl_n"], 2) if d["itl_n"] > 0 else None
+            )
+            sample["ttft_ms"] = (
+                round(1000 * d["ttft_sum"] / d["ttft_n"], 1) if d["ttft_n"] > 0 else None
+            )
+            sample["e2e_ms"] = (
+                round(1000 * d["e2e_sum"] / d["e2e_n"], 1) if d["e2e_n"] > 0 else None
+            )
             sample["finished"] = d["reqs"]
             # window hit rate: what this interval actually reused
-            sample["cache_window"] = round(d["hits"] / d["queries"], 4) if d["queries"] > 0 else None
+            sample["cache_window"] = (
+                round(d["hits"] / d["queries"], 4) if d["queries"] > 0 else None
+            )
         _PREV["t"], _PREV["c"] = now, c
     _HISTORY.append(sample)
     return sample

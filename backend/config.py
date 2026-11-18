@@ -19,3 +19,9 @@ MODE = os.getenv("AGENT_MODE", "demo")
 MODEL = os.getenv("MODEL_NAME", "gpt-4.1-mini")
 API_KEY = os.getenv("MODEL_API_KEY") or os.getenv("OPENAI_API_KEY", "")
 BASE_URL = os.getenv("MODEL_BASE_URL") or None
+EVAL_API_TOKEN = os.getenv("EVAL_API_TOKEN", "")
+ARTIFACT_DIR = Path(os.getenv("RETAIL_ARTIFACT_DIR", str(ROOT / "runtime/episodes")))
+if not ARTIFACT_DIR.is_absolute():
+    ARTIFACT_DIR = ROOT / ARTIFACT_DIR
+TAU2_COMMIT = "0c69df456a96aa76a1162591574dad9c427a34d7"
+VARIANTS = ("b1", "state", "errors", "guide", "enhanced")

@@ -1,4 +1,4 @@
-"""Exercise the actual ChatOpenAI → Deep Agents → Retail integration without paid API calls."""
+"""Exercise the actual ChatOpenAI → minimal loop → Retail transport without paid API calls."""
 
 import json
 
@@ -71,6 +71,8 @@ def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
     )
     answer = AgentRunner(service).run(session["id"], "取消我的订单", model=model)
     assert "确认" in answer
-    assert len(calls) == 3  # server terminates the graph after staging, without another model call
+    assert len(calls) == 3  # staging stops the loop without another model call
     assert service.store.session(session["id"])["pending"] is not None
-    assert dataset(service)["orders"][pending_order["order_id"]]["status"] == "pending"
+    assert (
+        dataset(service, session["id"])["orders"][pending_order["order_id"]]["status"] == "pending"
+    )

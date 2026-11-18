@@ -5,7 +5,7 @@ import pytest
 # Tests exercise the offline demo model. A developer's .env may set
 # AGENT_MODE=live; set this before backend.config is imported (dotenv never
 # overrides an existing variable).
-os.environ.setdefault("AGENT_MODE", "demo")
+os.environ["AGENT_MODE"] = "demo"
 
 from backend.retail import RetailService  # noqa: E402
 from backend.store import Store
@@ -34,6 +34,6 @@ def authenticate(service, sid, user_id):
     assert service.call(sid, "find_user_id_by_email", {"email": email}) == user_id
 
 
-def dataset(service):
+def dataset(service, sid=None):
     with service.store.tx() as cx:
-        return service.store.dataset(cx)
+        return service.store.dataset(cx, sid)

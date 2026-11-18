@@ -7,7 +7,7 @@ from backend.main import create_app
 from tests.conftest import authenticate, dataset
 
 
-def test_deepagents_demo_real_tools_and_memory(service, session, pending_order):
+def test_minimal_demo_real_tools_and_memory(service, session, pending_order):
     sid = session["id"]
     user = dataset(service)["users"][pending_order["user_id"]]
     runner = AgentRunner(service)
@@ -25,7 +25,7 @@ def test_deepagents_demo_real_tools_and_memory(service, session, pending_order):
     runner.run(sid, f"取消订单 {pending_order['order_id']}，原因是不再需要")
     pending = service.store.session(sid)["pending"]
     assert pending["tool"] == "cancel_pending_order"
-    assert dataset(service)["orders"][pending_order["order_id"]]["status"] == "pending"
+    assert dataset(service, sid)["orders"][pending_order["order_id"]]["status"] == "pending"
     runner.decide(sid, pending["id"], True)
     assert "已取消" in runner.run(sid, f"查询订单 {pending_order['order_id']}")
 
@@ -72,7 +72,16 @@ def test_api_stream_approval_and_capability_tokens(service, pending_order):
             json={"action_id": proposal["id"], "approve": True},
         )
         assert result.status_code == 200
-        assert result.json()["receipt"]["result"]["status"] == "cancelled"
+        decision_events = [
+            json.loads(line[6:]) for line in result.text.splitlines() if line.startswith("data: ")
+        ]
+        receipt = next(event["receipt"] for event in decision_events if event["type"] == "receipt")
+        assert receipt["result"]["status"] == "cancelled"
+        assert decision_events[-1]["type"] == "done"
+        assert (
+            len([e for e in decision_events[-1]["session"]["events"] if e["kind"] == "receipt"])
+            == 1
+        )
         assert (
             client.post(
                 path + "/decisions",
