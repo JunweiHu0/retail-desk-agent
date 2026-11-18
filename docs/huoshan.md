@@ -117,16 +117,6 @@ PY
 
 ## TACC 交接接缝
 
-现有 TACC 两作业结构保留；正式 HTTP DB 评测须落实以下配置，再执行 evaluator 的 live preflight：
-
-- 在 CPU 应用作业私有环境注入 `EVAL_API_TOKEN`，并向同作业 evaluator 提供相同值。当前 `deploy/tacc/agent/job.sh` 未透传该变量，不能仅在本机 env 中设置。
-- 应用设置 `RETAIL_ARTIFACT_DIR="$TACC_USERDIR/retail-agent/episodes/$SLURM_JOB_ID"`，活动 SQLite 继续使用节点本地目录。评测 `--output` 同样指定新的持久目录。
-- 应用显式设置 `AGENT_MODE=live`；现有启动脚本的自动 demo 降级只适合演示。以 `/api/health` 与 evaluator preflight 为准。
-- 打包时增加 `benchmarks/` 及实际源码版本 manifest；manifest 必须放在应用根目录的父目录。现有 stage 只有 backend/dist/web，不能直接运行新 evaluator。
-- TACC setup 的 tau2 wheel + 四个资产足够应用使用，但不满足 `build-targets` 的固定完整源码验证。可交付 huoshan 生成的冻结 fixtures（包括 manifest、全部 task 文件、complete.json），不在 TACC 重新生成；若需重新生成，则交付完整固定 tau2 源码与摘要清单。
-- 部署前重新执行 `npm ci`、`npm run build`，避免旧 dist 使用原先 JSON 决策协议。
-- evaluator 显式指定 `--base-url`、`--model-base-url`、`--model qwen3.8-27b`，不要沿用 huoshan 默认端口。当前 TACC 脚本声明的 `Qwen3.8-27B-AWQ-INT4` 路径及别名只表示配置，实际权重与工具协议仍须现场验证；量化 27B 与 BF16 9B 为独立模型组。
-
-上述为待 infra 落实的交接项，本轮未连接或发布 TACC。
+TACC模块清单、tau2包/数据需求、作业环境示例与当前脚本缺口统一维护在 [后端与Agent说明](BACKEND_AGENT.md) 第9–11节。不要将huoshan的环境、GPU编号或已通过的软件测试视为TACC部署验收；本轮没有连接或发布TACC。
 
 当前 9B 的工具结果续跑已复现 thinking/parser 兼容问题，功能验收使用显式非思考组：应用 `start-app --mode live --thinking off`，evaluator `run ... --thinking off`。默认 `auto` 保留给独立研究组；不要把两组混合或静默改变已运行批次。

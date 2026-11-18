@@ -1,7 +1,8 @@
 # 在 TACC 上跑 Retail Desk Agent
 
-> 验证环境：CSIT6000V 平台，`tacc` 分区，vLLM 0.26.0，`Qwen3.8-27B-AWQ-INT4`。
-> 本地开发模式见 [`../README.md`](../README.md)。
+> 本目录脚本配置目标：CSIT6000V 平台、`tacc` 分区、课程 vLLM 环境及 `Qwen3.8-27B-AWQ-INT4`。原分支的部署记录不代表当前后端/agent/eval 已在 TACC 重新验收。
+> **先读 [后端与 Agent 说明](../../docs/BACKEND_AGENT.md)**：其中列出最小部署模块、tau2 包与数据的区别、无前端运行方式，以及本部署助手尚未接入的新评测交接项。当前 `up.sh` 仍强制准备前端 dist，且未打包 benchmarks/源码清单，不能直接视为新 DB-only 评测的一键部署。
+> 项目入口见 [`../../README.md`](../../README.md)。
 
 ## 1. 一条命令
 
@@ -30,7 +31,7 @@ cp deploy/tacc/env.example deploy/tacc/env   # 填 SSH_USER / SSH_KEY
 ```
 浏览器 http://localhost:8080
   └─ SSH 转发 <你>@gw.turing.ust.hk:30041
-       └─ retail-agent 作业 :8787   FastAPI + Deep Agents + 前端 dist
+       └─ retail-agent 作业 :8787   FastAPI + 原生 agent 循环 + 前端 dist
             └─ POST /v1/chat/completions（native tool call）
                  └─ retail-serve 作业 :8000   vLLM
                       └─ Qwen3.8-27B-AWQ-INT4
@@ -66,7 +67,7 @@ agent 启动时读 `server-url.txt` 并 `GET /v1/models` 探活：通就 `AGENT_
 
 ## 4. vLLM 为什么要自己起，而不是用课程 `serve.sh`
 
-课程 `serve.sh` 没开 tool calling。Deep Agents 每轮请求都带 `tools`，vLLM 会回
+课程 `serve.sh` 的原记录未开 tool calling。应用原生工具循环每轮请求都带 `tools`，vLLM 会回
 400（`auto tool choice requires --enable-auto-tool-choice and --tool-call-parser`）。`serve/job.sh` 复制了 `serve.sh` 的全部参数，只加：
 
 ```bash
@@ -78,14 +79,13 @@ agent 启动时读 `server-url.txt` 并 `GET /v1/models` 探活：通就 `AGENT_
 vLLM 0.26 里 `qwen3_xml` 与 `qwen3_coder` 指向同一个 `Qwen3EngineToolParser`。
 换模型时可以改 `TOOL_PARSER`（env 文件里有）。
 
-还有一行不能删：
+旧课程容器脚本还使用了以下设备映射：
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0,1
 ```
 
-缺了它 vLLM 在加载模型之前就 `NVMLError_InvalidArgument`（课程 `serve.sh` 里也有
-这一行）。
+原分支记录过缺少该映射时的 `NVMLError_InvalidArgument`。当前部署须先核对 Slurm 分配与课程容器的 CUDA 枚举，不能将 `0,1` 当成任何节点都适用的物理 GPU 编号。
 
 ## 5. 提交前先看目标节点
 
@@ -113,9 +113,9 @@ GPU_CHECK_END
 
 ## 6. 端口与地址
 
-- serve 固定 `8000`（可与别人冲突；冲突时日志 `PORT_CHECK` 段会显示占用者）。
+- serve 默认 `8000`；当前 job.sh 在端口占用时会继续尝试后续端口，以 `server-url.txt` 和服务日志发布的地址为准。
 - agent 默认 `8787`：8080 在共享节点上经常被别人占。`job.sh` 启动前用 `ss` 检查，
-  占用就打印 `PORT_BUSY` 退出；`up.sh` 会自动换下一个端口重提（最多 3 次）。
+  占用就打印 `PORT_BUSY` 退出。`up.sh` 会重提并增加本地端口变量，但当前尚未将该值注入远端作业的 `PORT`；部署交接需补齐，不能假定重提后端口已经改变。
 - 节点名是 `10-0-1-11`，互相访问要用 `10.0.1.11`；`job.sh` 用 `hostname -I` 取 IP，
   `up.sh` 读日志拿地址，不用手抄。
 
