@@ -26,6 +26,8 @@ def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
     def transport(request):
         body = json.loads(request.content)
         calls.append(body)
+        assert body["messages"][0]["role"] == "system"
+        assert all(m["role"] != "system" for m in body["messages"][1:])
         names = {t["function"]["name"] for t in body["tools"]}
         assert names == set(service.catalog)
         assert "task" not in names and "write_file" not in names
@@ -76,3 +78,8 @@ def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
     assert (
         dataset(service, session["id"])["orders"][pending_order["order_id"]]["status"] == "pending"
     )
+    pending = service.store.session(session["id"])["pending"]
+    AgentRunner(service).decide(session["id"], pending["id"], True, model=model)
+    assert len(calls) == 4
+    assert "APPLICATION RECEIPT:" in calls[-1]["messages"][0]["content"]
+    assert [m["content"] for m in calls[-1]["messages"] if m["role"] == "user"] == ["取消我的订单"]

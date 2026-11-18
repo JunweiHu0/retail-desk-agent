@@ -100,6 +100,13 @@ POST /api/sessions/{id}/decisions  {action_id, approve}
 GET  /api/sessions/{id}
 ```
 
+The model transport uses one leading system message containing policy, public
+customer context and enabled enhancements. Trusted application receipts are
+included in that system block with their chronological conversation positions;
+they are never relabelled as customer messages. Persisted history keeps the
+original application receipt events. This layout supports Qwen templates that
+reject multiple or mid-conversation system messages.
+
 Message and decision streams contain `status`, `tool_start`, `tool_end`,
 `proposal`, `receipt`, `done`, or `error` events. A turn requires `done.session`, or a terminal `error.session`
 which preserves committed receipts/session state and terminates as `agent_error`.

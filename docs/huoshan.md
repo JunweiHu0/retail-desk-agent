@@ -112,3 +112,17 @@ PY
 9B 全量权重摘要位于 `runs/model-manifest-20261118T025749Z/model-manifest.json`（文件 SHA256 `e89065e31994497a26df01e31f7a9b338cb920347e5ad1bf8820b89ac79ed403`）。四个分片的实际 SHA256 全部匹配现有 HF download metadata 的 LFS digest，metadata commit 为 `c202236235762e1c871ad0ccb60c8ee5ba337b9a`；另记录 config、index、tokenizer、tokenizer_config、chat_template、vocab 和 README 摘要。此摘要只证明实际输入版本，不能替代 CUDA 或模型功能验收。
 
 参考：[vLLM Qwen3.5-9B recipe](https://recipes.vllm.ai/Qwen/Qwen3.5-9B)、[vLLM 0.17.1 安装](https://docs.vllm.ai/en/v0.17.1/getting_started/installation/gpu/)、[NVIDIA CUDA forward compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html)。
+
+## TACC 交接接缝
+
+现有 TACC 两作业结构保留；正式 HTTP DB 评测须落实以下配置，再执行 evaluator 的 live preflight：
+
+- 在 CPU 应用作业私有环境注入 `EVAL_API_TOKEN`，并向同作业 evaluator 提供相同值。当前 `deploy/tacc/agent/job.sh` 未透传该变量，不能仅在本机 env 中设置。
+- 应用设置 `RETAIL_ARTIFACT_DIR="$TACC_USERDIR/retail-agent/episodes/$SLURM_JOB_ID"`，活动 SQLite 继续使用节点本地目录。评测 `--output` 同样指定新的持久目录。
+- 应用显式设置 `AGENT_MODE=live`；现有启动脚本的自动 demo 降级只适合演示。以 `/api/health` 与 evaluator preflight 为准。
+- 打包时增加 `benchmarks/` 及实际源码版本 manifest；manifest 必须放在应用根目录的父目录。现有 stage 只有 backend/dist/web，不能直接运行新 evaluator。
+- TACC setup 的 tau2 wheel + 四个资产足够应用使用，但不满足 `build-targets` 的固定完整源码验证。可交付 huoshan 生成的冻结 fixtures（包括 manifest、全部 task 文件、complete.json），不在 TACC 重新生成；若需重新生成，则交付完整固定 tau2 源码与摘要清单。
+- 部署前重新执行 `npm ci`、`npm run build`，避免旧 dist 使用原先 JSON 决策协议。
+- evaluator 显式指定 `--base-url`、`--model-base-url`、`--model qwen3.8-27b`，不要沿用 huoshan 默认端口。当前 TACC 脚本声明的 `Qwen3.8-27B-AWQ-INT4` 路径及别名只表示配置，实际权重与工具协议仍须现场验证；量化 27B 与 BF16 9B 为独立模型组。
+
+上述为待 infra 落实的交接项，本轮未连接或发布 TACC。

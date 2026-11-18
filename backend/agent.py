@@ -67,13 +67,12 @@ class DemoRetailModel(BaseChatModel):
             except (ValueError, TypeError):
                 return message.content
 
-        receipts = [
-            m
-            for m in messages[human_idx + 1 :]
-            if isinstance(m, SystemMessage) and str(m.content).startswith("APPLICATION RECEIPT:")
-        ]
-        if receipts:
-            receipt = json.loads(receipts[-1].content.split("\n", 1)[1])
+        application = messages[0].additional_kwargs if messages else {}
+        receipts = application.get("retail_receipts", [])
+        if receipts and receipts[-1]["after_user_messages"] == sum(
+            isinstance(m, HumanMessage) for m in messages
+        ):
+            receipt = json.loads(receipts[-1]["content"].split("\n", 1)[1])
             return answer(receipt.get("message", receipt["status"]))
         if recent:
             last = result(recent[-1])
@@ -97,19 +96,7 @@ class DemoRetailModel(BaseChatModel):
             None,
         )
         if not auth:
-            public = next(
-                (
-                    m
-                    for m in messages
-                    if isinstance(m, SystemMessage)
-                    and str(m.content).startswith("CUSTOMER CONTEXT:")
-                ),
-                None,
-            )
-            if public:
-                auth = (json.loads(public.content.split("\n", 1)[1]).get("user") or {}).get(
-                    "user_id"
-                )
+            auth = (application.get("retail_context", {}).get("user") or {}).get("user_id")
         if not auth:
             return answer(
                 "你好，我是 Retail 客服助手。请提供账户邮箱，我会先核验身份，再查询或处理你的订单。也可以选择下方的模拟客户场景。"
@@ -486,23 +473,47 @@ class AgentRunner:
                     reason = "tool_call_budget"
                 if reason:
                     return finish("本次会话已达到处理预算，已停止自动处理。", "finished", reason)
-                prefix = [
-                    SystemMessage(content=prompt),
-                    SystemMessage(
-                        content="CUSTOMER CONTEXT:\n" + json.dumps(context, ensure_ascii=False)
-                    ),
-                ]
+                # Qwen's chat template permits exactly one system message, at index zero.
+                # Keep trusted receipts in that block, with their conversation position;
+                # never relabel application events as customer messages.
+                system_content = (
+                    prompt + "\nCUSTOMER CONTEXT:\n" + json.dumps(context, ensure_ascii=False)
+                )
                 if with_state:
-                    prefix.append(
-                        SystemMessage(
-                            content="STRUCTURED LEDGER:\n" + json.dumps(state, ensure_ascii=False)
-                        )
+                    system_content += "\nSTRUCTURED LEDGER:\n" + json.dumps(
+                        state, ensure_ascii=False
                     )
+                conversation, receipts = [], []
+                user_messages = 0
+                for entry in history:
+                    if isinstance(entry, SystemMessage):
+                        receipts.append(
+                            {
+                                "after_user_messages": user_messages,
+                                "after_conversation_messages": len(conversation),
+                                "content": entry.content,
+                            }
+                        )
+                    else:
+                        conversation.append(entry)
+                        user_messages += isinstance(entry, HumanMessage)
+                if receipts:
+                    system_content += (
+                        "\nTRUSTED APPLICATION EVENTS (chronological):\n"
+                        + json.dumps(receipts, ensure_ascii=False)
+                    )
+                request_messages = [
+                    SystemMessage(
+                        content=system_content,
+                        additional_kwargs={"retail_context": context, "retail_receipts": receipts},
+                    ),
+                    *conversation,
+                ]
                 usage["model_calls"] = usage.get("model_calls", 0) + 1
                 save()
                 call_started = time.monotonic()
                 try:
-                    message = bound.invoke(prefix + history)
+                    message = bound.invoke(request_messages)
                 except Exception:
                     usage["unknown_usage_calls"] += 1
                     rec.model_call(

@@ -21,6 +21,8 @@ class ScriptedModel:
         return self
 
     def invoke(self, messages):
+        assert isinstance(messages[0], SystemMessage)
+        assert not any(isinstance(m, SystemMessage) for m in messages[1:])
         self.requests.append(messages.copy())
         step = next(self.steps)
         if isinstance(step, Exception):
