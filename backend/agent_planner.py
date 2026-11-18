@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-PLANNER_VERSION = "explicit-task-plan-v4"
+PLANNER_VERSION = "explicit-task-plan-v5"
 WRITE_NAMES = (
     "cancel_pending_order",
     "exchange_delivered_order_items",
@@ -111,6 +111,8 @@ Preserve every unfinished request. Use the exact customer message ID as intent e
 The application attaches the original text by that ID; do not copy or rewrite source quotations.
 Facts and identifiers may come from public context or observed tools.
 Use existing task IDs as keys when updating a task; new tasks need distinct descriptive keys.
+Adding information or selecting items/payment for an existing request is an UPDATE: reuse its key
+and keep supersede empty. NEVER include the same task ID in tasks and supersede.
 Omit unchanged tasks: omission never deletes them. Supersede only when a customer explicitly cancels
 or replaces a request. Do not supersede or change an executed task; a new request needs a new task.
 One task per operation/object. Group all requested item changes within the same order into one task.
@@ -118,18 +120,27 @@ For 'all orders' use ONE all_* scope with object_id empty and no order_id argume
 expands the observed order set. For a specific order use scope=single and its exact object_id. A user-default
 address update is a separate modify_user_address task. Record informational requests with answer.
 Unknown object IDs are empty strings. Unknown arguments stay absent and are described in missing.
+Put the customer/order identifier ONLY in object_id, never in arguments: the application binds it.
 arguments are KNOWN constraints, not suggestions: use name/value pairs with direct strings or
 arrays of strings. Missing information belongs only in the missing list, never in arguments.
 An order operation's object_id is an ORDER ID (#W...), never a product or item ID. For an
 informational answer you may identify an observed product. Do not guess replacement IDs or choices.
 Never choose a refund/payment method unless the customer selected it or explicitly requested the
 original method. Keep natural-language requirements in request until a query resolves exact IDs.
+Approval is NOT missing information: the application will present a confirmation card after the
+executor stages a preview. Never put chat yes, confirmation, or authorization in missing.
 Use missing only for unresolved information. The executor can obtain missing facts via read tools.
 For dependencies use WRITE task keys/IDs, not informational answer tasks (the executor can read
 necessary facts before writing). Address/payment changes should precede one-time item changes
 when the same order needs both, according to policy. Avoid circular dependencies.
 A rejection is not permission to repeat: reactivate a rejected task only after a new user instruction.
 Do not convert assistant assertions into customer intent. No target/reference/score is available.
+OUTPUT CONTRACT: Emit one compact JSON object, with BOTH top-level keys in this order:
+{"tasks":[],"supersede":[]}. Never stop after tasks or append whitespace instead of supersede.
+For each task use exactly: key, operation, request, source_message_id, scope, object_id,
+arguments (an array of {"name":"field","value":"value or array of strings"}), missing, depends_on.
+Each supersede entry has task_id and source_message_id. Use empty arrays when no change applies.
+The response_schema below is the complete output contract. Keep request/missing concise.
 """
 
 C1_CONTRACT = """
@@ -167,7 +178,12 @@ def plan_response_schema(messages, context, catalog):
         dict.fromkeys(["", uid, *orders, *products])
     )
     definitions["Argument"]["properties"]["name"]["enum"] = sorted(
-        {field for name in WRITE_NAMES for field in catalog[name].params.model_fields}
+        {
+            field
+            for name in WRITE_NAMES
+            for field in catalog[name].params.model_fields
+            if field not in {"order_id", "user_id"}
+        }
     )
     return schema
 
@@ -178,6 +194,7 @@ def planner_messages(policy, context, messages, state, observations, catalog):
         HumanMessage(
             content=json.dumps(
                 {
+                    "response_schema": plan_response_schema(messages, context, catalog),
                     "customer_messages": [m for m in messages if m["role"] == "user"],
                     "visible_conversation": messages,
                     "customer_context": context,

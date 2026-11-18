@@ -35,10 +35,10 @@ from backend.agent_planner import (
 from backend.agent_review import (
     REVIEW_PROMPT,
     REVIEW_VERSION,
-    ReviewDecision,
     parse_review,
     ready_write_tasks,
     review_messages,
+    review_response_schema,
 )
 from backend.agent_state import (
     apply_task_plan,
@@ -600,42 +600,47 @@ class AgentRunner:
                 policy, context, current["messages"], state, observations, self.service.catalog
             )
             for attempt in range(2):
-                reply = invoke_stage(
-                    planner, messages, "planner" if attempt == 0 else "planner_repair"
-                )
-                if self.store.session(sid)["status"] == "finished":
-                    raise AgentBudgetExceeded("episode_finished")
                 record = {
                     "source_message_id": users[-1]["id"],
-                    "content": reply.content,
+                    "content": "",
                     "attempt": attempt,
                 }
                 state.setdefault("planning_attempts", []).append(record)
                 try:
+                    reply = invoke_stage(
+                        planner, messages, "planner" if attempt == 0 else "planner_repair"
+                    )
+                    record["content"] = reply.content
+                    if self.store.session(sid)["status"] == "finished":
+                        raise AgentBudgetExceeded("episode_finished")
                     if reply.tool_calls:
                         raise ValueError("Planner must return JSON, without tool calls")
                     delta, parsed = parse_plan(
                         reply.content, current["messages"], context, state, self.service.catalog
                     )
                     apply_task_plan(state, delta, parsed, context, users[-1]["id"])
-                except (ValueError, TypeError) as exc:
-                    record["error"] = str(exc)
+                except (ValueError, TypeError, LengthFinishReasonError) as exc:
+                    if isinstance(exc, LengthFinishReasonError):
+                        record["content"] = exc.completion.choices[0].message.content
+                        record["error"] = (
+                            "Output truncated. Emit compact JSON including tasks AND supersede."
+                        )
+                    else:
+                        record["error"] = str(exc)
                     save()
                     if attempt:
-                        raise ValueError(
-                            "planning_error: structured plan failed after one repair"
-                        ) from exc
+                        return False
                     messages.append(
                         HumanMessage(
                             content="Your plan was invalid. Return a corrected complete delta. Error: "
-                            + str(exc)
+                            + record["error"]
                             + "\nPrevious response:\n"
-                            + str(reply.content)
+                            + str(record["content"]).rstrip()
                         )
                     )
                 else:
                     save()
-                    return
+                    return True
 
         try:
             runtime_model = model or get_model()
@@ -646,13 +651,17 @@ class AgentRunner:
                     m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
                 )
                 if state.get("planned_message_id") != latest_user_id:
-                    plan_tasks(
+                    planned = plan_tasks(
                         [
                             {"name": m.name, "content": m.content}
                             for m in history
                             if isinstance(m, ToolMessage)
                         ]
                     )
+                    if not planned:
+                        return finish(
+                            "I couldn't reliably update your request, so I have not staged any new changes. Please restate the changes you want, including the order and any selected options."
+                        )
             while True:
                 current = self.store.session(sid)
                 if current["status"] == "finished":
@@ -876,44 +885,68 @@ class AgentRunner:
                                         "json_schema": {
                                             "name": "retail_completion_review",
                                             "strict": True,
-                                            "schema": ReviewDecision.model_json_schema(),
+                                            "schema": review_response_schema(state),
                                         },
                                     },
                                     max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
                                 )
-                                review = invoke_stage(
-                                    reviewer,
-                                    review_messages(
-                                        policy,
-                                        context,
-                                        state,
-                                        history,
-                                        content,
-                                        current["messages"],
-                                    ),
-                                    "reviewer",
-                                )
-                                if self.store.session(sid)["status"] == "finished":
-                                    raise AgentBudgetExceeded("episode_finished")
-                                record = {"candidate_reply": content, "review": review.content}
+                                record = {"candidate_reply": content}
                                 state.setdefault("review_attempts", []).append(record)
-                                decision = parse_review(review.content, state, history)
-                                if decision.action in {"continue", "handoff"}:
-                                    feedback = decision.feedback
-                                    if decision.action == "handoff":
-                                        feedback += (
-                                            " Call transfer_to_human_agents with the actual reason."
+                                try:
+                                    review = invoke_stage(
+                                        reviewer,
+                                        review_messages(
+                                            policy,
+                                            context,
+                                            state,
+                                            history,
+                                            content,
+                                            current["messages"],
+                                        ),
+                                        "reviewer",
+                                    )
+                                    record["review"] = review.content
+                                    if self.store.session(sid)["status"] == "finished":
+                                        raise AgentBudgetExceeded("episode_finished")
+                                    decision = parse_review(review.content, state)
+                                except (ValueError, LengthFinishReasonError) as exc:
+                                    record["error"] = (
+                                        type(exc).__name__
+                                        + ": "
+                                        + (
+                                            "Review was truncated"
+                                            if isinstance(exc, LengthFinishReasonError)
+                                            else str(exc)
                                         )
+                                    )
+                                    feedback = (
+                                        "The advisory check returned invalid data; it did not complete any task. "
+                                        "Use the actual ledger and receipts to give a concise accurate response. "
+                                        "Ask for unresolved customer choices; never claim an unexecuted write is complete."
+                                    )
                                 else:
-                                    content = decision.reply
-                                    history[-1] = message.model_copy(update={"content": content})
-                                    for answer in decision.answered:
-                                        task = next(
-                                            t for t in state["tasks"] if t["id"] == answer.task_id
-                                        )
-                                        task.update(
-                                            status="answered", answer_evidence=answer.model_dump()
-                                        )
+                                    if decision.action in {"revise", "handoff"}:
+                                        feedback = decision.feedback
+                                        if decision.action == "handoff":
+                                            feedback += " Call transfer_to_human_agents with the actual reason."
+                                    else:
+                                        for task in state.get("tasks", []):
+                                            if task["id"] in decision.answered_task_ids:
+                                                task.update(
+                                                    status="answered",
+                                                    answer_evidence={
+                                                        "kind": "model_review_of_sent_reply",
+                                                        "reply": content,
+                                                        "observations": [
+                                                            "context",
+                                                            *[
+                                                                m.tool_call_id
+                                                                for m in history
+                                                                if isinstance(m, ToolMessage)
+                                                            ],
+                                                        ],
+                                                    },
+                                                )
                             if feedback:
                                 state.setdefault("completion_checks", []).append(
                                     {
@@ -1108,7 +1141,10 @@ class AgentRunner:
                         for m in history
                         if isinstance(m, ToolMessage)
                     ]
-                    plan_tasks(observed)
+                    if not plan_tasks(observed):
+                        return finish(
+                            "I couldn't reliably resolve the remaining request. Please clarify the order and changes you want; no new changes were submitted."
+                        )
         except AgentBudgetExceeded as exc:
             return finish("本次会话已停止自动处理，未完成操作没有执行。", "finished", str(exc))
         except Exception as exc:

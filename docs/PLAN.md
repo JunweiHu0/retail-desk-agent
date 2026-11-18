@@ -219,3 +219,24 @@ C2纠正机制补充：真实四操作v3复测中，纯文字纠正后仍出现�
 开发发现并修复同对象替换bug：原实现先合并新任务再supersede旧ID，可能误废弃细化后的请求。现先处理显式替换，禁止复用被替换ID，给新任务独立ID并将原依赖接到替代任务；supersede只能引用最新用户消息。新增同对象改地址/依赖保持与来源时效测试，本机24项C1/C2测试通过。此前v3 smoke标记为不完整开发记录，不输出完整成功率。
 
 最新软件回归：`dfe9b23` 在 huoshan `c1-c2-replacement-regression-20261118T094550Z/` 完整145项通过（67.05s）；`c1-v4-replacement-20261118T100234Z/` 真实两轮公开输入复测通过，任务细化后换货请求及明确参数保留。下一步冻结源码跑C1/C2完整smoke8，尚无新候选成功率结论。
+
+### 完整 smoke 后的修订：减少结构化控制负担（2026-11-18）
+
+`c1-c2-v4-smoke-20261118T100356Z` 已完整完成：同协议B1=6/8，C1=3/8，C2=2/8。C1有3个agent_error（任务更新/废弃冲突、参数对象冲突、规划空白循环截断）；C2有7个检查阶段错误及1个规划截断，8题均异常结束。C2两题最终DB仍匹配，按纯DB规则计成功。不能把异常早停造成的低token当效率提升。
+
+参考依据及采用范围：
+
+- [tau2官方原生工具循环](https://github.com/sierra-research/tau2-bench/blob/main/src/tau2/agent/llm_agent.py)：保留政策、历史、原生工具调用这一最小执行层，不替换为多agent框架；本项目业务环境仍使用固定tau2 SHA，未升级依赖。
+- [Anthropic evaluator-optimizer 示例](https://github.com/anthropics/claude-cookbooks/blob/main/patterns/agents/evaluator_optimizer.ipynb)：检查与执行分离，检查输出评价和反馈。这里只保留一次有界检查/纠正，不采用示例的开放式循环。
+- [JSONSchemaBench (2025)](https://arxiv.org/abs/2501.10868)：语法合规、覆盖与输出质量需要分别衡量。我们将协议失败、语义任务状态及实际DB分数分开；schema合法不等于任务正确。
+- [When Can LLMs Actually Correct Their Own Mistakes? (TACL 2024)](https://aclanthology.org/2024.tacl-1.78/) 与 [Large Language Models Cannot Self-Correct Reasoning Yet (ICLR 2024)](https://arxiv.org/abs/2310.01798)：外部可靠反馈与无依据自评不同。当前采用实际业务回执/参数校验作确定性反馈，不假设增加自评必然提高成功率。这是用于本任务的设计推论，论文并未验证本项目。
+- [vLLM v0.17.1 structured outputs](https://github.com/vllm-project/vllm/blob/v0.17.1/docs/features/structured_outputs.md)：在提示中明确schema及字段含义。远程安装代码确认xgrammar的任意空白开关取自引擎配置；本轮不改模型服务及模拟器配置，以保持与B1同协议。
+
+具体修改：
+
+1. C1规划v5在可见输入中带完整动态输出schema；要求紧凑JSON、必须输出tasks与supersede；补充信息属于原任务更新，不得同时更新/废弃同一ID。object_id由应用绑定，生成schema不再允许重复生成user_id/order_id参数。审批不属于missing。拒绝冲突的校验仍保留。
+2. 规划格式/截断错误共享最多一次修复额度，所有实际用量保留；仍失败则保持旧账本、停止本轮新写入并请求用户澄清，不使用不完整计划执行，也不改为无校验直写。预算耗尽仍真实终止。
+3. C2检查v3仅返回accept/revise/handoff、简短feedback及可选信息任务ID。删除自由改写reply和逐字复制quote要求；动态schema只允许当前未回答的信息任务ID，写任务不能被检查器结算。accept保持原答复；信息任务记录原答复和实际观察供审阅，明确是模型判断而非事实认证。
+4. 检查格式错误记录原文与错误，执行器在既有一次纠正额度内根据账本/回执回复，检查器错误不再直接抛出agent_error；不额外给检查器重试预算。ready任务仍经原生工具生成预览，再经过真实审批。B1路径、16工具、target及模拟器均不变。
+
+验证顺序：本机定向回归 → huoshan完整软件套件 → 上一批公开输入的规划/检查复现（不输入target/隐藏用户场景）→ 冻结新版本C1/C2各smoke8。保留v4失败及新协议日志，完整成绩出现前不报告提升，不提前扩大development54。

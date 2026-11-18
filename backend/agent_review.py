@@ -1,43 +1,37 @@
-"""Bounded C2 completion review; no access to evaluator targets or business writes."""
+"""A small advisory check; only actual receipts settle business writes."""
 
 import json
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
-REVIEW_VERSION = "receipt-grounded-review-v2"
-
-
-class AnswerEvidence(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    task_id: str
-    reply_quote: str = Field(min_length=1)
-    observations: list[str] = Field(min_length=1)
+REVIEW_VERSION = "advisory-completion-review-v3"
 
 
 class ReviewDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["continue", "reply", "handoff"]
+    action: Literal["accept", "revise", "handoff"]
     feedback: str
-    reply: str
-    answered: list[AnswerEvidence]
+    answered_task_ids: list[str]
 
 
-REVIEW_PROMPT = """Review this retail assistant's UNSENT draft against the customer's tasks and
-actual observed state. You are an internal stage of the same agent, with no business tools.
-Return the required JSON. Do not introduce new customer preferences or authorize writes.
-A preview is not execution. Only executed receipts settle writes. The application confirmation
-card supplies authorization; if a write is fully specified, recommend continue to stage it,
-not a chat yes. If facts are missing, continue for a justified read, or reply with a focused
-question if a customer choice is needed. Keep every remaining customer request visible.
-Use handoff for unsupported requests when appropriate. If action=continue/handoff, feedback
-instructs the executor; no answer is yet sent, so answered must be empty.
-If action=reply, provide the customer-facing reply in their language, with accurate completed
-and unfinished work. Mark informational tasks answered only if this reply actually answers them,
-with an exact reply_quote and observation references: 'context' or real tool_call_id values.
-Never mark writes executed or claim everything complete if any write is still unexecuted.
-There is at most one review and one correction per turn. No target or score is available.
+REVIEW_PROMPT = """Check this UNSENT retail reply against the user's requests, observed facts and
+actual application receipts. Return only compact JSON with these exact keys:
+{"action":"accept","feedback":"","answered_task_ids":[]}
+action=accept: send the draft unchanged. Use when it answers the user or asks a necessary question.
+action=revise: give short, specific feedback for one executor correction, e.g. an omitted request,
+a false completion claim, a needed read, or a repeated chat confirmation after an executed receipt.
+action=handoff: give the policy reason for asking the executor to transfer to a human.
+Do not write a replacement reply, quotes, tool arguments, or evidence descriptions.
+answered_task_ids may contain ONLY IDs from eligible_answer_task_ids and ONLY on accept,
+when the draft actually answers those informational questions. Otherwise use []. A question asking
+for missing details is not an answer. Never include a write task ID. This is an advisory judgment,
+not proof of factual correctness. Writes are completed only by real executed receipts.
+A preview is not execution. A confirmation card supplies execution approval; do not ask for chat
+'yes' before staging a fully specified preview. If customer choices are unknown, ask for them.
+Do not infer approval/payment preferences or add tasks. Do not criticize valid policy refusals.
+Use the response_schema in the input. No target DB, reference actions or scores are available.
 """
 
 
@@ -60,17 +54,38 @@ def ready_write_tasks(state, catalog):
     ]
 
 
+def review_response_schema(state):
+    schema = ReviewDecision.model_json_schema()
+    ids = [
+        t["id"]
+        for t in state.get("tasks", [])
+        if t["operation"] == "answer" and t["status"] in {"ready", "needs_info"}
+    ]
+    field = schema["properties"]["answered_task_ids"]
+    if ids:
+        field["items"]["enum"] = ids
+        field["maxItems"] = len(ids)
+    else:
+        field["maxItems"] = 0
+    return schema
+
+
 def review_messages(policy, context, state, history, candidate, user_messages):
     observations = [
         {"tool_call_id": m.tool_call_id, "tool": m.name, "content": m.content}
         for m in history
         if isinstance(m, ToolMessage)
     ]
+    schema = review_response_schema(state)
     return [
         SystemMessage(content=policy + "\n" + REVIEW_PROMPT),
         HumanMessage(
             content=json.dumps(
                 {
+                    "response_schema": schema,
+                    "eligible_answer_task_ids": schema["properties"]["answered_task_ids"][
+                        "items"
+                    ].get("enum", []),
                     "customer_messages": [m for m in user_messages if m["role"] == "user"],
                     "tasks": [
                         {k: v for k, v in t.items() if k != "source_quote"}
@@ -86,24 +101,17 @@ def review_messages(policy, context, state, history, candidate, user_messages):
     ]
 
 
-def parse_review(content, state, history):
+def parse_review(content, state):
     result = ReviewDecision.model_validate_json(content)
-    tasks = {t["id"]: t for t in state.get("tasks", [])}
-    observations = {"context", *[m.tool_call_id for m in history if isinstance(m, ToolMessage)]}
-    if result.action != "reply" and result.answered:
+    eligible = {
+        t["id"]
+        for t in state.get("tasks", [])
+        if t["operation"] == "answer" and t["status"] in {"ready", "needs_info"}
+    }
+    if result.action != "accept" and result.answered_task_ids:
         raise ValueError("Unsent answers cannot settle informational tasks")
-    if result.action != "reply" and not result.feedback.strip():
-        raise ValueError("Continuation review must give actionable feedback")
-    if result.action == "reply" and not result.reply.strip():
-        raise ValueError("Review reply must not be empty")
-    for answer in result.answered:
-        task = tasks.get(answer.task_id)
-        if (
-            task is None
-            or task["operation"] != "answer"
-            or task["status"] not in {"ready", "needs_info"}
-        ):
-            raise ValueError("Only unfinished informational tasks can be answered")
-        if answer.reply_quote not in result.reply or not set(answer.observations) <= observations:
-            raise ValueError("Answer lacks actual reply and observation evidence")
+    if result.action != "accept" and not result.feedback.strip():
+        raise ValueError("Correction must give actionable feedback")
+    if not set(result.answered_task_ids) <= eligible:
+        raise ValueError("Only unfinished informational tasks can be marked answered")
     return result

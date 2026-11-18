@@ -6,7 +6,7 @@ import pytest
 from langchain_core.messages import AIMessage
 
 from backend.agent import AgentRunner
-from backend.agent_review import parse_review
+from backend.agent_review import parse_review, review_response_schema
 from tests.test_c1_agent import Model, call, task
 
 
@@ -61,13 +61,13 @@ def test_complete_arguments_skip_repeated_chat_confirmation(service, c1_episode)
             AIMessage(content="Please say yes first."),
             call("cancel_pending_order", {"order_id": "#W9000001", "reason": "no longer needed"}),
             AIMessage(content="Still awaiting your confirmation."),
+            AIMessage(content="The cancellation was executed."),
         ],
         [
             {
-                "action": "reply",
-                "feedback": "",
-                "reply": "The cancellation was executed.",
-                "answered": [],
+                "action": "revise",
+                "feedback": "The actual cancellation receipt is executed. Report completion.",
+                "answered_task_ids": [],
             }
         ],
     )
@@ -84,8 +84,8 @@ def test_complete_arguments_skip_repeated_chat_confirmation(service, c1_episode)
     assert state["messages"][-1]["content"] == "The cancellation was executed."
     assert state["agent_state"]["tasks"][0]["status"] == "executed"
     assert state["usage"]["phases"]["reviewer"]["model_calls"] == 1
-    assert state["usage"]["phases"]["executor_correction"]["model_calls"] == 1
-    assert state["usage"]["model_calls"] == 5
+    assert state["usage"]["phases"]["executor_correction"]["model_calls"] == 2
+    assert state["usage"]["model_calls"] == 6
 
 
 def test_correction_is_bounded_and_does_not_claim_unexecuted_success(service, c1_episode):
@@ -118,20 +118,10 @@ def test_reviewer_can_answer_information_only_with_reply_evidence(service, c1_ep
 
     def review(body):
         assert body["customer_context"]["orders"][0]["status"] == "pending"
-        return {
-            "action": "reply",
-            "feedback": "",
-            "reply": "Both orders are pending.",
-            "answered": [
-                {
-                    "task_id": "task-0001",
-                    "reply_quote": "Both orders are pending.",
-                    "observations": ["context"],
-                }
-            ],
-        }
+        assert body["eligible_answer_task_ids"] == ["task-0001"]
+        return {"action": "accept", "feedback": "", "answered_task_ids": ["task-0001"]}
 
-    model = ReviewedModel(plan, [AIMessage(content="I have checked.")], [review])
+    model = ReviewedModel(plan, [AIMessage(content="Both orders are pending.")], [review])
     answer = AgentRunner(service).run(c1_episode["id"], "What are the order statuses?", model=model)
     state = service.store.session(c1_episode["id"])
     assert answer == "Both orders are pending."
@@ -161,13 +151,12 @@ def test_missing_customer_choice_stays_unexecuted(service, c1_episode):
 
     model = ReviewedModel(
         plan,
-        [AIMessage(content="All done.")],
+        [AIMessage(content="All done."), AIMessage(content="What is your cancellation reason?")],
         [
             {
-                "action": "reply",
-                "feedback": "",
-                "reply": "What is the reason: no longer needed or ordered by mistake?",
-                "answered": [],
+                "action": "revise",
+                "feedback": "Ask for the missing cancellation reason.",
+                "answered_task_ids": [],
             }
         ],
     )
@@ -179,48 +168,51 @@ def test_missing_customer_choice_stays_unexecuted(service, c1_episode):
     )
 
 
-def test_review_cannot_mark_writes_answered_or_invent_observations():
+def test_review_cannot_mark_writes_answered():
     state = {
         "tasks": [
             {"id": "write", "operation": "cancel_pending_order", "status": "ready"},
             {"id": "read", "operation": "answer", "status": "ready"},
         ]
     }
-    for identifier, refs, quote in [
-        ("write", ["context"], "Done"),
-        ("read", ["invented"], "Done"),
-        ("read", ["context"], "not in reply"),
-    ]:
+    schema = review_response_schema(state)
+    assert schema["properties"]["answered_task_ids"]["items"]["enum"] == ["read"]
+    for action, ids in [("accept", ["write"]), ("accept", ["invented"]), ("revise", ["read"])]:
         with pytest.raises(ValueError):
             parse_review(
-                json.dumps(
-                    {
-                        "action": "reply",
-                        "feedback": "",
-                        "reply": "Done",
-                        "answered": [
-                            {"task_id": identifier, "reply_quote": quote, "observations": refs}
-                        ],
-                    }
-                ),
-                state,
-                [],
+                json.dumps({"action": action, "feedback": "check", "answered_task_ids": ids}), state
             )
-    with pytest.raises(ValueError):
-        parse_review(
-            json.dumps(
-                {
-                    "action": "continue",
-                    "feedback": "continue",
-                    "reply": "",
-                    "answered": [
-                        {"task_id": "read", "reply_quote": "Done", "observations": ["context"]}
-                    ],
-                }
-            ),
-            state,
-            [],
-        )
+    write_only = {"tasks": state["tasks"][:1]}
+    assert review_response_schema(write_only)["properties"]["answered_task_ids"]["maxItems"] == 0
+
+
+def test_invalid_review_is_logged_and_correction_preserves_business_state(service, c1_episode):
+    as_c2(service, c1_episode)
+
+    def plan(body):
+        m = body["customer_messages"][-1]
+        return {
+            "tasks": [
+                task("cancel", "cancel_pending_order", "#W9000001", {}, m, missing=["reason"])
+            ],
+            "supersede": [],
+        }
+
+    model = ReviewedModel(
+        plan,
+        [AIMessage(content="All done."), AIMessage(content="What is your cancellation reason?")],
+        [{"action": "accept", "feedback": "", "answered_task_ids": ["task-0001"]}],
+    )
+    reply = AgentRunner(service).run(c1_episode["id"], "Cancel my first order", model=model)
+    state = service.store.session(c1_episode["id"])
+    assert "reason" in reply
+    assert state["status"] == "ready"
+    assert state["pending"] is None
+    assert state["agent_state"]["tasks"][0]["status"] == "needs_info"
+    assert "error" in state["agent_state"]["review_attempts"][0]
+    assert len(model.review_requests) == 1
+    assert len(model.execution) == 2
+    assert "All done." not in [m["content"] for m in state["messages"]]
 
 
 def test_review_model_call_respects_total_budget(service, c1_episode, monkeypatch):

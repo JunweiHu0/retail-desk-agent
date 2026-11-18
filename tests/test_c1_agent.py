@@ -359,10 +359,10 @@ def test_planner_failure_and_external_finish_preserve_db(service, c1_episode):
     sid = c1_episode["id"]
     before = dataset(service, sid)
     model = Model(lambda body: "{broken", [])
-    with pytest.raises(ValueError, match="planning_error"):
-        AgentRunner(service).run(sid, "Cancel the first order", model=model)
+    reply = AgentRunner(service).run(sid, "Cancel the first order", model=model)
+    assert "restate" in reply
     assert service.store.session(sid)["usage"]["model_calls"] == 2
-    assert service.store.session(sid)["status"] == "error"
+    assert service.store.session(sid)["status"] == "ready"
     assert dataset(service, sid) == before
 
     def finish_during_plan(body):
