@@ -6,33 +6,46 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, ConfigDict
 
-REVIEW_VERSION = "advisory-completion-review-v3"
+REVIEW_VERSION = "advisory-completion-review-v4"
 
 
 class ReviewDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["accept", "revise", "handoff"]
-    feedback: str
+    issue: Literal[
+        "none", "omitted_request", "premature_completion", "redundant_confirmation", "needs_handoff"
+    ]
     answered_task_ids: list[str]
 
 
-REVIEW_PROMPT = """Check this UNSENT retail reply against the user's requests, observed facts and
-actual application receipts. Return only compact JSON with these exact keys:
-{"action":"accept","feedback":"","answered_task_ids":[]}
-action=accept: send the draft unchanged. Use when it answers the user or asks a necessary question.
-action=revise: give short, specific feedback for one executor correction, e.g. an omitted request,
-a false completion claim, a needed read, or a repeated chat confirmation after an executed receipt.
-action=handoff: give the policy reason for asking the executor to transfer to a human.
-Do not write a replacement reply, quotes, tool arguments, or evidence descriptions.
-answered_task_ids may contain ONLY IDs from eligible_answer_task_ids and ONLY on accept,
-when the draft actually answers those informational questions. Otherwise use []. A question asking
-for missing details is not an answer. Never include a write task ID. This is an advisory judgment,
-not proof of factual correctness. Writes are completed only by real executed receipts.
-A preview is not execution. A confirmation card supplies execution approval; do not ask for chat
-'yes' before staging a fully specified preview. If customer choices are unknown, ask for them.
-Do not infer approval/payment preferences or add tasks. Do not criticize valid policy refusals.
-Use the response_schema in the input. No target DB, reference actions or scores are available.
+REVIEW_PROMPT = """Check ONLY task coverage and execution status in this UNSENT retail reply.
+Return compact JSON using the response_schema and exactly these keys:
+{"action":"accept","issue":"none","answered_task_ids":[]}
+Default to accept. A focused question for a missing customer choice is a valid reply; accept it.
+Do not second-guess product options, prices, address details, policy facts, wording or style.
+Do not invent facts, suggest replacement IDs, write a new reply, or supply free-text feedback.
+Use action=revise ONLY for a concrete issue:
+- omitted_request: a requested task is ignored, neither handled nor acknowledged/asked about.
+- premature_completion: a write is claimed executed although its actual status is unexecuted.
+- redundant_confirmation: the draft asks to repeat an operation already executed by receipt,
+  or asks for chat yes instead of staging a preview whose required arguments are all known.
+Use action=handoff, issue=needs_handoff ONLY if the draft ignores a necessary policy handoff.
+For accept use issue=none. answered_task_ids may contain ONLY eligible_answer_task_ids, ONLY
+on accept, when the draft actually answers those informational questions. Otherwise use [].
+A question asking for details is not an answer. Never include write tasks. This is an advisory
+judgment, not proof of factual correctness. Only actual receipts complete writes.
+APPROVAL CONTRACT: The application confirmation card supplies explicit execution consent.
+An agent may call a write tool to stage a preview before consent; the call does not execute it.
+A separate chat 'yes' is never required. Do not suggest one. Unknown preferences require a question.
+No target DB, reference actions or scores are available.
 """
+
+REVIEW_FEEDBACK = {
+    "omitted_request": "Address the remaining customer requests shown in the task ledger. Ask a focused question for missing preferences; acknowledge blocked tasks. Do not introduce new facts or options.",
+    "premature_completion": "Correct the completion claim using actual receipts. Clearly distinguish executed writes from pending or unfinished requests. Do not claim an unexecuted write is complete.",
+    "redundant_confirmation": "Use the actual receipts: do not repeat an executed operation. For a fully specified unfinished write, stage its preview; the confirmation card supplies consent. Do not ask for chat yes.",
+    "needs_handoff": "Recheck the user's request against the policy and, if unsupported, call transfer_to_human_agents with the actual reason.",
+}
 
 
 def ready_write_tasks(state, catalog):
@@ -110,8 +123,10 @@ def parse_review(content, state):
     }
     if result.action != "accept" and result.answered_task_ids:
         raise ValueError("Unsent answers cannot settle informational tasks")
-    if result.action != "accept" and not result.feedback.strip():
-        raise ValueError("Correction must give actionable feedback")
+    if (result.action == "accept") != (result.issue == "none"):
+        raise ValueError("Accept needs issue=none; correction needs a concrete issue")
+    if (result.action == "handoff") != (result.issue == "needs_handoff"):
+        raise ValueError("Handoff must match needs_handoff")
     if not set(result.answered_task_ids) <= eligible:
         raise ValueError("Only unfinished informational tasks can be marked answered")
     return result

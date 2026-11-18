@@ -240,3 +240,5 @@ C2纠正机制补充：真实四操作v3复测中，纯文字纠正后仍出现�
 4. 检查格式错误记录原文与错误，执行器在既有一次纠正额度内根据账本/回执回复，检查器错误不再直接抛出agent_error；不额外给检查器重试预算。ready任务仍经原生工具生成预览，再经过真实审批。B1路径、16工具、target及模拟器均不变。
 
 验证顺序：本机定向回归 → huoshan完整软件套件 → 上一批公开输入的规划/检查复现（不输入target/隐藏用户场景）→ 冻结新版本C1/C2各smoke8。保留v4失败及新协议日志，完整成绩出现前不报告提升，不提前扩大development54。
+
+真实阶段重放补充：`c1-v5-stages-20261118T122309Z` 的2个planner与7个reviewer均格式通过，但人工复核发现自由feedback会误判商品并重新要求聊天yes。故在正式smoke前进一步收紧检查v4：action + 固定issue枚举（none/omitted_request/premature_completion/redundant_confirmation/needs_handoff）+ 信息任务ID；由应用将issue映射为固定纠正提示。模型不再生成纠正事实、商品选择或确认规则。检查只看任务覆盖/实际执行状态；正常询问未知偏好默认accept，不评商品、价格或文风。此前9项仅作为格式复现证据，不称语义验收。

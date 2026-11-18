@@ -34,6 +34,7 @@ from backend.agent_planner import (
 )
 from backend.agent_review import (
     REVIEW_PROMPT,
+    REVIEW_FEEDBACK,
     REVIEW_VERSION,
     parse_review,
     ready_write_tasks,
@@ -926,9 +927,7 @@ class AgentRunner:
                                     )
                                 else:
                                     if decision.action in {"revise", "handoff"}:
-                                        feedback = decision.feedback
-                                        if decision.action == "handoff":
-                                            feedback += " Call transfer_to_human_agents with the actual reason."
+                                        feedback = REVIEW_FEEDBACK[decision.issue]
                                     else:
                                         for task in state.get("tasks", []):
                                             if task["id"] in decision.answered_task_ids:

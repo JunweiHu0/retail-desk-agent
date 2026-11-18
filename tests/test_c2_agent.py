@@ -66,7 +66,7 @@ def test_complete_arguments_skip_repeated_chat_confirmation(service, c1_episode)
         [
             {
                 "action": "revise",
-                "feedback": "The actual cancellation receipt is executed. Report completion.",
+                "issue": "redundant_confirmation",
                 "answered_task_ids": [],
             }
         ],
@@ -119,7 +119,7 @@ def test_reviewer_can_answer_information_only_with_reply_evidence(service, c1_ep
     def review(body):
         assert body["customer_context"]["orders"][0]["status"] == "pending"
         assert body["eligible_answer_task_ids"] == ["task-0001"]
-        return {"action": "accept", "feedback": "", "answered_task_ids": ["task-0001"]}
+        return {"action": "accept", "issue": "none", "answered_task_ids": ["task-0001"]}
 
     model = ReviewedModel(plan, [AIMessage(content="Both orders are pending.")], [review])
     answer = AgentRunner(service).run(c1_episode["id"], "What are the order statuses?", model=model)
@@ -155,7 +155,7 @@ def test_missing_customer_choice_stays_unexecuted(service, c1_episode):
         [
             {
                 "action": "revise",
-                "feedback": "Ask for the missing cancellation reason.",
+                "issue": "premature_completion",
                 "answered_task_ids": [],
             }
         ],
@@ -180,7 +180,14 @@ def test_review_cannot_mark_writes_answered():
     for action, ids in [("accept", ["write"]), ("accept", ["invented"]), ("revise", ["read"])]:
         with pytest.raises(ValueError):
             parse_review(
-                json.dumps({"action": action, "feedback": "check", "answered_task_ids": ids}), state
+                json.dumps(
+                    {
+                        "action": action,
+                        "issue": "none" if action == "accept" else "omitted_request",
+                        "answered_task_ids": ids,
+                    }
+                ),
+                state,
             )
     write_only = {"tasks": state["tasks"][:1]}
     assert review_response_schema(write_only)["properties"]["answered_task_ids"]["maxItems"] == 0
@@ -201,7 +208,7 @@ def test_invalid_review_is_logged_and_correction_preserves_business_state(servic
     model = ReviewedModel(
         plan,
         [AIMessage(content="All done."), AIMessage(content="What is your cancellation reason?")],
-        [{"action": "accept", "feedback": "", "answered_task_ids": ["task-0001"]}],
+        [{"action": "accept", "issue": "none", "answered_task_ids": ["task-0001"]}],
     )
     reply = AgentRunner(service).run(c1_episode["id"], "Cancel my first order", model=model)
     state = service.store.session(c1_episode["id"])
