@@ -1,5 +1,23 @@
 # 验收记录
 
+## C1/C2 agent 实施与开发验证（2026-11-18）
+
+B1固定在本地标签 `baseline/b1-http-v1@03ac358`。新增C1显式任务规划、按观察展开多订单范围、真实回执结算、参数/依赖校验；新增C2回复前完成检查和一次有界纠正。额外planner/reviewer/repair调用均计入原预算；私有agent_state保留任务、原始规划和未发送的纠正草稿，普通用户及模拟器不读取这些内部记录。
+
+主要受测版本：`785349a`初版C1，`7740f28`消息ID证据，`f256321`初版C2，`6aa2d70`类型化参数与对象ID约束，`5a928fe`在唯一纠正调用上使用named tool_choice生成下一张预览并拦截相同参数失败重试。未改变16业务工具及后端审批授权规则。
+
+软件证据：huoshan `c1-software-20261118T083119Z/` 128 passed；`c1-typed-scope-20261118T084347Z/` 131 passed；`c2-four-operations-20261118T085948Z/` 138 passed；`c1-v3-integration-20261118T091516Z/` 139 passed。最后增加的blocked/原生参数恢复/named tool_choice小测试与前端构建通过；最终完整验证另追加。
+
+真实合成案例要求：账户地址＋两个订单地址＋随后取消指定订单，共四次审批。脚本只批准与明示需求完全一致且顺序合法的卡片；此为 `scripted_live_agent_contract` 集成检查，**不是benchmark成绩**。早期quote复制和scope混淆失败均在写入前拦截，历史目录保留。消息ID版本C1一次规划四项，执行三个地址修改，取消仍停在聊天yes；C2初版的一次运行完成四项且DB匹配，但后续v3复测再次出现纠正后仍索要聊天yes，因此加入有界named tool_choice纠正，并继续复测，不能以先前单次通过代替当前版本验收。
+
+`c1-c2-smoke-20261118T090536Z/` 是已中止的开发批次：前两题在规划时出现未知业务参数名、商品ID误作订单ID，随后封存会话并标记superseded；没有完整suite成绩。规划器v3使用直接字符串/数组值，按用户已观察数据限制对象ID、按官方工具参数限制字段名。`c1-v3-planner-check-20261118T091218Z/live-cases/` 对上述两题的公开初始请求，真实9B规划一次通过，未使用target或参考动作。
+
+当前冻结版本 `5a928fe` 在 huoshan `c2-native-choice-20261118T092200Z/` 完整 **142 passed**（65.62s），Ruff通过；真实四操作案例最终DB匹配，四项均有executed回执，共1次planner、5次executor、1次reviewer，输入75,249/输出2,900 tokens，174.39s。该次运行未触发纠正分支；另在 `c2-native-tool-choice-protocol-20261118T092804Z/` 验证真实服务支持指定原生工具且参数正确，合成SDK/状态测试验证纠正分支和审批前DB不变，不能将协议验证当作benchmark提升。
+
+冻结的C1/C2完整smoke批次为 `c1-c2-v3-smoke-20261118T092829Z/`，顺序运行两组，复用schema-v2模拟器与固定target。`source-attestation.json`记录干净源码SHA `5a928fec0d2b7a575b9eeaac212d689950ac0016`、模型/权重/服务和B1引用批次。当前正在运行，完成标记出现前不称完整成绩。
+
+截至本节记录，C1/C2尚未取得完整smoke8比较；不得声称成功率提升。历史B1/enhanced的6/8结果见下节。原始数据、冻结目标和比较器保持现行版本。
+
 ## 最新结果：schema v2 模拟器完整重测
 
 远程批次 `schema-v2-paired-smoke-20261118T065355Z/` 已完整结束。B1 与 enhanced 各跑 smoke8 × seed0，共 16 个有效最终快照，**模拟器协议错误 0、未知 token 用量 0**。采用同一 Qwen3.5-9B BF16、thinking=off、600秒预算、冻结目标与比较器；agent/guide 未改，evaluator 使用 `visible-action-schema-v2`（源码提交 `40e1af6` 对应文件摘要）。原始目标和旧批次均保留。
