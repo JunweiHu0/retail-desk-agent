@@ -12,6 +12,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
+    SystemMessage,
     ToolMessage,
     messages_from_dict,
     messages_to_dict,
@@ -21,6 +22,7 @@ from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from backend import config
+from backend.observations import RETAIL_REASONING_RULES, enrich_observation
 
 
 class DemoRetailModel(BaseChatModel):
@@ -74,7 +76,16 @@ class DemoRetailModel(BaseChatModel):
                     "已根据订单生成变更预览。请核对下方操作、商品和退款方式，再点击「确认执行」。确认前数据不会改变。"
                 )
         email = re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", query)
-        if email and not any(m.name == "find_user_id_by_email" for m in recent):
+        trusted = next(
+            (
+                re.search(r"BACKEND_AUTHENTICATED_CUSTOMER=(\S+)", str(m.content))
+                for m in messages
+                if isinstance(m, SystemMessage)
+                and "BACKEND_AUTHENTICATED_CUSTOMER=" in str(m.content)
+            ),
+            None,
+        )
+        if email and not trusted and not any(m.name == "find_user_id_by_email" for m in recent):
             return call("find_user_id_by_email", {"email": email.group()})
         auth = next(
             (
@@ -86,6 +97,8 @@ class DemoRetailModel(BaseChatModel):
             ),
             None,
         )
+        if trusted:
+            auth = trusted.group(1)
         if not auth:
             return answer(
                 "你好，我是 Retail 客服助手。请提供账户邮箱，我会先核验身份，再查询或处理你的订单。也可以选择下方的模拟客户场景。"
@@ -170,7 +183,7 @@ def get_model():
     if config.MODE != "live":
         raise ValueError("AGENT_MODE 必须是 demo 或 live")
     if not config.API_KEY:
-        raise ValueError("真实模型模式需要配置 MODEL_API_KEY 或 OPENAI_API_KEY")
+        raise ValueError("真实模型模式需要配置 MODEL_API_KEY 或对应服务商的 API Key")
     return ChatOpenAI(
         model=config.MODEL,
         api_key=config.API_KEY,
@@ -179,15 +192,20 @@ def get_model():
         timeout=60,
         max_retries=1,
         model_kwargs={"parallel_tool_calls": False},
+        use_responses_api=False,
+        extra_body={"thinking": {"type": "disabled"}} if config.IS_DEEPSEEK else None,
     )
 
 
 def build_agent(service, sid, emit=lambda event: None, model=None):
     tools = []
+    owner = service.store.session(sid).get("owner_user_id")
     for name, upstream in service.catalog.items():
+        if owner and name in {"find_user_id_by_email", "find_user_id_by_name_zip"}:
+            continue
 
         def invoke(_name=name, **args):
-            return service.call(sid, _name, args, emit)
+            return enrich_observation(_name, service.call(sid, _name, args, emit))
 
         description = upstream.short_desc + "\n" + upstream.long_desc
         if name in service.writes:
@@ -205,7 +223,7 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
                 handle_validation_error=True,
             )
         )
-    allowed = set(service.catalog)
+    allowed = {t.name for t in tools}
 
     @wrap_model_call
     def retail_only(request, handler):
@@ -234,10 +252,13 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
 
     prompt = (
         config.POLICY_PATH.read_text()
+        + RETAIL_REASONING_RULES
         + """
 
 APPLICATION CONTRACT (web customer-service mode):
 - Reply in the customer's language. Answer only Retail service requests.
+- The chat interface renders plain text. Use short paragraphs and simple bullet lists;
+  do not use Markdown tables, headings, code fences or emphasis markers.
 - Always identify the customer with lookup tools first. Never invent tool results.
 - Call exactly ONE business tool at a time. Do not output prose alongside a tool call.
 - All write tools stage an exact validated preview; they DO NOT mutate the actual database.
@@ -251,6 +272,8 @@ APPLICATION CONTRACT (web customer-service mode):
   records; never claim a real payment provider was called or a real email was sent.
 """
     )
+    if owner:
+        prompt += f"\nBACKEND_AUTHENTICATED_CUSTOMER={owner}\nThe backend has authenticated this customer with a password. This trusted identity overrides the lookup-first rule. Do not request email verification or switch identity; use this user_id for customer tools.\n"
     return create_deep_agent(
         model=model or get_model(),
         tools=tools,

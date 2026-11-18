@@ -1,5 +1,8 @@
 .venv/
 .env
+.env.*
+!.env.example
+!.env.deepseek.example
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -10,3 +13,4 @@ test-results/
 *.log
 *.tsbuildinfo
 frontend/playwright-report/
+.deployment/

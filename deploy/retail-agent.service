@@ -1,0 +1,29 @@
+[Unit]
+Description=Retail Desk team demonstration
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=retaildesk
+Group=retaildesk
+WorkingDirectory=/opt/retail-agent/current/retail-agent
+EnvironmentFile=/etc/retail-agent.env
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/retail-agent/current/retail-agent/.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8102 --root-path /retail --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1 --limit-concurrency 32
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/retail-agent
+MemoryHigh=550M
+MemoryMax=700M
+CPUQuota=100%
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

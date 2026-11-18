@@ -178,3 +178,23 @@ def test_calculation_has_no_eval_or_unbounded_powers():
     for expression in ("__import__('os')", "2**1000000", "[1]", "9" * 201):
         with pytest.raises((ValueError, SyntaxError)):
             calculator(expression)
+
+
+def test_same_variant_write_never_creates_a_pending_action(service, session, pending_order):
+    sid = session["id"]
+    authenticate(service, sid, pending_order["user_id"])
+    original = dataset(service)
+    item_id = pending_order["items"][0]["item_id"]
+    result = service.call(
+        sid,
+        "modify_pending_order_items",
+        {
+            "order_id": pending_order["order_id"],
+            "item_ids": [item_id],
+            "new_item_ids": [item_id],
+            "payment_method_id": pending_order["payment_history"][0]["payment_method_id"],
+        },
+    )
+    assert "different variant" in result["error"]
+    assert service.store.session(sid)["pending"] is None
+    assert dataset(service) == original

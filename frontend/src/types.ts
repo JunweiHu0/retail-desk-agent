@@ -7,6 +7,6 @@ export type Pending = { id: string; tool: string; args: Record<string, unknown>;
 export type ToolEvent = { type: string; name: string; args: Record<string, unknown>; result?: unknown; ok?: boolean; duration_ms?: number }
 export type AuditEvent = { id: number; kind: string; data: ToolEvent & Record<string, unknown>; created_at: string }
 export type Session = { id: string; title: string; messages: Message[]; transferred: boolean; context: { user: Customer | null; orders: Order[]; pending: Pending | null }; events: AuditEvent[] }
-export type SessionRef = { id: string; token: string; title: string }
+export type SessionRef = { id: string; token?: string; title: string }
 export type Sample = { name: string; email: string; order_id: string; status: string; items: number }
 export type Health = { status: string; mode: string; model: string; model_ready: boolean; tools: number }

@@ -5,6 +5,7 @@ never invokes those tools locally or touches the web application's SQLite databa
 """
 
 from dataclasses import dataclass, field
+from time import perf_counter
 
 from deepagents import create_deep_agent
 from langchain.agents.middleware import wrap_model_call
@@ -16,6 +17,12 @@ from tau2.agent.base_agent import HalfDuplexAgent
 from tau2.data_model.message import AssistantMessage, MultiToolMessage, ToolCall, ToolMessage
 
 from backend.agent import get_model
+from backend.observations import (
+    RETAIL_REASONING_RULES,
+    enrich_tool_content,
+    normalize_variant_changes,
+    variant_change_error,
+)
 
 
 @dataclass
@@ -53,6 +60,11 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
             if self.last.tool_calls:
                 self.last.tool_calls = self.last.tool_calls[:1]
                 self.last.content = ""
+                call = self.last.tool_calls[0]
+                call["args"] = normalize_variant_changes(call["name"], call["args"])
+                error = variant_change_error(call["name"], call["args"])
+                if error:
+                    self.last = AIMessage(content=error)
             # End this graph invocation BEFORE any tool execution. Return the captured
             # original message to tau2, which supplies the real ToolMessage next turn.
             return ModelResponse(result=[AIMessage(content="External benchmark turn completed.")])
@@ -60,7 +72,9 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         self.graph = create_deep_agent(
             model=model or get_model(),
             tools=langchain_tools,
-            system_prompt=domain_policy + "\nFollow the Retail policy exactly. "
+            system_prompt=domain_policy
+            + RETAIL_REASONING_RULES
+            + "\nFollow the Retail policy exactly. "
             "Use one Retail tool per turn. Ask the customer for explicit confirmation "
             "before mutations. Do not refer to a UI or confirmation card. "
             "Use only Retail tools; no planning, files, or delegation.",
@@ -73,7 +87,9 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         if isinstance(message, ToolMessage):
             return [
                 LCToolMessage(
-                    content=message.content or "",
+                    content=enrich_tool_content(
+                        self.call_names.get(message.id), message.content or ""
+                    ),
                     tool_call_id=message.id,
                     name=self.call_names.get(message.id),
                 )
@@ -96,6 +112,7 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
 
     def generate_next_message(self, message, state):
         state.messages.extend(self.convert(message))
+        started = perf_counter()
         self.graph.invoke({"messages": state.messages}, config={"recursion_limit": 15})
         original = self.last
         self.call_names.update({t["id"]: t["name"] for t in original.tool_calls})
@@ -111,6 +128,13 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
                 for t in original.tool_calls
             ]
             or None,
+            usage={
+                "prompt_tokens": original.usage_metadata["input_tokens"],
+                "completion_tokens": original.usage_metadata["output_tokens"],
+            }
+            if original.usage_metadata
+            else None,
+            generation_time_seconds=perf_counter() - started,
         )
         return output, state
 
