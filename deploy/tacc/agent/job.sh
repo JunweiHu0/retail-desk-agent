@@ -53,6 +53,9 @@ if [ -z "$SERVER_URL" ] && [ -f "$ROOT/server-url.txt" ]; then
 fi
 MODEL_NAME="${MODEL_NAME:-qwen3.8-27b}"
 MODEL_API_KEY="${MODEL_API_KEY:-EMPTY}"
+# Qwen3 templates can put tool XML in the reasoning channel when thinking is on.
+# The verified functional cohort for this backend uses thinking=off.
+MODEL_THINKING="${MODEL_THINKING:-off}"
 AGENT_MODE="${AGENT_MODE:-}"
 if [ -z "$AGENT_MODE" ]; then
     AGENT_MODE=live
@@ -74,7 +77,7 @@ export RETAIL_DB_PATH="${RETAIL_DB_PATH:-/tmp/retail-agent-$SLURM_JOB_ID.sqlite3
 # this run after the fact. The model endpoint is read server-side, no key leaks.
 export INFRA_DIR="${INFRA_DIR:-$ROOT/infra}"
 export INFRA_TAGS="${INFRA_TAGS:-tacc}"
-export AGENT_MODE MODEL_NAME MODEL_API_KEY
+export AGENT_MODE MODEL_NAME MODEL_API_KEY MODEL_THINKING
 export MODEL_BASE_URL="$SERVER_URL"
 export HOST=0.0.0.0 PORT
 

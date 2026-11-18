@@ -64,6 +64,12 @@ agent 启动时读 `server-url.txt` 并 `GET /v1/models` 探活：通就 `AGENT_
 的导入链会 `import litellm`，所以即使代码里不直接用它，也必须装在 venv 里——
 `up.sh` 的 `IMPORT_FAILURES` 检查会挡住这类问题。
 
+三个 `tuxiv.conf` 的 `environment.name` 必须是**本账号已存在的** tcloud 环境名。
+原模板写的 `proxy` 是教程里 Assignment 1/Project 的共享环境，不一定在你名下；
+这里改成课程账号已有的 `mpi-gemm-v1`（`tcloud init` 可列出 `base` /
+`cuda-attention-v1` / `mpi-gemm-v1`）。它只提供 `python`/`conda` 外壳，真正的
+依赖仍由上面的 venv 提供，换一个存在的环境名不影响结果。
+
 ## 4. vLLM 为什么要自己起，而不是用课程 `serve.sh`
 
 课程 `serve.sh` 没开 tool calling。Deep Agents 每轮请求都带 `tools`，vLLM 会回
@@ -86,6 +92,10 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 缺了它 vLLM 在加载模型之前就 `NVMLError_InvalidArgument`（课程 `serve.sh` 里也有
 这一行）。
+
+`agent/job.sh` 默认 `MODEL_THINKING=off`：Qwen3 的 chat template 在 thinking 开启时
+会把 tool XML 写进 reasoning 通道，`qwen3_xml` 解析不到，表现为“模型不调用工具”。
+本后端验证过的组合就是 thinking=off；需要对比 reasoning 时再覆盖这个变量。
 
 ## 5. 提交前先看目标节点
 
