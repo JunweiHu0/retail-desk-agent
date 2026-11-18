@@ -6,7 +6,7 @@ Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询
 
 `state` 增加任务状态记录，并按 action ID 将实际执行/拒绝回执合入对应工具观察，解除已完成确认的暂停提示；原始审计轨迹保留。`errors` 为工具错误附加已观察到的相关信息，`guide` 注入冻结操作指南，`enhanced` 同时启用三项。默认指南为 `backend/guides/retail_seed.md`，来源标记为 `policy_seed`。后端可通过 `AGENT_GUIDE_PATH` 指定开发集产生的指南文件；每个 episode 记录实际内容 SHA256，自定义文件默认标记为未核实来源。指南版本、开发来源及冻结要求见 [指南说明](backend/guides/README.md)。
 
-huoshan 的 Qwen3.5-9B 非思考模式 smoke8 已完成：B1 与增强组合均为 6/8；增强调用较少，尚未证明成功率提升。114 项软件测试通过。结果与限制见[验收记录](docs/VERIFICATION.md)。
+huoshan 的 Qwen3.5-9B 非思考模式 smoke8 已完成：B1 与增强组合均为 6/8；增强调用较少，尚未证明成功率提升。119 项软件测试通过；新版模拟器重测的 16 个 episode 无协议错误、用量记录完整。结果与限制见[验收记录](docs/VERIFICATION.md)。
 
 ## 入口与文档
 

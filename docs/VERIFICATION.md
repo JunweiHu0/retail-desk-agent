@@ -1,5 +1,29 @@
 # 验收记录
 
+## 最新结果：schema v2 模拟器完整重测
+
+远程批次 `schema-v2-paired-smoke-20261118T065355Z/` 已完整结束。B1 与 enhanced 各跑 smoke8 × seed0，共 16 个有效最终快照，**模拟器协议错误 0、未知 token 用量 0**。采用同一 Qwen3.5-9B BF16、thinking=off、600秒预算、冻结目标与比较器；agent/guide 未改，evaluator 使用 `visible-action-schema-v2`（源码提交 `40e1af6` 对应文件摘要）。原始目标和旧批次均保留。
+
+| 指标 | B1 | enhanced |
+| --- | --- | --- |
+| DB 成功率 | 6/8（75%） | 6/8（75%） |
+| 模型调用 / 工具请求 | 62 / 32 | 46 / 27 |
+| agent tokens | 622,439 | 486,068 |
+| simulator tokens | 109,857 | 75,231 |
+| 完整总 tokens | 732,296 | 561,299 |
+| 每成功 episode 总 tokens | 122,049.3 | 93,549.8 |
+| episode p50 / p95 秒 | 132.4 / 256.6 | 109.9 / 150.8 |
+| 正常用户结束 / 转人工 | 6 / 2 | 7 / 1 |
+
+成功率差 0 个百分点，配对 bootstrap 95% 区间 [-37.5,+37.5] 个百分点；8 个任务不足以得出正式成功率提升。增强完整总 token 减少约 23.4%，agent token 减少约 21.9%；不能把早期退出导致的成本降低直接解释为能力提升。B1 仍为默认。
+
+B1 失败 task41（两个订单地址未更新）与 task47（未提交退货）。增强失败 task16 与 task41：
+
+- task16 的所有业务请求均执行，唯一 DB 差异是退货退款方式为 gift card，目标要求 PayPal；原用户场景未指定方式，见评测对齐文档。本轮严格计失败，不事后修改 target。
+- task41 的两处订单地址未落库，模拟器在仍有待审批卡片时以“已完成”为由结束，混淆了预览与实际回执；另有信用卡与目标 PayPal 的差异。说明 schema 保证动作格式，但不保证用户对完成状态的判断。
+
+下一阶段须冻结目标欠明确的处理口径，并验证模拟器对 pending/executed 的理解，再做正式开发54/验证20消融。原始 trace、快照和配对报告位于上述远程目录；本机轻量证据在 `runtime/evidence/schema-v2/paired/`。本轮没有运行 27B 或 test40。
+
 ## 2026-11-17：Retail HTTP DB 改造
 
 本轮本机负责实现、静态检查及小 case；完整后端测试、浏览器验证、参考目标重放及服务运行在 **huoshan**。下面的 UTC run 名称为 2026-11-18，对应 America/Chicago 的 2026-11-17。软件验证与真实模型评测分别记录。
@@ -9,7 +33,7 @@
 | 实际检查 | 位置 / 规模 | 结果 |
 | --- | --- | --- |
 | 上游干净快照 pytest | huoshan，原有完整套件 | 18 passed |
-| 当前改造后的 pytest | huoshan，完整套件 | 114 passed，51.27s |
+| 当前改造后的 pytest | huoshan，完整套件 | 119 passed，55.98s |
 | Ruff lint / format | huoshan lint、本机格式检查 | 通过 |
 | Vue TypeScript / Vite 构建 | 本机及 huoshan | 通过 |
 | Playwright | huoshan，桌面批准/刷新/隔离及移动端拒绝/刷新 | 2 passed，10.6s |
@@ -17,11 +41,11 @@
 | 参考动作审计 | huoshan，全 114 题 | 18 个预期失败动作均未改变 DB |
 | 冻结目标生成 | huoshan，development54 / validation20 / test40；另 smoke8 | 全部有完成标记 |
 
-当前真实模型组：Qwen3.5-9B BF16，`thinking=off`，16 工具，seed0，每题 600 秒，单次模型请求 300 秒。B1 完整结果为 **6/8（75%）**：6 次 simulator_finish、1 次转人工、1 次模拟器/协议错误；所有 8 题有有效 DB 快照，agent usage 无缺失。错误结束仍按纯 DB 口径评分，不冒称正常完成。
+首轮真实模型组：Qwen3.5-9B BF16，`thinking=off`，16 工具，seed0，每题 600 秒，单次模型请求 300 秒。B1 完整结果为 **6/8（75%）**：6 次 simulator_finish、1 次转人工、1 次模拟器/协议错误；所有 8 题有有效 DB 快照，agent usage 无缺失。错误结束仍按纯 DB 口径评分，不冒称正常完成。
 
 B1 的 task41 遗漏两个订单地址（账户地址已更新）；task47 未提交要求的退货，停留在退款时效争论。B1 共 61 次模型调用、31 次工具调用，输入 599,746 / 输出 14,385 tokens；一次模拟器响应 usage 未知，因此含模拟器的总成本保持 null，不用观测小计代替完整成本。这是开发 smoke，不能代替 test40 或 pass^3。
 
-### 最终 9B 功能比较
+### 首轮 9B 功能比较（旧模拟器，保留历史）
 
 相同固定模型服务、公开输入、16 工具、政策、比较范围与预算；所有 16 个 episode 都有有效冻结快照。B1 源码为 `de09a34` 对应的受测摘要，增强为 `d6f32cf`；五个公共执行文件（retail/store/main/config/provenance）字节摘要一致，agent 与指南差异有源码和 manifest 记录。两边完整 completion markers 与 evaluator 源码哈希已由 compare 检查。
 
@@ -81,6 +105,14 @@ CUDA、默认 thinking/4096 输出预算下的文本、16 工具 schema 调用�
 初始 enhanced 功能批次在完成前两题后，同样观察到真实执行后仍重复等待确认；该批随后被标记 superseded，保留为不完整诊断，不能与完整 B1 作成功率对比。状态增强增加按 action ID 的回执观察投影：模型看到已执行/已拒绝的真实结果，并移除对应暂停提示；原始历史、工具调用关联与业务审计保留，B1 输入行为不变。本机 26 项 agent/SDK 定向测试通过，覆盖批准/拒绝、原始历史保留及状态开关；后续新批次单独记录。
 
 增强的回执投影首题已验证正确解释 executed，但随后发现另一个通用 UI 语义问题：模型反复要求聊天 yes 而不生成卡片。该中间批次 `live-smoke8-enhanced-receipts-20261118T041513Z/` 亦作为不完整诊断保留。静态 seed guide 升级到 v2，明确需求参数齐全即可生成无副作用预览、卡片才授权执行，以及先回答审批所需信息、继续未完成需求、不支持的要求转人工。内容来自公开政策和应用契约的集成澄清，不包含 target、参考动作、任务 ID 或特定题目答案，不称为自动学习指南；新的完整功能批次冻结此版本。
+
+### 模拟器 schema v2 验收（后续批次）
+
+针对真实 smoke 中的非法模拟器动作，加入 `visible-action-schema-v2`：动态约束页面允许动作、固定当前卡片 ID，同时保留批准/拒绝两种模型选择；无效响应原文、错误和已知 usage 持久化。比较器拒绝与旧模拟器版本配对。
+
+huoshan `simulator-schema-v2-20261118T065020Z/` 完整 **119 passed**（55.98s）、Ruff 通过。首轮三项真实模型检查发现消息仅生成单字符：JSON Schema 非空正则在当前约束解码器被按整串处理。已改为允许完整多行字符串的显式模式，并在 `simulator-schema-content-20261118T065241Z/` 重新验证：完整取消请求（包含取消意图与订单号）、批准正确卡片、拒绝错误卡片均通过；同目录 62 项 evaluator 定向测试通过。早期单字符响应保留，不称其为有效内容验收。
+
+新评测批次 `schema-v2-paired-smoke-20261118T065355Z/` 按 B1、enhanced 顺序完整重跑 smoke8；两边使用同一新模拟器。`source-attestation.json` 证明本次运行的 agent/状态/业务/存储/API/config/guide 与当前代码相同，只有 evaluator 修订。现已完成，最终结果见文档开头；不与旧版 6/8 混合。
 
 ## 历史记录：2026-10-26
 

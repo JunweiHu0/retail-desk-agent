@@ -22,7 +22,7 @@
 
 ## 2. 用户模拟器也必须通过协议验收
 
-9B smoke 已出现 `simulator_or_protocol_error`。现有解析器严格检查 action/字段/可见卡片 ID；非法动作会终止并尝试导出冻结 DB，照原分母计分，不当基础设施重试。初轮请求使用 `response_format=json_object`，只能约束 JSON 外形。后续 `visible-action-schema-v2` 已实现动态 JSON Schema，按当前卡片限定动作与 action ID；仍需真实模型验证，不能由结构有效推断审批判断正确。
+9B smoke 已出现 `simulator_or_protocol_error`。现有解析器严格检查 action/字段/可见卡片 ID；非法动作会终止并尝试导出冻结 DB，照原分母计分，不当基础设施重试。初轮请求使用 `response_format=json_object`，只能约束 JSON 外形。后续 `visible-action-schema-v2` 已实现动态 JSON Schema，按当前卡片限定动作与 action ID；真实 9B 三项检查已通过（完整发消息、批准正确卡片、拒绝错误卡片）；完整业务批次另行重跑，不能由结构有效推断所有审批判断正确。
 
 正式评测前需验证：
 
@@ -36,3 +36,9 @@
 ## 3. 最终报告的边界
 
 主分仍是 DB 成功率；同时报告模拟器/协议错误、转人工、预算、agent 错误、缺快照与缺 usage。错误截止但有有效快照时仍按 v1 DB 口径计分。8 题单 seed 是功能 smoke，不能替代开发54/验证20消融、test40×3、pass^3 或正式提升结论。成功/等待确认等文本声明目前人工核查，不输出未经实现的自动事实性评分。
+
+## schema v2 完整重测新增证据
+
+`schema-v2-paired-smoke-20261118T065355Z/` 两组共16题没有格式/协议错误，usage完整，B1与enhanced均6/8。增强task16唯一差异为退款至已有礼品卡而非target中的PayPal；公开用户场景也未指定该选择。task41的模拟器则在pending卡片仍存在时声称所有地址已完成并finish，DB证实两个订单地址仍旧。这是用户完成判断错误，不是JSON格式错误；后续应明确预览不代表执行、finish可表示主动放弃但不能把预览当成功证据，并用独立合成场景验证，不把target传给模拟器。
+
+已向项目负责人提出单一target加明确用户偏好、预先定义等价状态、保留原始歧义三种口径供选择。在选择确定前保持现行严格比较及全部历史结果，不从候选输出来修改目标。

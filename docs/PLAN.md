@@ -83,3 +83,7 @@ Each stage records actual commands, execution location, scale, results and unres
 Before formal model comparisons, resolve the concrete target/simulator issues in [eval alignment](EVAL_ALIGNMENT.md), freezing any revised protocol before rerunning both variants. Current v1 scores and targets stay unchanged.
 
 See [verification evidence](VERIFICATION.md) and [remote run locations](huoshan.md). Historical failed and incomplete runs remain preserved alongside subsequent passing runs.
+
+### 后续进展：模拟器 schema v2
+
+已实现动态可见动作约束与错误响应/usage保留；完整软件119项通过，真实消息/正确批准/错误拒绝三项通过。双方完整smoke8重测均6/8，16题无协议错误、用量无缺失；总token为B1 732,296、enhanced 561,299。仍有用户场景未指定支付方式导致的严格target差异，以及模拟器把pending当完成的问题；正式27B开发/验证比较前需固定语义。证据见VERIFICATION.md最新章节。
