@@ -106,6 +106,12 @@ def review_messages(policy, context, state, history, candidate, user_messages):
                     ],
                     "customer_context": context,
                     "observations": observations,
+                    "application_receipts": [
+                        json.loads(m.content.split("\n", 1)[1])
+                        for m in history
+                        if isinstance(m, SystemMessage)
+                        and m.content.startswith("APPLICATION RECEIPT:\n")
+                    ],
                     "unsent_reply": candidate,
                 },
                 ensure_ascii=False,

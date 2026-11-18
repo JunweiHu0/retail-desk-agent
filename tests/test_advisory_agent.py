@@ -146,3 +146,41 @@ def test_advisory_planning_failure_keeps_basic_conversation_available(service, c
     assert s["usage"]["model_calls"] == 3
     assert s["pending"] is None
     assert len(s["agent_state"]["planning_attempts"]) == 2
+
+
+def test_review_gets_actual_receipt_even_when_advisory_note_does_not_match():
+    import json
+
+    from langchain_core.messages import SystemMessage
+
+    from backend.agent_review import review_messages
+
+    receipt = {
+        "status": "executed",
+        "tool": "modify_pending_order_address",
+        "action_id": "actual-1",
+        "args": {"order_id": "#W9000001", "address1": "981 Example Street"},
+    }
+    state = {
+        "tasks": [
+            {
+                "id": "task-0001",
+                "operation": "modify_pending_order_address",
+                "status": "ready",
+                "known_args": {"address1": "123 Old Road"},
+            }
+        ]
+    }
+    body = json.loads(
+        review_messages(
+            "Policy",
+            {},
+            state,
+            [SystemMessage(content="APPLICATION RECEIPT:\n" + json.dumps(receipt))],
+            "The new address was saved.",
+            [],
+        )[1].content
+    )
+    assert body["application_receipts"] == [receipt]
+    assert body["tasks"][0]["status"] == "ready"
+    assert body["eligible_answer_task_ids"] == []
