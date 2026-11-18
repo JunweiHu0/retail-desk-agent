@@ -49,7 +49,7 @@ The simulator can send a message, approve/reject a visible action, or finish. It
 
 Defaults: 30 simulator actions, 80 agent model calls including extra state/review/retry calls, 80 agent business tool calls, 600 seconds per episode, 4096 output tokens per model call, concurrency 1. Any development-time budget change applies to every variant and is frozen before test.
 
-Compare B1, B1+state, B1+errors, B1+guide, then selected combinations. Main metrics: DB success, pass^3 (all three trials succeed), paired task-clustered confidence interval. Auxiliary metrics: error categories/recovery, tokens, calls, p50/p95 latency, unsupported success claims. Never claim an uplift from a framework name or another paper's result.
+Compare B1, B1+state, B1+errors, B1+guide, then selected combinations. Main metrics: DB success, pass^3 (all three trials succeed), paired task-clustered confidence interval. Auxiliary metrics: error categories/recovery, tokens, calls, p50/p95 latency, unsupported success claims (manual trace audit; no automatic judge rate). Never claim an uplift from a framework name or another paper's result.
 
 ## Deployment
 
@@ -66,7 +66,7 @@ TACC retains GPU service + CPU application jobs. Require live mode for evaluatio
 - [x] P2: Implement B1 and deterministic model integration tests.
 - [x] P3: Implement reference evaluator and end-to-end HTTP smoke without a real model.
 - [x] P4: Deploy application on huoshan; validate model protocol and run real 9B smoke8 when GPU resources permit.
-- [ ] P5: Implement independent state/error/guide switches; deterministic tests and 9B functional checks.
+- [x] P5: Implement independent state/error/guide switches; deterministic tests and 9B functional checks.
 - [ ] P6: Establish 27B development baseline and select enhancements on development54/validation20.
 - [ ] P7: Freeze all versions; run final B1/candidate test40 x 3 comparison and publish local artifacts/report.
 
@@ -74,10 +74,12 @@ Each stage records actual commands, execution location, scale, results and unres
 
 ### Current acceptance evidence (2026-11-17 America/Chicago / 2026-11-18 UTC)
 
-- P0–P3: huoshan upstream baseline **18 passed**; latest implemented full suite **114 passed** after the real Qwen integration fixes. Ruff and frontend production build pass. Browser desktop/mobile flows **2 passed**; separate demo HTTP cancellation/approval and return/rejection checks both pass.
+- P0–P3: huoshan upstream baseline **18 passed**; latest implemented full suite **114 passed** (51.27s) after the real Qwen integration fixes. Ruff and frontend production build pass. Browser desktop/mobile flows **2 passed**; separate demo HTTP cancellation/approval and return/rejection checks both pass.
 - Frozen targets: development54, validation20, test40 and smoke8 all have completion markers. Original tasks, DB and split membership remain unchanged.
 - P4: the huoshan application and isolated inference dependencies are installed. Qwen3.5-9B's four weight shards match their recorded SHA256 digests. CUDA, initial native-tool and JSON protocol checks passed. Live multi-turn checks exposed and fixed a single-system layout error, then reproduced a thinking/tool-parser issue and 60-second HTTP timeouts. The explicit thinking=off cohort with 300-second request timeout completed B1 smoke8 at **6/8**, with all snapshots valid; demo tests are not a model score.
-- P5: state/error/guide switches and deterministic tests are implemented. The current guide is policy-derived seed guidance, not learned from development traces. The state variant now projects action-matched actual receipts into tool observations while preserving raw history; its new enhanced smoke8 is running. Development feedback, learned guidance and final measured uplift remain pending.
+- P5: state/error/guide switches and deterministic tests are implemented. The current guide is policy-derived seed guidance, not learned from development traces. The state variant now projects action-matched actual receipts into tool observations while preserving raw history; the frozen policy/application guide v2 and enhanced smoke8 are complete at **6/8**, equal to B1. Agent model calls fell 61→46 and agent tokens fell about 22.1%, but no success-rate uplift is established. Development54/validation20 ablations, learned guidance and final measured uplift remain pending.
 - P6–P7: not run. Exact deployed 27B weights/service have not been verified; no final test40 model results or claimed improvement exist.
+
+Before formal model comparisons, resolve the concrete target/simulator issues in [eval alignment](EVAL_ALIGNMENT.md), freezing any revised protocol before rerunning both variants. Current v1 scores and targets stay unchanged.
 
 See [verification evidence](VERIFICATION.md) and [remote run locations](huoshan.md). Historical failed and incomplete runs remain preserved alongside subsequent passing runs.

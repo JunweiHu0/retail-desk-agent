@@ -51,7 +51,7 @@ ssh -o ClearAllForwardings=yes huoshan \
 ssh -o ClearAllForwardings=yes huoshan \
   'bash /vePFS/han/retail-desk/app/deploy/huoshan/run.sh start-model --gpu 1'
 
-# 已明确授权的有限共卡 smoke profile，最多分配整卡 35% 显存。
+# 已明确授权的有限共卡 profile；0.35 是 vLLM 预算比例，不是总显存硬上限。
 ssh -o ClearAllForwardings=yes huoshan \
   'bash /vePFS/han/retail-desk/app/deploy/huoshan/run.sh start-model --gpu 1 --shared-budget 0.35'
 
@@ -70,6 +70,8 @@ ssh -o ClearAllForwardings=yes huoshan \
 应用是 `127.0.0.1:18881`，模型是 `127.0.0.1:18880/v1`。`start-app` 默认为 live；不会把模型不可用自动降级成 demo。demo 与 live 状态写入 run manifest。若 demo 正运行，先 `stop app` 再启动 live。`status`、`stop app|model|all` 只处理本任务记录的 PID；使用 boot ID 和进程启动时间验证所属进程，停止该进程组，不使用全局 pkill、进程名匹配或 kill-all。
 
 推理参数：单卡 BF16、纯文本、32,768 context、最多 1 条并发、4096 batched tokens、eager 模式、`qwen3` reasoning parser 和 `qwen3_coder` tool parser。默认 GPU memory utilization 0.60，要求 GPU 无计算进程且其他显存占用不超过 100MiB。有限共卡 smoke 必须显式传 `--shared-budget 0.35`；预检要求空闲显存至少为整卡 35% 加 8GiB，记录全部既有计算进程，不停止其他任务，不尝试更高预算。此检查不提供调度器级资源预留，资源变化时应停止本任务自己的进程。
+
+真实运行观察：原 GPU1 占用为 12,076 MiB；模型 ready 后约 40,615 MiB，首请求峰值约 44,373 MiB（额外约 31.54 GiB），仍有约 36,855 MiB 空闲。`gpu-memory-utilization=0.35` 控制 vLLM 的预算，CUDA context/kernel/workspace 可另占显存，不能称为进程总显存 28GiB 硬封顶。上述 8GiB 是启动余量检查，不能当调度器预留；本轮原有两进程的占用均保持 6,032 MiB。
 
 535 驱动配合 `/usr/local/cuda-12.8/compat/libcuda.so.570.86.10`，仅在模型进程的 `LD_LIBRARY_PATH` 前置已有兼容库，不改系统库、共享环境或 kernel driver。Qwen3.5 官方 recipe 要求 vLLM ≥0.17.0，推荐上述两个 parser；CUDA compatibility 的可行性必须通过实际 GPU kernel 和模型请求验收，不从文件存在或 import 成功推断。
 

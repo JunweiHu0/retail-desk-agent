@@ -9,7 +9,7 @@
 | 实际检查 | 位置 / 规模 | 结果 |
 | --- | --- | --- |
 | 上游干净快照 pytest | huoshan，原有完整套件 | 18 passed |
-| 当前改造后的 pytest | huoshan，完整套件 | 114 passed，53.20s |
+| 当前改造后的 pytest | huoshan，完整套件 | 114 passed，51.27s |
 | Ruff lint / format | huoshan lint、本机格式检查 | 通过 |
 | Vue TypeScript / Vite 构建 | 本机及 huoshan | 通过 |
 | Playwright | huoshan，桌面批准/刷新/隔离及移动端拒绝/刷新 | 2 passed，10.6s |
@@ -21,9 +21,31 @@
 
 B1 的 task41 遗漏两个订单地址（账户地址已更新）；task47 未提交要求的退货，停留在退款时效争论。B1 共 61 次模型调用、31 次工具调用，输入 599,746 / 输出 14,385 tokens；一次模拟器响应 usage 未知，因此含模拟器的总成本保持 null，不用观测小计代替完整成本。这是开发 smoke，不能代替 test40 或 pass^3。
 
+### 最终 9B 功能比较
+
+相同固定模型服务、公开输入、16 工具、政策、比较范围与预算；所有 16 个 episode 都有有效冻结快照。B1 源码为 `de09a34` 对应的受测摘要，增强为 `d6f32cf`；五个公共执行文件（retail/store/main/config/provenance）字节摘要一致，agent 与指南差异有源码和 manifest 记录。两边完整 completion markers 与 evaluator 源码哈希已由 compare 检查。
+
+| 指标（smoke8 × seed0） | B1 | enhanced v2 |
+| --- | --- | --- |
+| 严格最终 DB 匹配 | 6/8（75%） | 6/8（75%） |
+| agent 模型调用 | 61 | 46 |
+| agent 工具请求 | 31 | 27 |
+| agent 输入 tokens | 599,746 | 467,597 |
+| agent 输出 tokens | 14,385 | 11,098 |
+| episode p50 / p95（秒） | 126.4 / 259.2 | 103.3 / 155.6 |
+| 模拟器/协议错误结束 | 1 | 1 |
+| simulator_finish / 转人工 | 6 / 1 | 6 / 1 |
+
+成功率差为 **0 个百分点**，任务聚类 bootstrap 95% 区间 **[-37.5,+37.5] 个百分点**（8 对 episode，10,000 bootstrap，seed0）。增强组 agent token 合计从 614,131 降到 478,695，约减少 22.1%，调用减少 24.6%；这是同一开发 smoke 的观察，不能据此推断正式 test40 的提升，也没有单模块消融归因。两组各有一个模拟器 step 未记录 usage，含模拟器的完整总成本及每成功成本保持 null。
+
+两组结果互有变化：B1 失败 task41、task47；增强失败 task16、task41。增强完成了原先未提交的 task47 退货；task16 由模拟器/协议错误终止。增强 task41 只剩一个订单地址未提交，但另出现参考 PayPal 与用户批准信用卡的字段差异。原始用户场景未限定该支付选择，详见 [正式评测对齐事项](EVAL_ALIGNMENT.md)。v1 目标/范围没有事后更改，两个失败仍保留。
+
+保持 **B1 为默认**。现有增强作为实验配置保留；未证明成功率提升。下一步先对齐目标欠明确与模拟器协议问题，再接入并核验实际 27B，运行开发54/验证20的单模块与组合比较，最后冻结 test40×3。自动“成功声明事实性”指标尚未实现，当前仅人工核查轨迹；不把人工观察冒充自动评分。
+
 关键远程证据（均位于 `/vePFS/han/retail-desk/runs/`）：
 
-- `live-smoke8-enhanced-receipts-20261118T041513Z/`：当前 114 项完整测试、Ruff、增强组运行；源码为干净提交 `1afa82a`。
+- `live-smoke8-enhanced-v2-20261118T042543Z/`：最终 114 项完整测试、Ruff、增强完整 smoke8、分析和配对报告；受测源码 `d6f32cf`，guide v2 SHA256 `c497db81d73be7c839931c7ea913c9db6d07ccc0cf2084caf25e0dbba4ae7077`。
+- `live-smoke8-enhanced-receipts-20261118T041513Z/`：中间回执投影版本的软件验证与不完整诊断，不混入完整比较。
 - `live-smoke8-b1-off-retest-20261118T034903Z/`：B1 完整 smoke8、结果/分析/源码对应证明。
 - `software-20261118T024844Z-a317337-599076/`：早期 107 项测试、静态检查及三组完整目标。
 - `final-focus-20261118T025435Z-a317337-610915/`：最后 handoff 定向测试、demo HTTP、smoke8 目标、实际源码摘要。
@@ -34,7 +56,7 @@ B1 的 task41 遗漏两个订单地址（账户地址已更新）；task47 未�
 
 推理环境为独立 Python 3.12、vLLM 0.17.1、torch 2.10.0+cu128。Qwen3.5-9B 四个实际权重分片与现有 HF metadata SHA256 一致。GPU1 的 BF16 128×128 matmul 已通过，证据 `cuda-runtime-20261118T030924Z/`；仅本任务进程使用既有 CUDA compatibility 库，未修改系统驱动或停止既有 GPU 任务。
 
-真实模型协议通过；当前完整 B1 smoke8 为 6/8，修复回执投影后的增强组正在单独评测。**上述 demo、MockTransport、pytest 与目标重放均不是模型成功率。** 尚未运行 27B development/validation 或 test40×3，不能声称 agent 提升。真实 TTFT/ITL 未采集，当前仅报告 HTTP turn/episode 时间与已知 token 使用量。
+真实模型协议通过；B1 与冻结增强 v2 的完整 smoke8 均为 6/8，配对差值为 0。**上述 demo、MockTransport、pytest 与目标重放均不是模型成功率。** 尚未运行 27B development/validation 或 test40×3，不能声称最终 agent 成功率提升。真实 TTFT/ITL 未采集，当前仅报告 HTTP turn/episode 时间与已知 token 使用量。
 
 ### 真实 9B 接口修复与重测
 
