@@ -91,6 +91,55 @@ def validate_action(value: dict, proposal: dict | None) -> dict:
     )
 
 
+SIMULATOR_VERSION = "visible-action-schema-v2"
+
+
+class SimulatorResponseError(ValueError):
+    """A received response failed validation; retain its trace and known usage."""
+
+    def __init__(self, trace):
+        super().__init__(trace["validation_error"])
+        self.trace = trace
+
+
+def action_response_format(proposal: dict | None) -> dict:
+    finish = {
+        "type": "object",
+        "properties": {"action": {"const": "finish"}, "reason": {"type": "string"}},
+        "required": ["action", "reason"],
+        "additionalProperties": False,
+    }
+    if proposal:
+        active = {
+            "type": "object",
+            "properties": {
+                "action": {"const": "decision"},
+                "action_id": {"const": proposal["id"]},
+                "approve": {"type": "boolean"},
+            },
+            "required": ["action", "action_id", "approve"],
+            "additionalProperties": False,
+        }
+    else:
+        active = {
+            "type": "object",
+            "properties": {
+                "action": {"const": "message"},
+                "message": {"type": "string", "pattern": r"\S"},
+            },
+            "required": ["action", "message"],
+            "additionalProperties": False,
+        }
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "visible_customer_action",
+            "strict": True,
+            "schema": {"anyOf": [active, finish]},
+        },
+    }
+
+
 @dataclass
 class Simulator:
     client: httpx.Client
@@ -105,6 +154,8 @@ class Simulator:
         self, user_scenario: dict, session: dict, seed: int, timeout: float
     ) -> tuple[dict, dict]:
         messages = simulator_messages(user_scenario, session)
+        proposal = visible_view(session)["current_proposal"]
+        response_format = action_response_format(proposal)
         response = self.client.post(
             self.base_url.rstrip("/") + "/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
@@ -114,7 +165,7 @@ class Simulator:
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
                 "seed": seed,
-                "response_format": {"type": "json_object"},
+                "response_format": response_format,
                 **(
                     {"chat_template_kwargs": {"enable_thinking": self.thinking == "on"}}
                     if self.thinking != "auto"
@@ -125,11 +176,19 @@ class Simulator:
         )
         response.raise_for_status()
         payload = response.json()
-        content = payload["choices"][0]["message"]["content"]
-        value = validate_action(json.loads(content), visible_view(session)["current_proposal"])
-        return value, {
+        trace = {
             "request_messages": messages,
-            "response_content": content,
-            "usage": payload.get("usage", {}),
+            "response_format": response_format,
+            "response_payload": payload,
+            "usage": payload.get("usage") or {},
             "model": payload.get("model", self.model),
+            "simulator_version": SIMULATOR_VERSION,
         }
+        try:
+            content = payload["choices"][0]["message"]["content"]
+            trace["response_content"] = content
+            value = validate_action(json.loads(content), proposal)
+        except (ValueError, KeyError, TypeError, IndexError) as exc:
+            trace["validation_error"] = str(exc)
+            raise SimulatorResponseError(trace) from exc
+        return value, trace

@@ -275,3 +275,23 @@ unchanged. This projection never executes a tool, invents a receipt, changes too
 arguments or bypasses approval; B1 retains its minimal raw observation + system
 receipt representation. Its version is recorded as `state_receipt_projection` in
 the agent runtime manifest.
+
+## Simulator revision visible-action-schema-v2
+
+This revision constrains output with a dynamic JSON Schema based only on the
+visible pending card. Without a card, allowed actions are a nonblank message or
+finish. With a card, allowed actions are a boolean decision for that exact card
+ID or finish. Both approve and reject remain available: the schema never decides
+which one the user should choose. No target or reference action enters the schema.
+Runtime validation remains at the response boundary; unsupported structured-output
+servers fail explicitly rather than silently falling back to unconstrained JSON.
+
+Received invalid responses retain request messages, response schema, raw parsed
+response, validation error and any reported token usage in the attempt trace.
+They terminate the episode under the existing DB-only rule without an automatic
+retry. Invalid responses count as model calls, not executed user actions.
+
+The evaluator records `simulator_version=visible-action-schema-v2` and its source
+hashes. Revised and earlier simulator cohorts cannot be paired. DB comparator,
+fixtures and HTTP protocol remain unchanged; a new comparison reruns the entire
+chosen task grid for both agents, not only earlier failed cases.

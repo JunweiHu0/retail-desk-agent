@@ -1000,3 +1000,83 @@ def test_simulator_thinking_setting_reaches_http():
                 assert "chat_template_kwargs" not in requests[-1]
             else:
                 assert requests[-1]["chat_template_kwargs"] == {"enable_thinking": mode == "on"}
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_simulator_schema_exposes_only_visible_actions(pending):
+    from jsonschema import Draft202012Validator
+
+    from benchmarks.reference.simulator import action_response_format
+
+    schema = action_response_format({"id": "visible"} if pending else None)["json_schema"]["schema"]
+    validate = Draft202012Validator(schema).is_valid
+    assert validate({"action": "finish", "reason": "customer leaves"})
+    assert validate({"action": "message", "message": "hello"}) is (not pending)
+    for approval in [True, False]:
+        assert (
+            validate({"action": "decision", "action_id": "visible", "approve": approval}) is pending
+        )
+    assert not validate({"action": "decision", "action_id": "other", "approve": True})
+    assert not validate({"action": "decision", "action_id": "visible", "approve": "yes"})
+    assert not validate({"action": "message", "message": "   "})
+    assert not validate({"action": "finish", "reason": "done", "extra": 1})
+
+
+@pytest.mark.parametrize(
+    "content", [None, "{broken", '{"action":"decision","action_id":"wrong","approve":true}']
+)
+def test_invalid_simulator_response_keeps_usage_and_final_db(db, tmp_path, content):
+    from benchmarks.reference.simulator import Simulator
+
+    class API:
+        sid = "episode"
+        finished = False
+
+        def create(self, initial, timeout):
+            return {
+                "session": {"context": {"pending": {"id": "visible"}}},
+                "manifest": {
+                    "mode": "live",
+                    "tau2_expected_sha": TAU2_SHA,
+                    "policy_sha256": "frozen-policy",
+                    "model": "test-model",
+                },
+            }
+
+        def finish(self, reason):
+            self.finished = True
+            assert reason == "simulator_or_protocol_error"
+
+        def snapshot(self):
+            assert self.finished
+            return {"db": db, "session": {"status": "finished"}, "manifest": {}}
+
+        def turn(self, *args):
+            raise AssertionError("Invalid simulator response must not execute an action")
+
+    payload = {
+        "choices": [{"message": {"content": content}}],
+        "usage": {"prompt_tokens": 17, "completion_tokens": 9},
+    }
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    ) as client:
+        result = run_attempt(
+            fixture_for(db),
+            "b1",
+            0,
+            0,
+            tmp_path / "attempt",
+            API(),
+            Simulator(client, "http://model/v1", "test-model", "PRIVATE_KEY"),
+        )
+    assert result["success"] is True
+    assert result["termination"] == "simulator_or_protocol_error"
+    assert result["simulator_actions"] == 0
+    assert result["simulator_calls_attempted"] == 1
+    assert result["simulator_usage_unknown_calls"] == 0
+    assert result["simulator_usage"] == [payload["usage"]]
+    trace = json.loads((tmp_path / "attempt/trace.json").read_text())
+    assert trace[0]["simulator"]["response_payload"] == payload
+    assert trace[0]["invalid_response"] is True
+    assert "PRIVATE_KEY" not in json.dumps(trace)

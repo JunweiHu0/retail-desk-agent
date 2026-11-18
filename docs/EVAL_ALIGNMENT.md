@@ -22,14 +22,14 @@
 
 ## 2. 用户模拟器也必须通过协议验收
 
-9B smoke 已出现 `simulator_or_protocol_error`。现有解析器严格检查 action/字段/可见卡片 ID；非法动作会终止并尝试导出冻结 DB，照原分母计分，不当基础设施重试。当前请求只使用 `response_format=json_object`，因此只能约束 JSON 外形，不能保证 action 符合当前 UI。
+9B smoke 已出现 `simulator_or_protocol_error`。现有解析器严格检查 action/字段/可见卡片 ID；非法动作会终止并尝试导出冻结 DB，照原分母计分，不当基础设施重试。初轮请求使用 `response_format=json_object`，只能约束 JSON 外形。后续 `visible-action-schema-v2` 已实现动态 JSON Schema，按当前卡片限定动作与 action ID；仍需真实模型验证，不能由结构有效推断审批判断正确。
 
 正式评测前需验证：
 
 - 有卡片时仅允许 approve/reject/finish，决策 ID 必须是当前卡片；需修正需求时先拒绝，再在下一轮发消息。
 - 用户有明确支付、商品、地址偏好时，错误卡片应被拒绝；不能因为页面提出了方案就自动批准。
 - 可用动态 JSON Schema/语法约束 action 形状与卡片 ID，但 approve/reject 仍由用户模型判断，不能改成自动批准。
-- 无效响应也应保存原始响应、usage 和错误原因。当前无效 step 的 usage 会计为缺失，完整总成本保持 null，不能用小计当总成本。
+- 无效响应也应保存原始响应、usage 和错误原因。旧版无效 step 的 usage 计为缺失；v2 已保留收到的无效响应与已知 usage，缺失用量仍保持未知。
 
 这些约束或模拟器模型发生变化后，冻结新版本，重新运行双方完整题目，不只补跑失败题。当前参考协议要求 agent 与 simulator 用同一模型；若改成固定的更强用户模型，也须更新并冻结协议，双方使用完全相同设置。
 

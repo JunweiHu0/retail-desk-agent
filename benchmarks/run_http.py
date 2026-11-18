@@ -25,7 +25,7 @@ from benchmarks.reference.fixtures import (
 )
 from benchmarks.reference.http import EpisodeHTTP, run_attempt
 from benchmarks.reference.reporting import paired_compare, summarize
-from benchmarks.reference.simulator import Simulator
+from benchmarks.reference.simulator import SIMULATOR_VERSION, Simulator
 
 
 def version_manifest() -> dict:
@@ -149,6 +149,7 @@ def run(args):
         "seeds": seeds,
         "base_url": base_url,
         "simulator_base_url": model_url,
+        "simulator_version": SIMULATOR_VERSION,
         "model": args.model,
         "temperature": args.temperature,
         "thinking": args.thinking,
@@ -242,6 +243,8 @@ def compare(args):
     ):
         if left_manifest[key] != right_manifest[key]:
             raise ValueError(f"Cannot pair different cohorts/protocol inputs: {key}")
+    if left_manifest.get("simulator_version") != right_manifest.get("simulator_version"):
+        raise ValueError("Cannot pair different simulator versions")
     if left_manifest.get("thinking", "auto") != right_manifest.get("thinking", "auto"):
         raise ValueError("Cannot pair different thinking configurations")
     suites = [

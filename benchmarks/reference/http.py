@@ -9,6 +9,7 @@ import httpx
 from benchmarks.reference import TAU2_SHA
 from benchmarks.reference.comparator import compare_db
 from benchmarks.reference.fixtures import digest, public_episode_input, write_json
+from benchmarks.reference.simulator import SimulatorResponseError
 
 
 class StreamProtocolError(RuntimeError):
@@ -215,6 +216,11 @@ def run_attempt(
                     "transferred" if session.get("transferred") else session["status"]
                 )
                 break
+    except SimulatorResponseError as exc:
+        reason = "simulator_or_protocol_error"
+        simulator_usage.append(exc.trace.get("usage", {}))
+        trace.append({"index": len(trace), "simulator": exc.trace, "invalid_response": True})
+        error = {"type": type(exc).__name__, "message": str(exc)}
     except httpx.TimeoutException:
         reason = (
             "wall_time_budget"
@@ -271,7 +277,7 @@ def run_attempt(
         "elapsed_seconds": time.monotonic() - started,
         "conversation_seconds": conversation_seconds,
         "finish_drain_seconds": finish_drain_seconds,
-        "simulator_actions": len(trace),
+        "simulator_actions": sum("action" in turn for turn in trace),
         "simulator_usage": simulator_usage,
         "simulator_calls_attempted": simulator_calls_attempted,
         "simulator_usage_unknown_calls": simulator_calls_attempted
