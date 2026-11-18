@@ -39,6 +39,9 @@ class Model:
         self.execution = []
 
     def bind(self, **kwargs):
+        if "tool_choice" in kwargs:
+            self.forced_choice = kwargs["tool_choice"]
+            return self
         assert kwargs["response_format"]["type"] == "json_schema"
         owner = self
 
@@ -545,3 +548,76 @@ def test_planner_context_schema_separates_products_orders_and_missing(service, c
     assert validate(raw)
     delta, parsed = parse_plan(json.dumps(raw), [m], context, {}, service.catalog)
     assert parsed[0][0].object_id == product
+
+
+def test_business_error_blocks_identical_retry_but_does_not_settle_task(service, c1_episode):
+    sid = c1_episode["id"]
+    context = service.context(sid)
+    order = context["orders"][0]
+    args = {
+        "order_id": order["order_id"],
+        "item_ids": [order["items"][0]["item_id"]],
+        "payment_method_id": order["payment_history"][0]["payment_method_id"],
+    }
+
+    def plan(body):
+        m = body["customer_messages"][-1]
+        return {
+            "tasks": [task("return", "return_delivered_order_items", order["order_id"], args, m)],
+            "supersede": [],
+        }
+
+    model = Model(
+        plan,
+        [
+            call("return_delivered_order_items", args, "first"),
+            call("return_delivered_order_items", args, "duplicate"),
+            AIMessage(content="The order is pending; a delivered return cannot execute."),
+        ],
+    )
+    before = dataset(service, sid)
+    AgentRunner(service).run(
+        sid, "Return this item using the original payment method.", model=model
+    )
+    current = service.store.session(sid)
+    item = current["agent_state"]["tasks"][0]
+    assert item["status"] == "blocked"
+    assert item["last_failed_args"] == args
+    assert "receipt_id" not in item
+    assert current["pending"] is None
+    assert dataset(service, sid) == before
+    real_calls = [
+        e
+        for e in service.store.events(sid)
+        if e["kind"] == "tool" and e["data"].get("name") == "return_delivered_order_items"
+    ]
+    assert len(real_calls) == 1
+
+
+def test_invalid_native_write_arguments_can_recover_without_corrupting_ledger(service, c1_episode):
+    sid = c1_episode["id"]
+    args = {"order_id": "#W9000001", "reason": "no longer needed"}
+
+    def plan(body):
+        m = body["customer_messages"][-1]
+        return {
+            "tasks": [task("cancel", "cancel_pending_order", "#W9000001", args, m)],
+            "supersede": [],
+        }
+
+    bad = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "cancel_pending_order",
+                "args": "{broken",
+                "id": "invalid",
+                "error": "invalid JSON",
+            }
+        ],
+    )
+    model = Model(plan, [bad, call("cancel_pending_order", args, "valid")])
+    AgentRunner(service).run(sid, "Cancel the first order, no longer needed.", model=model)
+    current = service.store.session(sid)
+    assert current["pending"]["args"] == args
+    assert current["agent_state"]["tasks"][0]["status"] == "awaiting_confirmation"

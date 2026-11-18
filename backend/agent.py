@@ -502,6 +502,7 @@ class AgentRunner:
             manifest["agent_runtime"]["max_review_calls_per_turn"] = 1
         review_used = False
         review_feedback = ""
+        forced_preview_tool = None
         emit({"type": "status", "status": "running", "message": "正在处理…"})
         save(status="running")
 
@@ -767,11 +768,19 @@ class AgentRunner:
                     ),
                     *conversation,
                 ]
+                next_model = (
+                    bound.bind(
+                        tool_choice={"type": "function", "function": {"name": forced_preview_tool}}
+                    )
+                    if forced_preview_tool
+                    else bound
+                )
                 message = invoke_stage(
-                    bound,
+                    next_model,
                     request_messages,
                     "executor_correction" if review_feedback else "executor",
                 )
+                forced_preview_tool = None
                 invalid = message.invalid_tool_calls or []
                 for call in invalid:
                     if not call.get("id"):
@@ -810,6 +819,7 @@ class AgentRunner:
                             review_used = True
                             feedback = ""
                             if ready:
+                                forced_preview_tool = ready[0]["operation"]
                                 feedback = (
                                     "These customer-requested tasks have all required arguments and no pending approval: "
                                     + json.dumps(
@@ -872,7 +882,11 @@ class AgentRunner:
                                         )
                             if feedback:
                                 state.setdefault("completion_checks", []).append(
-                                    {"candidate_reply": content, "feedback": feedback}
+                                    {
+                                        "candidate_reply": content,
+                                        "feedback": feedback,
+                                        "forced_preview_tool": forced_preview_tool,
+                                    }
                                 )
                                 history.pop()  # This draft was never sent to the customer; preserve it in the private check log.
                                 review_feedback = feedback
@@ -979,6 +993,20 @@ class AgentRunner:
                                 action_id=result["action_id"],
                                 proposed_args=call["args"],
                                 missing=[],
+                            )
+                    if (
+                        with_tasks
+                        and call not in invalid
+                        and call["name"] in self.service.writes
+                        and isinstance(result, dict)
+                        and "error" in result
+                    ):
+                        task = matching_write_task(state, call["name"], call["args"])
+                        if task is not None:
+                            task.update(
+                                status="blocked",
+                                last_error=result["error"],
+                                last_failed_args=call["args"],
                             )
                     if with_errors and isinstance(result, dict) and "error" in result:
                         result = dict(result)

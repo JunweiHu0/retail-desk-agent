@@ -17,6 +17,8 @@ class ReviewedModel(Model):
         self.review_requests = []
 
     def bind(self, **kwargs):
+        if "tool_choice" in kwargs:
+            return super().bind(**kwargs)
         if kwargs["response_format"]["json_schema"]["name"] != "retail_completion_review":
             return super().bind(**kwargs)
         owner = self
@@ -73,6 +75,7 @@ def test_complete_arguments_skip_repeated_chat_confirmation(service, c1_episode)
     runner.run(c1_episode["id"], "Cancel the first order, no longer needed.", model=model)
     state = service.store.session(c1_episode["id"])
     assert state["pending"] is not None
+    assert model.forced_choice == {"type": "function", "function": {"name": "cancel_pending_order"}}
     assert not model.review_requests  # Deterministic completeness check needs no extra judge call.
     assert len(state["agent_state"]["completion_checks"]) == 1
     assert "Please say yes first." not in [m["content"] for m in state["messages"]]

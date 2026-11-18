@@ -196,10 +196,12 @@ def matching_write_task(state, name, args):
         for t in tasks
         if t["operation"] == name
         and t["object_id"] == oid
-        and t["status"] in {"ready", "needs_info"}
+        and t["status"] in {"ready", "needs_info", "blocked"}
     ]
     by_id = {t["id"]: t for t in tasks}
     for task in candidates:
+        if task["status"] == "blocked" and task.get("last_failed_args") == args:
+            continue
         if any(
             by_id[d]["status"] not in {"executed", "answered", "superseded"}
             for d in task["depends_on"]

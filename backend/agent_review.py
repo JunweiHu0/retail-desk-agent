@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-REVIEW_VERSION = "receipt-grounded-review-v1"
+REVIEW_VERSION = "receipt-grounded-review-v2"
 
 
 class AnswerEvidence(BaseModel):

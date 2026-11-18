@@ -323,8 +323,10 @@ calling. Demo mode is not a C1 model-capability validation.
 
 `variant=c2` uses C1's planner and ledger, then checks unsent free-form replies.
 When a ready write has every required argument and satisfied dependencies, a
-deterministic check instructs the executor once to stage its preview instead of
-asking for another chat yes. This is not execution authorization: the normal
+deterministic check selects the next ready task and uses standard named
+`tool_choice` once to obtain its native tool proposal instead of asking for
+another chat yes. The original 16-tool catalog and argument schemas remain;
+proposed arguments still have to match the task and pass the business layer. This is not execution authorization: the normal
 card and exact approval still gate every write. If the correction still fails,
 the response explicitly lists unexecuted work rather than claiming completion.
 
@@ -337,3 +339,9 @@ require a quote in the actual outgoing reply and references to existing context
 or tool observations; this validates evidence linkage, not semantic infallibility.
 Raw unsent drafts/checks stay in private agent_state and do not become user messages.
 Planner updates do not reopen already answered or executed tasks.
+
+Business-tool errors mark matching candidate tasks blocked with the actual error
+and failed arguments. An identical failed write is not resubmitted automatically;
+a different proposal still has to satisfy known user constraints and backend
+validation. Malformed native tool arguments receive a correlated error observation
+and can be repaired without corrupting the task ledger.
