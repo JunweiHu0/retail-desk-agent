@@ -10,3 +10,10 @@ Read `/data1/han/AGENTS.md` and `/data1/han/Line/AGENTS.md` first when working l
 - Baseline and enhanced agents share business tools, validation, approvals, initial information and evaluation budgets. Target DB and comparison scope must never enter agent inputs.
 - Keep external validation at boundaries, use existing typed values internally, and avoid speculative abstractions or defensive infrastructure.
 - Do not expose credentials, push to shared branches, or send messages to collaborators unless explicitly requested.
+
+User-authorized tool-enhancement track: `tools_described`, `tools_structured`, and
+`tools_extended` intentionally vary descriptions, observations, and (last profile
+only) add two read-only helpers. Official write functions/approval semantics and
+DB targets stay fixed. Record tool counts/schema-description hashes and label
+these comparisons as tool-interface experiments, not same-tool harness gains.
+Frontend implementation is outside the current scope; maintain backend contracts.

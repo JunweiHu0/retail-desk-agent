@@ -274,23 +274,17 @@ CONFIRMATION_PAUSE = (
 
 
 def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
-    """Bind exactly the upstream business catalog; no graph or hidden helper tools."""
-    tools = []
-    for name, upstream in service.catalog.items():
-        description = upstream.short_desc + "\n" + upstream.long_desc
-        if name in service.writes:
-            description += (
-                "\nAPPLICATION: Only stages a validated preview. It does NOT execute a write. "
-                "On awaiting_confirmation stop immediately for the application confirmation card."
-            )
-        tools.append(
-            StructuredTool(
-                name=name,
-                description=description,
-                args_schema=upstream.params,
-                func=lambda **args: None,
-            )
+    """Bind the selected, recorded tool interface; dispatch remains in RetailService."""
+    variant = service.store.session(sid)["variant"]
+    tools = [
+        StructuredTool(
+            name=spec.name,
+            description=spec.description,
+            args_schema=spec.params,
+            func=lambda **args: None,
         )
+        for spec in service.tool_definitions(variant)
+    ]
     return (model or get_model()).bind_tools(
         tools,
         parallel_tool_calls=False,
@@ -494,6 +488,7 @@ class AgentRunner:
         max_calls = int(os.getenv("AGENT_MAX_MODEL_CALLS", "80"))
         max_tools = int(os.getenv("AGENT_MAX_TOOL_CALLS", "80"))
         max_seconds = float(os.getenv("AGENT_MAX_ACTIVE_SECONDS", "600"))
+        manifest["tool_interface"] = self.service.tool_manifest(variant)
         manifest["agent_runtime"] = {
             "implementation": "native-tool-loop-v1",
             "task_control": "advisory-v1" if advisory else "gated" if with_tasks else "disabled",

@@ -91,3 +91,5 @@ npm run build
 真实 Qwen 服务可通过 `MODEL_THINKING=auto|on|off` 选择思考模式（默认 `auto`，沿用服务模板）。显式设置会发送 `chat_template_kwargs.enable_thinking`；服务需支持该参数。评测必须传相同的 `--thinking`，preflight 会检查 agent 与 simulator 一致，配对报告拒绝混用设置。huoshan 当前 9B 功能验证使用 `off`，原因是已复现当前 thinking/parser 组合在工具续跑时返回空 `tool_calls`；具体原始响应见验收记录。单次模型 HTTP 请求上限为 300 秒，episode 仍以 600 秒为预算。
 
 `lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。
+
+后端工具接口实验通过现有 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API契约、比较口径见 `docs/EVAL_PROTOCOL.md`。这些是独立工具实验，尚无成功率提升结论。

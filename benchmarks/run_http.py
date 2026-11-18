@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import httpx
 
+from backend.tool_profiles import EXTRA_READ_TOOLS, TOOL_PROFILES
 from benchmarks.reference import COMPARATOR_VERSION, PROTOCOL_VERSION, TAU2_SHA
 from benchmarks.reference.analysis import analyze_run
 from benchmarks.reference.fixtures import (
@@ -122,6 +123,16 @@ def run(args):
         response = preflight_client.get(base_url + "/api/health", timeout=30)
         response.raise_for_status()
         health = response.json()
+        tool_interface = health.get("tool_interfaces", {}).get(args.variant)
+        expected_profile = TOOL_PROFILES.get(args.variant, "official-v1")
+        expected_count = 16 + (len(EXTRA_READ_TOOLS) if args.variant == "tools_extended" else 0)
+        if args.variant in TOOL_PROFILES and (
+            not tool_interface
+            or tool_interface.get("profile") != expected_profile
+            or tool_interface.get("count") != expected_count
+            or not tool_interface.get("spec_sha256")
+        ):
+            raise ValueError("Backend does not advertise the requested tool enhancement profile")
         if (
             health.get("mode") != "live"
             or not health.get("model_ready")
@@ -131,7 +142,7 @@ def run(args):
             or health.get("protocol_version") != PROTOCOL_VERSION
         ):
             raise ValueError(
-                "Backend must be live, ready, same model, and frozen 16-tool HTTP protocol"
+                "Backend must be live, ready, same model, and expose the official 16-tool base catalog"
             )
     fixtures = [load_fixture(args.fixtures / f"task-{task}.json") for task in task_ids]
     if any(completion["fixture_hashes"][f["task_id"]] != f["fixture_hash"] for f in fixtures):
@@ -144,6 +155,7 @@ def run(args):
         **version_manifest(),
         "run_id": run_id,
         "variant": args.variant,
+        "tool_interface": tool_interface,
         "split": fixture_manifest["split"],
         "task_ids": task_ids,
         "seeds": seeds,
@@ -251,11 +263,17 @@ def compare(args):
         json.loads((folder / "results.json").read_text()) for folder in (args.left, args.right)
     ]
     runtime_signatures = []
-    for folder, rows in zip((args.left, args.right), suites):
+    for folder, rows, cohort in zip(
+        (args.left, args.right), suites, (left_manifest, right_manifest)
+    ):
         for row in rows:
             snapshot = json.loads((folder / row["path"] / "snapshot.json").read_text())
             runtime = snapshot["manifest"]
             budget = runtime.get("agent_runtime", {})
+            declared_tools = cohort.get("tool_interface")
+            if declared_tools and row.get("agent_usage", {}).get("model_calls", 0):
+                if runtime.get("tool_interface") != declared_tools:
+                    raise ValueError("Actual backend tool interface differs from cohort manifest")
             if budget:
                 actual = {
                     key: budget[key]
@@ -295,6 +313,12 @@ def compare(args):
         args.samples,
         args.seed,
     )
+    left_tools, right_tools = (
+        left_manifest.get("tool_interface"),
+        right_manifest.get("tool_interface"),
+    )
+    report["tool_interfaces"] = {"left": left_tools, "right": right_tools}
+    report["comparison_kind"] = "tool_interface" if left_tools != right_tools else "agent_harness"
     write_json(args.output, report)
     print(json.dumps(report))
 

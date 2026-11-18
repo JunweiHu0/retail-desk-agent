@@ -22,7 +22,20 @@ from backend.retail import RetailService
 from backend.store import Store
 
 log = logging.getLogger(__name__)
-Variant = Literal["b1", "state", "errors", "guide", "enhanced", "c1", "c2", "advisory", "lean"]
+Variant = Literal[
+    "b1",
+    "state",
+    "errors",
+    "guide",
+    "enhanced",
+    "c1",
+    "c2",
+    "advisory",
+    "lean",
+    "tools_described",
+    "tools_structured",
+    "tools_extended",
+]
 
 
 class CreateSession(BaseModel):
@@ -157,6 +170,7 @@ def create_app(store=None, runner=None, artifact_dir=None):
             "thinking": config.MODEL_THINKING,
             "model_ready": config.MODE == "demo" or bool(config.API_KEY),
             "tools": len(app.state.retail.catalog),
+            "tool_interfaces": {v: app.state.retail.tool_manifest(v) for v in config.VARIANTS},
             "domain": "retail",
             "variants": list(config.VARIANTS),
             "protocol_version": "retail-http-v1",

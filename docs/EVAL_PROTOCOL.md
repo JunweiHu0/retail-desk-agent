@@ -391,3 +391,29 @@ next customer or decision turn. This bounds this specific repeated-read pattern,
 not all conversational loops. Original traces remain complete; no new business
 tools or DB mutations are introduced. Frozen B1/advisory development runs retain
 their previously attested source and are not switched to this candidate mid-run.
+
+## Explicit tool-interface experiments
+
+The user-authorized `tools_described`/`tools_structured`/`tools_extended` variants
+use B1's native loop with 16/16/18 tools respectively. They are tool-interface
+ablations, not same-tool harness ablations. All seven write operations retain the
+official parameter schemas, business implementation and approval boundary. There
+is no new write tool, target access, implicit authorization or comparison change.
+
+`find_customer_order_items` searches only the authenticated customer's orders with
+AND filters and preserves each duplicate item occurrence. `find_product_variants`
+filters the public catalog by product/attributes/availability. Neither mutates DB
+or pending approval. Matching is exact after casefold/outer-whitespace trimming;
+zero matches never broadens the query. All matching rows are returned without a
+hidden top-k cutoff. Structured reads retain the complete original result in data,
+plus explicit observation metadata; product reads distinguish total and available
+variant counts. Preview status/action IDs and top-level errors remain explicit.
+
+The session/episode API accepts the new variant names. `/api/health` keeps `tools=16`
+for the official base catalog and additionally advertises `tool_interfaces` by
+variant. Each interface has profile, count, names, spec_sha256 and return_format.
+Preflight requires the chosen enhanced profile to be advertised. Episode manifests
+record the actual bound interface. Comparison validates it against the cohort
+manifest and labels changes with `comparison_kind=tool_interface`. Target/scoring,
+model and simulator equality, budget checks, and complete-sample requirements stay
+in force. A changed evaluator source requires a new same-source baseline comparison.

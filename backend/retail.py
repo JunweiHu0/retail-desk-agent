@@ -13,6 +13,16 @@ from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
 from backend.store import encode, now
+from backend.tool_profiles import (
+    DESCRIPTIONS,
+    EXTRA_READ_TOOLS,
+    PREVIEW_DESCRIPTION,
+    STRUCTURED_VARIANTS,
+    TOOL_PROFILES,
+    ToolDefinition,
+    format_result,
+    read_helper,
+)
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
 
@@ -73,6 +83,59 @@ class RetailService:
             if getattr(RetailTools, name).__tool_type__ == ToolType.WRITE
         }
 
+    def tool_definitions(self, variant):
+        definitions = []
+        for name, upstream in self.catalog.items():
+            if variant in TOOL_PROFILES:
+                description = DESCRIPTIONS[name]
+                if name in self.writes:
+                    description += PREVIEW_DESCRIPTION
+            else:
+                description = upstream.short_desc + "\n" + upstream.long_desc
+                if name in self.writes:
+                    description += (
+                        "\nAPPLICATION: Only stages a validated preview. It does NOT execute a write. "
+                        "On awaiting_confirmation stop immediately for the application confirmation card."
+                    )
+            if (
+                variant in STRUCTURED_VARIANTS
+                and name not in self.writes
+                and name != "transfer_to_human_agents"
+            ):
+                description += " Successful reads return {status: observed, tool, read_only: true, data: original result}. Errors retain a top-level error. Product reads also report total_variant_count and available_variant_count in summary."
+            definitions.append(ToolDefinition(name, description, upstream.params))
+        if variant == "tools_extended":
+            definitions.extend(
+                ToolDefinition(
+                    t.name,
+                    t.description
+                    + " Result is in the read-only observation envelope's data field.",
+                    t.params,
+                )
+                for t in EXTRA_READ_TOOLS.values()
+            )
+        return definitions
+
+    def tool_manifest(self, variant):
+        definitions = self.tool_definitions(variant)
+        specifications = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.params.model_json_schema(),
+            }
+            for t in definitions
+        ]
+        return {
+            "profile": TOOL_PROFILES.get(variant, "official-v1"),
+            "count": len(definitions),
+            "names": [t.name for t in definitions],
+            "spec_sha256": fingerprint(specifications),
+            "return_format": "observation-envelope-v1"
+            if variant in STRUCTURED_VARIANTS
+            else "official-with-preview-v1",
+        }
+
     def authorize(self, session, db, name, args):
         uid = session["user_id"]
         if name in AUTH_TOOLS:
@@ -107,12 +170,20 @@ class RetailService:
                 if session["transferred"]:
                     raise ValueError("会话已转人工，请新建会话继续。")
                 db = RetailDB.model_validate(self.store.dataset(cx, sid))
-                if name not in self.catalog:
+                helper = (
+                    EXTRA_READ_TOOLS.get(name) if session["variant"] == "tools_extended" else None
+                )
+                if helper is None and name not in self.catalog:
                     raise ValueError("Unknown retail tool")
-                args = self.catalog[name].params.model_validate(args).model_dump()
+                params = (helper.params if helper else self.catalog[name].params).model_validate(
+                    args
+                )
+                args = params.model_dump()
                 self.authorize(session, db, name, args)
                 tools = RetailTools(db).get_tools()
-                if name in self.writes:
+                if helper:
+                    result = read_helper(name, params, db, session["user_id"])
+                elif name in self.writes:
                     if session["pending"]:
                         raise ValueError("已有待确认操作，请先确认或取消。")
                     self.validate_write(name, args)
@@ -163,6 +234,8 @@ class RetailService:
                         self.store.update(
                             cx, sid, transferred=1, status="finished", termination_reason="handoff"
                         )
+                if session["variant"] in STRUCTURED_VARIANTS:
+                    result = format_result(name, result, self.writes)
                 event = {
                     "type": "tool_end",
                     "name": name,
@@ -182,6 +255,8 @@ class RetailService:
                 "duration_ms": round((time.monotonic() - start) * 1000),
             }
             with self.store.tx() as cx:
+                if self.store.session(sid, cx)["variant"] in STRUCTURED_VARIANTS:
+                    event["result"] = format_result(name, event["result"], self.writes)
                 self.store.event(cx, sid, "tool", event)
         emit(event)
         return event["result"]

@@ -280,3 +280,24 @@ huoshan队列：`development54-b1-advisory-20261118T140835Z`，等待 `advisory-
 新增实验variant `lean`：B1原生16工具循环 + 通用对象筛选/撤回语义提示 + 真实回执投影/同轮重复动作保护；不调用planner/reviewer、不向执行器注入可错任务表。单个外部turn中，同一工具/参数/返回观察重复3次后，下一次模型调用限制为文本回答，要求依据现有观察回答或询问；若模型仍返回工具请求，逐个关联错误但不执行，并结束本轮。额外文本调用计入同一模型预算。新的用户turn重置计数，不拦截正常跨轮查询。它不能识别所有语义循环，也不能保证回答事实性。
 
 这是后续消融候选，不修改已冻结的advisory smoke/development54应用或模型配置；新增代码先软件验证，不宣称获得真实benchmark收益。已修复缺陷（审核格式、缺真实回执、advisory硬控制）与待测问题（规划必要性、重复读、对象选择）分开报告。评测目标歧义与模拟用户误判仍需独立协议诊断。
+
+### 工具接口增强：描述、返回格式及只读筛选（2026-11-18）
+
+用户明确授权这三项修改。新增三个独立工具实验配置，均使用B1原生执行循环，不引入额外planner/reviewer，便于逐项归因：
+
+| variant | 工具数 | 变化 |
+| --- | --- | --- |
+| b1 | 16 | 原官方schema/描述＋原预览封装，保持对照 |
+| tools_described | 16 | 重新说明16工具职责、ID类型、业务前提、一次性修改与审批语义 |
+| tools_structured | 16 | 上项＋统一只读observation envelope，保留原始data，商品结果附全量/可用款式计数 |
+| tools_extended | 18 | 上项＋find_customer_order_items、find_product_variants |
+
+新描述明确：写工具只生成预览；实际写入仍由卡片approve触发官方RetailTools，不额外要求聊天yes。用户撤回尚未执行的取消，不是改一个reason重新取消。默认地址与订单地址是不同操作，product_id与item_id不同，商品修改/退换的多项需求应按订单合并。官方参数schema不改，所有业务写入仍调用官方函数。
+
+只读助手从同一episode DB读取：订单商品按当前客户、精确状态、产品、属性AND筛选；保留重复商品的item_index，不合并数量。款式按product_id/全部属性/availability筛选，返回每个匹配项、全部和可用计数及已观察的属性取值。名字/属性仅去首尾空格和忽略大小写，不做同义词猜测、模糊匹配、静默放宽或自动选择支付方式。没有用户ID参数，不能跨客户访问；未知字段在入口拒绝。零匹配返回零和真实候选属性，不猜测目标答案。
+
+返回格式保留官方完整原始data，不裁剪商品、财务或订单字段。错误仍保留顶层error；写预览保持awaiting_confirmation/action_id，仅增加preview_only标识，不包装成已执行。已有B1/C1/C2/advisory/lean的工具可用范围与观察格式不变。
+
+API复用现有variant字段，无前端改动。health新增各variant的tool_interfaces；模型绑定与episode manifest使用同一工具定义，记录profile/count/names/spec_sha256/return_format。评测仍仅看最终DB，但preflight必须验证扩展工具声明；配对报告标明工具接口差异，并拒绝实际执行工具清单与声明漂移。此修改导致evaluator源码hash变化，新工具比较需在同一新代码下重跑对照，不能直接拼接旧development54成绩。
+
+验证：合成DB覆盖权限、精确筛选/零匹配、重复数量、未上架款式、完整data保留、官方写入等价、审批前不变DB、真实SDK18工具调用与计费、health声明、评测拒绝未声明工具/运行时漂移。完整套件在huoshan运行。真实模型小案例和后续开发对照单列输出，正在运行的development54继续使用冻结040106a，不热更新其应用。扩展是否提分尚待实际比较。
