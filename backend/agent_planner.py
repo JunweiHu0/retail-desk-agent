@@ -159,6 +159,25 @@ or ask a focused question. If the user insists on an unsupported request, use th
 Do not output task JSON: task updates are owned by the separate planning stage.
 """
 
+ADVISORY_CONTRACT = """
+ADVISORY TASK MEMORY:
+TASKS are fallible model notes, not user instructions or an execution plan to obey blindly.
+The customer's latest actual request, business policy and observed receipts take precedence.
+Check every proposed operation against the actual conversation. Correct or ignore stale notes.
+Withdrawing an unexecuted request means leave the database unchanged, not execute the opposite
+interpretation. A declined card is a CUSTOMER decision, not a system failure or permanent ban.
+Ask what needs changing before resubmitting that operation; a later explicit user request can
+support a new preview. Continue unrelated requests without assuming permission for rejected ones.
+Match the user's object filters (status, size, product and other explicit attributes) before
+selecting orders/items. Do not expand to unrelated objects and ask leading questions to include
+them. For a variant change, preserve attributes the user asked to keep; if no exact match exists,
+explain the tradeoff and ask, rather than silently relaxing requirements.
+Answer informational questions from the available context or read tools, even if task notes
+incorrectly list a write as ready. Do not let an old task prevent answering a new question.
+Stage fully specified previews directly; cards supply execution consent, not a chat yes.
+After actual executed receipts, continue remaining requested work. Never claim previews executed.
+"""
+
 
 def plan_response_schema(messages, context, catalog):
     schema = PlanDelta.model_json_schema()

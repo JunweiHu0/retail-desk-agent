@@ -24,6 +24,7 @@ from openai import LengthFinishReasonError
 
 from backend import config, telemetry
 from backend.agent_planner import (
+    ADVISORY_CONTRACT,
     C1_CONTRACT,
     PLANNER_PROMPT,
     PLANNER_VERSION,
@@ -329,7 +330,7 @@ class AgentRunner:
             state = session.get("agent_state") or {}
             if session.get("variant") in {"state", "enhanced"}:
                 reconcile_receipt(state, receipt, pending)
-            if session.get("variant") in {"c1", "c2"}:
+            if session.get("variant") in {"c1", "c2", "advisory"}:
                 latest_user_id = next(
                     m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
                 )
@@ -365,9 +366,10 @@ class AgentRunner:
         active_before = usage.get("active_seconds", 0)
         state = session.get("agent_state") or {}
         variant = session.get("variant", "b1")
-        with_tasks = variant in {"c1", "c2"}
-        with_review = variant == "c2"
-        with_state = variant in {"state", "enhanced", "c1", "c2"}
+        with_tasks = variant in {"c1", "c2", "advisory"}
+        advisory = variant == "advisory"
+        with_review = variant in {"c2", "advisory"}
+        with_state = variant in {"state", "enhanced", "c1", "c2", "advisory"}
         with_errors = variant in {"errors", "enhanced"}
         context = self.service.context(sid)
         if with_state:
@@ -416,7 +418,7 @@ class AgentRunner:
                 ),
             }
         if with_tasks:
-            prompt += "\n" + C1_CONTRACT
+            prompt += "\n" + (ADVISORY_CONTRACT if advisory else C1_CONTRACT)
         elif with_state:
             prompt += "\n" + STATE_CONTRACT
         rec = telemetry.recorder().start_turn(sid, turn_text)
@@ -479,6 +481,7 @@ class AgentRunner:
         max_seconds = float(os.getenv("AGENT_MAX_ACTIVE_SECONDS", "600"))
         manifest["agent_runtime"] = {
             "implementation": "native-tool-loop-v1",
+            "task_control": "advisory-v1" if advisory else "gated" if with_tasks else "disabled",
             "model_request_timeout_seconds": config.MODEL_REQUEST_TIMEOUT_SECONDS,
             "thinking": config.MODEL_THINKING,
             "state_receipt_projection": "action-matched-v1" if with_state else "disabled",
@@ -659,7 +662,7 @@ class AgentRunner:
                             if isinstance(m, ToolMessage)
                         ]
                     )
-                    if not planned:
+                    if not planned and not advisory:
                         return finish(
                             "I couldn't reliably update your request, so I have not staged any new changes. Please restate the changes you want, including the order and any selected options."
                         )
@@ -800,6 +803,14 @@ class AgentRunner:
                             resolved_pause = False
                         projected.append(entry)
                     conversation = projected
+                settled_since_user = []
+                if advisory:
+                    settled_since_user = [
+                        json.loads(event["content"].split("\n", 1)[1])
+                        for event in receipts
+                        if event["after_user_messages"] == user_messages
+                        and event["content"].startswith("APPLICATION RECEIPT:\n")
+                    ]
                 if receipts:
                     system_content += (
                         "\nTRUSTED APPLICATION EVENTS (chronological):\n"
@@ -862,7 +873,7 @@ class AgentRunner:
                         if not review_used:
                             review_used = True
                             feedback = ""
-                            if ready:
+                            if ready and not advisory:
                                 forced_preview_tool = ready[0]["operation"]
                                 feedback = (
                                     "These customer-requested tasks have all required arguments and no pending approval: "
@@ -958,7 +969,7 @@ class AgentRunner:
                                 review_feedback = feedback
                                 save()
                                 continue
-                        elif ready:
+                        elif ready and not advisory:
                             content = "以下操作尚未执行，需要继续处理：" + "；".join(
                                 t["request"] for t in ready
                             )
@@ -1010,7 +1021,39 @@ class AgentRunner:
                                 }
                             )
                         elif (
+                            advisory
+                            and call["name"] in self.service.writes
+                            and any(
+                                receipt["tool"] == call["name"]
+                                and (
+                                    receipt["args"] == call["args"]
+                                    or (
+                                        receipt["status"] == "rejected"
+                                        and receipt["args"].get(
+                                            "order_id", receipt["args"].get("user_id")
+                                        )
+                                        == call["args"].get("order_id", call["args"].get("user_id"))
+                                    )
+                                )
+                                for receipt in settled_since_user
+                            )
+                        ):
+                            result = {
+                                "error": "An actual receipt already settled this operation since the last customer message. If executed, continue other work. If rejected, the CUSTOMER declined; ask what should change before a new preview. This is not a system failure or permanent restriction."
+                            }
+                            recording_emit(
+                                {
+                                    "type": "tool_end",
+                                    "name": call["name"],
+                                    "args": call["args"],
+                                    "result": result,
+                                    "ok": False,
+                                    "duration_ms": 0,
+                                }
+                            )
+                        elif (
                             with_tasks
+                            and not advisory
                             and call["name"] in self.service.writes
                             and matching_write_task(state, call["name"], call["args"]) is None
                         ):
@@ -1140,7 +1183,7 @@ class AgentRunner:
                         for m in history
                         if isinstance(m, ToolMessage)
                     ]
-                    if not plan_tasks(observed):
+                    if not plan_tasks(observed) and not advisory:
                         return finish(
                             "I couldn't reliably resolve the remaining request. Please clarify the order and changes you want; no new changes were submitted."
                         )

@@ -1,4 +1,4 @@
-export type Variant = 'b1' | 'state' | 'errors' | 'guide' | 'enhanced' | 'c1' | 'c2'
+export type Variant = 'b1' | 'state' | 'errors' | 'guide' | 'enhanced' | 'c1' | 'c2' | 'advisory'
 export type SessionStatus = 'ready' | 'running' | 'awaiting_confirmation' | 'finished' | 'error'
 export type Message = { id: string; role: 'user' | 'assistant' | 'application'; content: string }
 export type Address = { address1: string; address2: string; city: string; state: string; country: string; zip: string }
