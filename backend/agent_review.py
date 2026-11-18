@@ -107,10 +107,14 @@ def review_messages(policy, context, state, history, candidate, user_messages):
                     "customer_context": context,
                     "observations": observations,
                     "application_receipts": [
-                        json.loads(m.content.split("\n", 1)[1])
+                        {
+                            key: receipt[key]
+                            for key in ("status", "tool", "action_id", "args")
+                        }
                         for m in history
                         if isinstance(m, SystemMessage)
                         and m.content.startswith("APPLICATION RECEIPT:\n")
+                        for receipt in [json.loads(m.content.split("\n", 1)[1])]
                     ],
                     "unsent_reply": candidate,
                 },
