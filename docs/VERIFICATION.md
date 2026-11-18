@@ -206,3 +206,13 @@ v5 C2完整8题结束：3/8，186次模型调用/82次工具请求；4次simulat
 `advisory-experiment-20261118T132139Z` 已完整结束。advisory为 **6/8**，失败task41/47，与B1的逐题成功集合相同；7次simulator_finish、1次转人工。100次模型调用，完整总tokens 1,065,889，约比B1多45.6%。C1也为6/8且成本更高。因此当前证据是恢复到B1水平，尚无成功率收益。`development54-b1-advisory-20261118T140835Z` 已进入running-b1，保持040106a原受测源码。
 
 GitHub核实与设计映射见PLAN.md最新节。新增独立`lean`在 `74c3c2a` 实现，不调用规划/检查器，只保留原生工具、实际回执和重复读取有界恢复；不部署到正在跑development54的应用。本机38项相关测试、Ruff与前端构建通过；最初误指定不存在的tests/test_agent.py未进入测试，随后按实际文件重跑。huoshan `lean-software-20261118T141835Z` 完整 **155 passed**（72.67s）；没有lean真实模型成绩。
+
+## 工具接口增强（2026-11-18）
+
+新增 `tools_described`、`tools_structured`、`tools_extended`，分别提供16/16/18工具，均基于B1原生循环。两个新增助手为当前客户订单商品筛选与单产品款式筛选；所有官方写函数、参数schema、审批和DB比较范围保持不变。源码 `0218337` 实现接口与评测工具元数据；`cf632c4` 补充离线Demo读取observation envelope的兼容处理。未修改前端代码。
+
+本机新增工具测试14项通过；与原业务/agent/SDK的组合检查52项通过；Demo兼容处理后工具专项16项通过，Ruff通过。覆盖跨客户隔离、未知字段/未认证拒绝、重复商品数量、精确AND筛选/零匹配不放宽、不可用款式计数、官方完整data保留、预览不写DB及批准后官方DB等价；真实ChatOpenAI SDK经MockTransport绑定18工具、传输过滤参数、读取返回并正确计费。MockTransport不是9B真实推理。
+
+huoshan `tool-profiles-software-20261118T144622Z` 完整169项通过（83.28s）；最终源码 `cf632c4` 在 `tool-profiles-final-software-20261118T144955Z` 完整 **171 passed**（84.19s）。`tool-contract-fixture-*`的独立合成DB及重复商品官方修改target已离线验证，未调用模型。
+
+真实模型功能检查已排队：`tool-profiles-live-20261118T145026Z`，等待冻结的development54完成后，切换到该队列固定的源码，运行“只读筛选→正确预览→批准→官方DB修改”HTTP案例。该案例显式要求两个新助手，用于工具接口验收，不计作benchmark成绩。没有新工具版本的成功率提升结论；下一轮效果比较需在同一新evaluator源码下重跑B1与三个工具配置。
