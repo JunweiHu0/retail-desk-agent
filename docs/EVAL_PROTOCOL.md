@@ -311,7 +311,8 @@ Public sessions retain their existing UI contract. Authenticated internal snapsh
 exports additionally include top-level `agent_state` for private diagnosis, including
 planner attempts and task/receipt associations. It is not part of ordinary session
 responses or simulator input. Informational tasks are recorded, but C1 does not yet
-certify that free-form replies answer them; that is a C2 review responsibility.
+mark free-form replies as answering them. C2 can record an advisory answer judgment;
+neither variant certifies free-text factual correctness.
 
 B1 is frozen locally at tag `baseline/b1-http-v1` (commit
 `03ac358c9f49435a8f3fd48548572b643307c9e9`). The candidate shares the same 16 business
@@ -331,12 +332,16 @@ card and exact approval still gate every write. If the correction still fails,
 the response explicitly lists unexecuted work rather than claiming completion.
 
 Otherwise, unfinished tasks or a post-decision final response may trigger one
-structured review by the same model. It may ask a focused question, correct the
-reply, or request one executor continuation/handoff. Review calls count toward
-the same global budget. There is at most one correction/review opportunity per
-external turn. A reviewer cannot mark writes executed. Informational answers
-require a quote in the actual outgoing reply and references to existing context
-or tool observations; this validates evidence linkage, not semantic infallibility.
+structured review by the same model. Review v4 returns only accept/revise/handoff,
+a fixed issue category and eligible informational task IDs. It does not rewrite
+replies, copy quotes, or generate factual correction advice. Application-owned
+feedback maps the issue to one executor correction. Accept preserves the draft.
+Review calls count toward the same global budget, with at most one review and one
+correction per external turn. Invalid or truncated review output is logged and uses
+that same correction allowance; it cannot settle a task. Informational answer IDs
+are restricted to active information tasks and stored with the actual outgoing
+reply and observed context as an explicitly model-judged record. A reviewer cannot
+mark writes executed; factual answer quality still needs human review.
 Raw unsent drafts/checks stay in private agent_state and do not become user messages.
 Planner updates do not reopen already answered or executed tasks.
 
@@ -345,3 +350,9 @@ and failed arguments. An identical failed write is not resubmitted automatically
 a different proposal still has to satisfy known user constraints and backend
 validation. Malformed native tool arguments receive a correlated error observation
 and can be repaired without corrupting the task ledger.
+
+Planner v5 exposes its dynamic schema in the model prompt and separates updates from
+explicit supersession. Object IDs are bound by the application, not regenerated as
+business arguments. Validation failures and truncation share one repair attempt; if
+still invalid, keep the old ledger and ask the customer to clarify without staging
+new writes. All attempts, failures, and reported tokens remain in the private audit.
