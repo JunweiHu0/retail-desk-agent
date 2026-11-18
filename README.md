@@ -89,3 +89,5 @@ npm run build
 全部客户、订单、支付数据均为公开合成沙盒数据。业务写入不会连接真实商户、支付或邮件服务。保留原始 tau2 数据，实验输出使用独立目录，并记录源码、数据、policy/guide 摘要及完成状态。
 
 真实 Qwen 服务可通过 `MODEL_THINKING=auto|on|off` 选择思考模式（默认 `auto`，沿用服务模板）。显式设置会发送 `chat_template_kwargs.enable_thinking`；服务需支持该参数。评测必须传相同的 `--thinking`，preflight 会检查 agent 与 simulator 一致，配对报告拒绝混用设置。huoshan 当前 9B 功能验证使用 `off`，原因是已复现当前 thinking/parser 组合在工具续跑时返回空 `tool_calls`；具体原始响应见验收记录。单次模型 HTTP 请求上限为 300 秒，episode 仍以 600 秒为预算。
+
+`lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。

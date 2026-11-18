@@ -200,3 +200,9 @@ v5 C2完整8题结束：3/8，186次模型调用/82次工具请求；4次simulat
 本机33项定向测试、Ruff和前端生产构建通过；补入检查器真实回执后，12项advisory/C2测试及5项最终advisory测试通过。huoshan早期 `advisory-software-20261118T131702Z` 完整150项通过（70.21s），最终代码 `040106a` 在 `advisory-final-software-20261118T132050Z` 完整 **151 passed**（73.03s）。
 
 新实验队列在 `advisory-experiment-20261118T132139Z`等待v5整批完成，不占用其模型推理队列；先在相同新源码下对C2/advisory分别运行撤回取消、拒绝后修改地址两个合成HTTP案例。只有advisory两个案例通过才运行完整smoke8，并与B1/v5 C2生成配对报告。首个等待任务 `advisory-experiment-20261118T131850Z` 在任何模型调用前被替代，状态为superseded，不是实验失败或成功。当前无advisory真实模型成绩。
+
+## Advisory 完整 smoke 与 lean 软件消融（2026-11-18）
+
+`advisory-experiment-20261118T132139Z` 已完整结束。advisory为 **6/8**，失败task41/47，与B1的逐题成功集合相同；7次simulator_finish、1次转人工。100次模型调用，完整总tokens 1,065,889，约比B1多45.6%。C1也为6/8且成本更高。因此当前证据是恢复到B1水平，尚无成功率收益。`development54-b1-advisory-20261118T140835Z` 已进入running-b1，保持040106a原受测源码。
+
+GitHub核实与设计映射见PLAN.md最新节。新增独立`lean`在 `74c3c2a` 实现，不调用规划/检查器，只保留原生工具、实际回执和重复读取有界恢复；不部署到正在跑development54的应用。本机38项相关测试、Ruff与前端构建通过；最初误指定不存在的tests/test_agent.py未进入测试，随后按实际文件重跑。huoshan `lean-software-20261118T141835Z` 完整 **155 passed**（72.67s）；没有lean真实模型成绩。

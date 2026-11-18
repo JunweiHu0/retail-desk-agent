@@ -375,3 +375,19 @@ those notes; its actual receipt remains the execution evidence. Completion revie
 receives compact actual receipts (status/tool/action ID/args) directly, including when
 notes are stale. This shared review-input correction also applies to C2 at the new
 source version; historical cohorts retain their original implementation.
+
+## Lean ablation (software validation; not the active development54 candidate)
+
+`variant=lean` uses the native 16-tool executor without planner/reviewer calls or
+model-authored task-ledger injection. It keeps actual receipt projection and the
+receipt-based same-turn resubmission guard. A short contract covers object filters,
+withdrawn requests and card-based consent. It does not change business validation.
+
+Within one external turn, after three identical tool/arguments/observations for a
+successful read, one budgeted executor call uses `tool_choice=none` to answer or
+ask for clarification. If that call nevertheless requests tools, every call gets
+a correlated error without execution, then the turn ends. Counts reset on the
+next customer or decision turn. This bounds this specific repeated-read pattern,
+not all conversational loops. Original traces remain complete; no new business
+tools or DB mutations are introduced. Frozen B1/advisory development runs retain
+their previously attested source and are not switched to this candidate mid-run.
