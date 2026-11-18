@@ -244,6 +244,18 @@ APPLICATION CONTRACT (web customer-service mode):
 - This is a local sandbox seeded from tau2-bench. Refunds and emails are simulated records;
   never claim a real payment provider was called or a real email was sent.
 """
+LEAN_CONTRACT = """
+DIRECT EXECUTION WITH RECEIPTS:
+Use the actual conversation and latest customer request. Do not maintain a separate task JSON.
+Filter candidate orders/items by all explicit user requirements before proposing changes.
+A withdrawn unexecuted request should leave the database unchanged. A declined preview is a
+customer choice, not a system failure or permanent prohibition; ask what needs changing.
+Once required choices are known, stage the preview; the card supplies execution consent.
+After an executed receipt continue other requested work, without repeating completed operations.
+Use existing context and tool results to answer questions. Repeating an unchanged read does not
+advance the request: answer from observations or ask a focused question about missing choices.
+"""
+
 STATE_CONTRACT = """
 OPTIONAL STRUCTURED INTENT LEDGER:
 The application keeps a concise ledger of requested operations and direct observations.
@@ -368,8 +380,9 @@ class AgentRunner:
         variant = session.get("variant", "b1")
         with_tasks = variant in {"c1", "c2", "advisory"}
         advisory = variant == "advisory"
+        lean = variant == "lean"
         with_review = variant in {"c2", "advisory"}
-        with_state = variant in {"state", "enhanced", "c1", "c2", "advisory"}
+        with_state = variant in {"state", "enhanced", "c1", "c2", "advisory", "lean"}
         with_errors = variant in {"errors", "enhanced"}
         context = self.service.context(sid)
         if with_state:
@@ -419,6 +432,8 @@ class AgentRunner:
             }
         if with_tasks:
             prompt += "\n" + (ADVISORY_CONTRACT if advisory else C1_CONTRACT)
+        elif lean:
+            prompt += "\n" + LEAN_CONTRACT
         elif with_state:
             prompt += "\n" + STATE_CONTRACT
         rec = telemetry.recorder().start_turn(sid, turn_text)
@@ -505,6 +520,10 @@ class AgentRunner:
                 REVIEW_PROMPT.encode()
             ).hexdigest()
             manifest["agent_runtime"]["max_review_calls_per_turn"] = 1
+        if lean:
+            manifest["agent_runtime"]["repeated_identical_read_limit_per_turn"] = 3
+        read_counts = {}
+        reply_only = False
         review_used = False
         review_feedback = ""
         forced_preview_tool = None
@@ -705,7 +724,7 @@ class AgentRunner:
                 )
                 if review_feedback:
                     system_content += "\nAPPLICATION COMPLETION CHECK:\n" + review_feedback
-                if with_state:
+                if with_state and not lean:
                     system_content += "\nSTRUCTURED LEDGER:\n" + json.dumps(
                         {
                             key: (
@@ -804,7 +823,7 @@ class AgentRunner:
                         projected.append(entry)
                     conversation = projected
                 settled_since_user = []
-                if advisory:
+                if advisory or lean:
                     settled_since_user = [
                         json.loads(event["content"].split("\n", 1)[1])
                         for event in receipts
@@ -816,6 +835,8 @@ class AgentRunner:
                         "\nTRUSTED APPLICATION EVENTS (chronological):\n"
                         + json.dumps(receipts, ensure_ascii=False)
                     )
+                if reply_only:
+                    system_content += "\nAPPLICATION READ LIMIT: The same read returned the same observation three times this turn. Do not call more tools this turn. Answer from existing facts or ask a focused question for missing user choices; never claim an unexecuted write completed."
                 request_messages = [
                     SystemMessage(
                         content=system_content,
@@ -830,10 +851,16 @@ class AgentRunner:
                     if forced_preview_tool
                     else bound
                 )
+                if reply_only:
+                    next_model = bound.bind(tool_choice="none")
                 message = invoke_stage(
                     next_model,
                     request_messages,
-                    "executor_correction" if review_feedback else "executor",
+                    "executor_recovery"
+                    if reply_only
+                    else "executor_correction"
+                    if review_feedback
+                    else "executor",
                 )
                 forced_preview_tool = None
                 invalid = message.invalid_tool_calls or []
@@ -847,7 +874,7 @@ class AgentRunner:
                     )
                 else:
                     content = str(message.content or "")
-                if with_state and not with_tasks:
+                if with_state and not with_tasks and not lean:
                     content = update_intents(state, content)
                 save()
                 calls = message.tool_calls + invalid
@@ -1005,6 +1032,20 @@ class AgentRunner:
                                     "duration_ms": 0,
                                 }
                             )
+                        elif reply_only:
+                            result = {
+                                "error": "Repeated-read limit reached; no further tools were executed this turn."
+                            }
+                            recording_emit(
+                                {
+                                    "type": "tool_end",
+                                    "name": call["name"],
+                                    "args": call["args"],
+                                    "result": result,
+                                    "ok": False,
+                                    "duration_ms": 0,
+                                }
+                            )
                         elif len(calls) > 1:
                             result = {
                                 "error": "Call exactly one business tool at a time. "
@@ -1021,7 +1062,7 @@ class AgentRunner:
                                 }
                             )
                         elif (
-                            advisory
+                            (advisory or lean)
                             and call["name"] in self.service.writes
                             and any(
                                 receipt["tool"] == call["name"]
@@ -1139,6 +1180,17 @@ class AgentRunner:
                             )
                         if known:
                             result["already_observed_context"] = known
+                    if (
+                        lean
+                        and not reply_only
+                        and call not in invalid
+                        and len(calls) == 1
+                        and call["name"] not in self.service.writes
+                        and call["name"] != "transfer_to_human_agents"
+                        and not (isinstance(result, dict) and "error" in result)
+                    ):
+                        signature = json.dumps([call["name"], call["args"], result], sort_keys=True)
+                        read_counts[signature] = read_counts.get(signature, 0) + 1
                     history.append(
                         ToolMessage(
                             content=json.dumps(result, ensure_ascii=False),
@@ -1164,6 +1216,12 @@ class AgentRunner:
                             }
                         observe(state, "last_tool", {"name": call["name"], "result": summary})
                     save()
+                if reply_only:
+                    return finish(
+                        "I could not make further progress from the same information. Please clarify the remaining change or question; no additional operation was executed this turn."
+                    )
+                if lean and any(count >= 3 for count in read_counts.values()):
+                    reply_only = True
                 # Re-read only public context after tools (e.g. identity discovery).
                 context = self.service.context(sid)
                 if (

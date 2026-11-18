@@ -13,7 +13,7 @@ const liveReceipts = ref<Receipt[]>([])
 const variants: { value: Variant; label: string }[] = [
   { value: 'b1', label: 'B1' }, { value: 'state', label: 'B1 + State' },
   { value: 'errors', label: 'B1 + Errors' }, { value: 'guide', label: 'B1 + Guide' },
-  { value: 'enhanced', label: 'Enhanced' }, { value: 'c1', label: 'C1 · Task ledger' }, { value: 'c2', label: 'C2 · Completion check' }, { value: 'advisory', label: 'Advisory · Task memory' },
+  { value: 'enhanced', label: 'Enhanced' }, { value: 'c1', label: 'C1 · Task ledger' }, { value: 'c2', label: 'C2 · Completion check' }, { value: 'advisory', label: 'Advisory · Task memory' }, { value: 'lean', label: 'Lean · Receipt loop' },
 ]
 const statusLabels = { ready: '可继续咨询', running: '处理中', awaiting_confirmation: '待确认', finished: '已结束', error: '处理出错' }
 const ended = computed(() => session.value?.status === 'finished' || session.value?.transferred)

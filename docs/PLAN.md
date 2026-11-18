@@ -264,3 +264,19 @@ v5 C2完整结果为3/8（比旧C2的2/8多一题，仍低于B1的6/8），186�
 huoshan队列：`development54-b1-advisory-20261118T140835Z`，等待 `advisory-experiment-20261118T132139Z` 完成后自动开始。manifest预先记录54个task ID、目标摘要、候选源码及执行顺序。若前置批次失败或活动应用源码改变，则停止而不是混用配置。新队列不并发占用当前推理服务。
 
 后续在development分析后冻结候选，进行validation20选择，再做官方test40×3（B1及选定候选共240个episode）；validation/test不用于反复改当前候选。重复seed增加运行次数，不等同新增独立任务。当前54题尚未完成，不能报告扩大样本后的成功率。
+
+### GitHub 对照复核与 lean 消融（2026-11-18）
+
+用户要求继续核对相似场景，并解释为何B1优于复杂候选。当前完整smoke应准确表述为B1=6/8、v5 C1=6/8、v5 C2=3/8；C1成功集合也与B1相同，但总token约1,153,345 vs 732,296。不能说最新版C1仍只有3/8，也不能由8题断言复杂框架普遍无效。
+
+核实的具体源码与采用范围：
+
+- [LangGraph客服示例（0.2.57固定版本）](https://github.com/langchain-ai/langgraph/blob/0.2.57/docs/docs/tutorials/customer-support/customer-support.ipynb)：分开safe/sensitive工具，checkpoint保存状态，在敏感工具前中断审批，拒绝后把工具关联的反馈返回assistant。借鉴读写分离及可恢复审批，当前项目已有等价的preview/receipt边界；不把示例的旅行子agent、整套框架搬入Retail。
+- [Deep Agents changelog](https://github.com/langchain-ai/deepagents/blob/main/libs/deepagents/CHANGELOG.md)：TODO中间件已改为显式可选，说明规划不是所有agent的必需组件；这不是其在Retail提分的证据。新增无规划/无检查器的lean消融，检验当前重复规划的净价值。
+- [LangChain ToolCallLimitMiddleware](https://github.com/langchain-ai/langchain/blob/master/libs/langchain_v1/langchain/agents/middleware/tool_call_limit.py)：按run/thread限制调用，给工具返回关联错误或结束；借鉴有界退出机制。本项目的适配是按当前turn中相同工具/参数/观察识别重复读取，而非额外部署中间件。
+- [NVIDIA NeMo Retail工具](https://github.com/NVIDIA-NeMo/labs-Voice-Agent/blob/main/nemo_voice_agent/evaluation/tools/tau2_retail_tools.py)及[scenario](https://github.com/NVIDIA-NeMo/labs-Voice-Agent/blob/main/nemo_voice_agent/evaluation/scenarios/data/tau2_retail/base.py)：实际DB状态和写入记录与语言断言分离。保持我们已实现的真实回执与DB主分；不照搬其Clean Exit/NL Assertion作为通过条件，避免改变用户指定的DB-only主指标。
+- [How Do Agent Harnesses Create Value? (2026)](https://arxiv.org/abs/2609.20474)：相近Retail研究将规划信息与结束验证分开，报告验证误拒正确结果。其预写task-specific计划与我们的在线用户需求提取不同，不能引用其收益预测本项目，也不引入参考动作/答案计划。
+
+新增实验variant `lean`：B1原生16工具循环 + 通用对象筛选/撤回语义提示 + 真实回执投影/同轮重复动作保护；不调用planner/reviewer、不向执行器注入可错任务表。单个外部turn中，同一工具/参数/返回观察重复3次后，下一次模型调用限制为文本回答，要求依据现有观察回答或询问；若模型仍返回工具请求，逐个关联错误但不执行，并结束本轮。额外文本调用计入同一模型预算。新的用户turn重置计数，不拦截正常跨轮查询。它不能识别所有语义循环，也不能保证回答事实性。
+
+这是后续消融候选，不修改已冻结的advisory smoke/development54应用或模型配置；新增代码先软件验证，不宣称获得真实benchmark收益。已修复缺陷（审核格式、缺真实回执、advisory硬控制）与待测问题（规划必要性、重复读、对象选择）分开报告。评测目标歧义与模拟用户误判仍需独立协议诊断。
