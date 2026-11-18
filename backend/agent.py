@@ -22,7 +22,22 @@ from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from backend import config, telemetry
-from backend.agent_state import observe, reconcile_receipt, update_intents
+from backend.agent_planner import (
+    C1_CONTRACT,
+    PLANNER_PROMPT,
+    PLANNER_VERSION,
+    PlanDelta,
+    parse_plan,
+    planner_messages,
+)
+from backend.agent_state import (
+    apply_task_plan,
+    matching_write_task,
+    observe,
+    reconcile_receipt,
+    settle_task_receipt,
+    update_intents,
+)
 
 
 class DemoRetailModel(BaseChatModel):
@@ -259,6 +274,10 @@ def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
     )
 
 
+class AgentBudgetExceeded(RuntimeError):
+    pass
+
+
 class AgentRunner:
     def __init__(self, service):
         self.service = service
@@ -299,6 +318,11 @@ class AgentRunner:
             state = session.get("agent_state") or {}
             if session.get("variant") in {"state", "enhanced"}:
                 reconcile_receipt(state, receipt, pending)
+            if session.get("variant") == "c1":
+                latest_user_id = next(
+                    m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
+                )
+                settle_task_receipt(state, receipt, latest_user_id)
             self.store.update(
                 cx,
                 sid,
@@ -330,7 +354,8 @@ class AgentRunner:
         active_before = usage.get("active_seconds", 0)
         state = session.get("agent_state") or {}
         variant = session.get("variant", "b1")
-        with_state = variant in {"state", "enhanced"}
+        with_tasks = variant == "c1"
+        with_state = variant in {"state", "enhanced", "c1"}
         with_errors = variant in {"errors", "enhanced"}
         context = self.service.context(sid)
         if with_state:
@@ -378,7 +403,9 @@ class AgentRunner:
                     else "policy-derived static seed; no measured improvement claim"
                 ),
             }
-        if with_state:
+        if with_tasks:
+            prompt += "\n" + C1_CONTRACT
+        elif with_state:
             prompt += "\n" + STATE_CONTRACT
         rec = telemetry.recorder().start_turn(sid, turn_text)
 
@@ -449,10 +476,128 @@ class AgentRunner:
             "max_output_tokens": int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
             "policy_sha256": hashlib.sha256(policy.encode()).hexdigest(),
         }
+        if with_tasks:
+            manifest["agent_runtime"]["planner_version"] = PLANNER_VERSION
+            manifest["agent_runtime"]["planner_prompt_sha256"] = hashlib.sha256(
+                PLANNER_PROMPT.encode()
+            ).hexdigest()
+            manifest["agent_runtime"]["planner_schema_sha256"] = hashlib.sha256(
+                json.dumps(PlanDelta.model_json_schema(), sort_keys=True).encode()
+            ).hexdigest()
         emit({"type": "status", "status": "running", "message": "正在处理…"})
         save(status="running")
+
+        def invoke_stage(bound_model, messages, phase):
+            if self.store.session(sid)["status"] == "finished":
+                raise AgentBudgetExceeded("episode_finished")
+            if usage["model_calls"] >= max_calls:
+                raise AgentBudgetExceeded("model_call_budget")
+            if active_before + time.monotonic() - started >= max_seconds:
+                raise AgentBudgetExceeded("time_budget")
+            usage["model_calls"] += 1
+            phases = usage.setdefault("phases", {})
+            phase_usage = phases.setdefault(
+                phase,
+                {"model_calls": 0, "input_tokens": 0, "output_tokens": 0, "unknown_usage_calls": 0},
+            )
+            phase_usage["model_calls"] += 1
+            save()
+            call_started = time.monotonic()
+            try:
+                reply = bound_model.invoke(messages)
+            except Exception:
+                usage["unknown_usage_calls"] += 1
+                phase_usage["unknown_usage_calls"] += 1
+                rec.model_call(
+                    (time.monotonic() - call_started) * 1000, None, None, "error", [], phase=phase
+                )
+                raise
+            tokens = reply.usage_metadata or {}
+            if all(tokens.get(key) is not None for key in ("input_tokens", "output_tokens")):
+                usage["known_usage_calls"] += 1
+            else:
+                usage["unknown_usage_calls"] += 1
+                phase_usage["unknown_usage_calls"] += 1
+            rec.model_call(
+                (time.monotonic() - call_started) * 1000,
+                tokens.get("input_tokens"),
+                tokens.get("output_tokens"),
+                (reply.response_metadata or {}).get("finish_reason"),
+                [call["name"] for call in reply.tool_calls],
+                phase=phase,
+            )
+            for key in ("input_tokens", "output_tokens"):
+                if tokens.get(key) is not None:
+                    usage[key] += tokens[key]
+                    phase_usage[key] += tokens[key]
+            save()
+            return reply
+
+        def plan_tasks(observations):
+            current = self.store.session(sid)
+            users = [m for m in current["messages"] if m["role"] == "user"]
+            messages = planner_messages(
+                policy, context, current["messages"], state, observations, self.service.catalog
+            )
+            for attempt in range(2):
+                reply = invoke_stage(
+                    planner, messages, "planner" if attempt == 0 else "planner_repair"
+                )
+                if self.store.session(sid)["status"] == "finished":
+                    raise AgentBudgetExceeded("episode_finished")
+                record = {
+                    "source_message_id": users[-1]["id"],
+                    "content": reply.content,
+                    "attempt": attempt,
+                }
+                state.setdefault("planning_attempts", []).append(record)
+                try:
+                    if reply.tool_calls:
+                        raise ValueError("Planner must return JSON, without tool calls")
+                    delta, parsed = parse_plan(
+                        reply.content, current["messages"], context, state, self.service.catalog
+                    )
+                    apply_task_plan(state, delta, parsed, context, users[-1]["id"])
+                except (ValueError, TypeError) as exc:
+                    record["error"] = str(exc)
+                    save()
+                    if attempt:
+                        raise ValueError(
+                            "planning_error: structured plan failed after one repair"
+                        ) from exc
+                    messages.append(
+                        HumanMessage(
+                            content="Your plan was invalid. Return a corrected complete delta. Error: "
+                            + str(exc)
+                            + "\nPrevious response:\n"
+                            + str(reply.content)
+                        )
+                    )
+                else:
+                    save()
+                    return
+
         try:
-            bound = build_agent(self.service, sid, emit, model, rec)
+            runtime_model = model or get_model()
+            bound = build_agent(self.service, sid, emit, runtime_model, rec)
+            resolved_scope = False
+            if with_tasks:
+                planner = runtime_model.bind(
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "retail_task_delta",
+                            "strict": True,
+                            "schema": PlanDelta.model_json_schema(),
+                        },
+                    },
+                    max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
+                )
+                latest_user_id = next(
+                    m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
+                )
+                if state.get("planned_message_id") != latest_user_id:
+                    plan_tasks([])
             while True:
                 current = self.store.session(sid)
                 if current["status"] == "finished":
@@ -492,7 +637,8 @@ class AgentRunner:
                 )
                 if with_state:
                     system_content += "\nSTRUCTURED LEDGER:\n" + json.dumps(
-                        state, ensure_ascii=False
+                        {key: value for key, value in state.items() if key != "planning_attempts"},
+                        ensure_ascii=False,
                     )
                 conversation, receipts = [], []
                 user_messages = 0
@@ -582,33 +728,7 @@ class AgentRunner:
                     ),
                     *conversation,
                 ]
-                usage["model_calls"] = usage.get("model_calls", 0) + 1
-                save()
-                call_started = time.monotonic()
-                try:
-                    message = bound.invoke(request_messages)
-                except Exception:
-                    usage["unknown_usage_calls"] += 1
-                    rec.model_call(
-                        (time.monotonic() - call_started) * 1000, None, None, "error", []
-                    )
-                    raise
-                tokens = message.usage_metadata or {}
-                if all(tokens.get(key) is not None for key in ("input_tokens", "output_tokens")):
-                    usage["known_usage_calls"] += 1
-                else:
-                    usage["unknown_usage_calls"] += 1
-                metadata = message.response_metadata or {}
-                rec.model_call(
-                    (time.monotonic() - call_started) * 1000,
-                    tokens.get("input_tokens"),
-                    tokens.get("output_tokens"),
-                    metadata.get("finish_reason"),
-                    [call["name"] for call in message.tool_calls],
-                )
-                for key in ("input_tokens", "output_tokens"):
-                    if tokens.get(key) is not None:
-                        usage[key] += tokens[key]
+                message = invoke_stage(bound, request_messages, "executor")
                 invalid = message.invalid_tool_calls or []
                 for call in invalid:
                     if not call.get("id"):
@@ -620,7 +740,7 @@ class AgentRunner:
                     )
                 else:
                     content = str(message.content or "")
-                if with_state:
+                if with_state and not with_tasks:
                     content = update_intents(state, content)
                 save()
                 calls = message.tool_calls + invalid
@@ -682,6 +802,24 @@ class AgentRunner:
                                     "duration_ms": 0,
                                 }
                             )
+                        elif (
+                            with_tasks
+                            and call["name"] in self.service.writes
+                            and matching_write_task(state, call["name"], call["args"]) is None
+                        ):
+                            result = {
+                                "error": "No matching unfinished task, unmet dependency, or arguments conflict with customer constraints. Review TASKS; do not repeat an executed/rejected action. Ask for missing user choices."
+                            }
+                            recording_emit(
+                                {
+                                    "type": "tool_end",
+                                    "name": call["name"],
+                                    "args": call["args"],
+                                    "result": result,
+                                    "ok": False,
+                                    "duration_ms": 0,
+                                }
+                            )
                         else:
                             try:
                                 result = self.service.call(
@@ -702,6 +840,19 @@ class AgentRunner:
                                 )
                                 save()
                                 raise
+                    if (
+                        with_tasks
+                        and isinstance(result, dict)
+                        and result.get("status") == "awaiting_confirmation"
+                    ):
+                        task = matching_write_task(state, call["name"], call["args"])
+                        if task is not None:
+                            task.update(
+                                status="awaiting_confirmation",
+                                action_id=result["action_id"],
+                                proposed_args=call["args"],
+                                missing=[],
+                            )
                     if with_errors and isinstance(result, dict) and "error" in result:
                         result = dict(result)
                         args = call["args"] if isinstance(call["args"], dict) else {}
@@ -751,6 +902,26 @@ class AgentRunner:
                     save()
                 # Re-read only public context after tools (e.g. identity discovery).
                 context = self.service.context(sid)
+                if (
+                    with_tasks
+                    and not resolved_scope
+                    and not self.store.session(sid)["pending"]
+                    and any(
+                        not task["object_id"]
+                        and task["operation"] != "answer"
+                        and task["status"] == "needs_info"
+                        for task in state.get("tasks", [])
+                    )
+                ):
+                    resolved_scope = True
+                    observed = [
+                        {"name": m.name, "content": m.content}
+                        for m in history
+                        if isinstance(m, ToolMessage)
+                    ]
+                    plan_tasks(observed)
+        except AgentBudgetExceeded as exc:
+            return finish("本次会话已停止自动处理，未完成操作没有执行。", "finished", str(exc))
         except Exception as exc:
             rec.error = type(exc).__name__
             # Persist all completed observations, including calls before a model transport error.

@@ -295,3 +295,26 @@ The evaluator records `simulator_version=visible-action-schema-v2` and its sourc
 hashes. Revised and earlier simulator cohorts cannot be paired. DB comparator,
 fixtures and HTTP protocol remain unchanged; a new comparison reruns the entire
 chosen task grid for both agents, not only earlier failed cases.
+
+## C1 task-planning candidate
+
+`variant=c1` adds a tool-free structured planner using the same configured model,
+policy and public customer information. All planner/executor/repair calls share
+the existing episode budgets; `usage.phases` and telemetry identify their cost.
+The planner may propose tasks and dependencies, but cannot set executed states.
+The application allocates task IDs, expands observed order scopes and binds each
+write proposal to a matching active task. Known user constraints cannot be silently
+rewritten by the executor. Only a matching actual receipt settles a write task;
+rejection does not reactivate it without a new customer message.
+
+Public sessions retain their existing UI contract. Authenticated internal snapshot
+exports additionally include top-level `agent_state` for private diagnosis, including
+planner attempts and task/receipt associations. It is not part of ordinary session
+responses or simulator input. Informational tasks are recorded, but C1 does not yet
+certify that free-form replies answer them; that is a C2 review responsibility.
+
+B1 is frozen locally at tag `baseline/b1-http-v1` (commit
+`03ac358c9f49435a8f3fd48548572b643307c9e9`). The candidate shares the same 16 business
+tools and approval layer; planner output is not an additional business tool.
+C1 requires a model with structured JSON-schema output and native business-tool
+calling. Demo mode is not a C1 model-capability validation.

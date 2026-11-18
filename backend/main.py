@@ -22,7 +22,7 @@ from backend.retail import RetailService
 from backend.store import Store
 
 log = logging.getLogger(__name__)
-Variant = Literal["b1", "state", "errors", "guide", "enhanced"]
+Variant = Literal["b1", "state", "errors", "guide", "enhanced", "c1"]
 
 
 class CreateSession(BaseModel):
@@ -136,7 +136,12 @@ def create_app(store=None, runner=None, artifact_dir=None):
         with app.state.store.tx() as cx:
             db = app.state.store.dataset(cx, sid)
         state = snapshot(sid)
-        result = {"db": db, "session": state, "manifest": state["manifest"]}
+        result = {
+            "db": db,
+            "session": state,
+            "manifest": state["manifest"],
+            "agent_state": get_session(sid)["agent_state"],
+        }
         directory = app.state.artifact_dir / sid
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{label}-{uuid.uuid4().hex}.json"

@@ -97,11 +97,18 @@ class TurnRecord:
         self.answer_chars = 0
 
     def model_call(
-        self, wall_ms, prompt_tokens, completion_tokens, finish_reason=None, tool_names=None
+        self,
+        wall_ms,
+        prompt_tokens,
+        completion_tokens,
+        finish_reason=None,
+        tool_names=None,
+        phase="executor",
     ):
         self.model_calls.append(
             {
                 "seq": len(self.model_calls) + 1,
+                "phase": phase,
                 "wall_ms": round(wall_ms),
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
