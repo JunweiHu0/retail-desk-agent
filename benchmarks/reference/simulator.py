@@ -125,7 +125,7 @@ def action_response_format(proposal: dict | None) -> dict:
             "type": "object",
             "properties": {
                 "action": {"const": "message"},
-                "message": {"type": "string", "pattern": r"\S"},
+                "message": {"type": "string", "pattern": r"[\s\S]*\S[\s\S]*"},
             },
             "required": ["action", "message"],
             "additionalProperties": False,

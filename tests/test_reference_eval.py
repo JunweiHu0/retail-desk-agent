@@ -1012,6 +1012,9 @@ def test_simulator_schema_exposes_only_visible_actions(pending):
     validate = Draft202012Validator(schema).is_valid
     assert validate({"action": "finish", "reason": "customer leaves"})
     assert validate({"action": "message", "message": "hello"}) is (not pending)
+    assert validate({"action": "message", "message": "Please cancel order #W123.\nThank you."}) is (
+        not pending
+    )
     for approval in [True, False]:
         assert (
             validate({"action": "decision", "action_id": "visible", "approve": approval}) is pending
