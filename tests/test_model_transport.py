@@ -83,3 +83,51 @@ def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
     assert len(calls) == 4
     assert "APPLICATION RECEIPT:" in calls[-1]["messages"][0]["content"]
     assert [m["content"] for m in calls[-1]["messages"] if m["role"] == "user"] == ["取消我的订单"]
+
+
+def test_configured_thinking_setting_reaches_model_http(monkeypatch):
+    from langchain_core.messages import HumanMessage
+
+    from backend import agent, config
+
+    requests = []
+
+    def transport(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "id": "thinking-test",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "qwen-test",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "ok"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+            },
+        )
+
+    original = ChatOpenAI
+    monkeypatch.setattr(
+        agent,
+        "ChatOpenAI",
+        lambda **kwargs: original(
+            **kwargs, http_client=httpx.Client(transport=httpx.MockTransport(transport))
+        ),
+    )
+    monkeypatch.setattr(config, "MODE", "live")
+    monkeypatch.setattr(config, "API_KEY", "test-only")
+    for mode in ("auto", "on", "off"):
+        monkeypatch.setattr(config, "MODEL_THINKING", mode)
+        model = agent.get_model()
+        assert model.request_timeout == 300
+        model.invoke([HumanMessage(content="hello")])
+        if mode == "auto":
+            assert "chat_template_kwargs" not in requests[-1]
+        else:
+            assert requests[-1]["chat_template_kwargs"] == {"enable_thinking": mode == "on"}

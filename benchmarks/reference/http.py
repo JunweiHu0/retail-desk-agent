@@ -106,7 +106,7 @@ class EpisodeHTTP:
             f"{self.base}/internal/eval/episodes/{self.sid}/finish",
             json={"reason": reason},
             headers=self.eval_headers,
-            timeout=75,
+            timeout=315,
         )
         response.raise_for_status()
         return response.json()
@@ -169,6 +169,11 @@ def run_attempt(
             protocol_errors.append("agent_policy_hash_mismatch")
         if hasattr(simulator, "model") and manifest.get("model") != simulator.model:
             protocol_errors.append("agent_simulator_model_mismatch")
+        if (
+            hasattr(simulator, "thinking")
+            and manifest.get("thinking", "auto") != simulator.thinking
+        ):
+            protocol_errors.append("agent_simulator_thinking_mismatch")
         if protocol_errors:
             raise ValueError("Agent runtime differs from frozen protocol")
         for index in range(max_actions):

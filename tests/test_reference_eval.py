@@ -973,3 +973,30 @@ def test_task105_noop_target_keeps_private_reference_issue_and_count(monkeypatch
     public = fixtures.public_episode_input(fixture, "b1", 0, 0)
     assert "reference_issue" not in public and "reference_issues" not in public
     assert set(public["metadata"]) == {"protocol_version", "tau2_sha"}
+
+
+def test_simulator_thinking_setting_reaches_http():
+    from benchmarks.reference.simulator import Simulator
+
+    requests = []
+
+    def transport(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"action":"finish","reason":"done"}'}}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(transport)) as client:
+        for mode in ("auto", "on", "off"):
+            simulator = Simulator(
+                client, "http://model/v1", "qwen-test", "test-only", thinking=mode
+            )
+            simulator.step({}, {}, 0, 10)
+            if mode == "auto":
+                assert "chat_template_kwargs" not in requests[-1]
+            else:
+                assert requests[-1]["chat_template_kwargs"] == {"enable_thinking": mode == "on"}

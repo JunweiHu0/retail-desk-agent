@@ -2,7 +2,7 @@
 
 ## Objective and fixed protocol
 
-Build an isolated-session Retail backend, a minimal B1 tool-loop agent, independently switchable enhancements, frontend integration, and a reference HTTP evaluator. Validate with Qwen3.5-9B on huoshan; compare B1 and the selected candidate with the same 27B deployment later. The intended TACC name is Qwen3.8-27B, but its exact model repository, weights and live endpoint still require verification. Do not substitute a base model or infer a model identity from its size. Model cohorts must be reported separately.
+Build an isolated-session Retail backend, a minimal B1 tool-loop agent, independently switchable enhancements, frontend integration, and a reference HTTP evaluator. Validate with Qwen3.5-9B on huoshan; compare B1 and the selected candidate with the same 27B deployment later. The official Qwen/Qwen3.8-27B model repository exists; the TACC AWQ-INT4 artifact, exact weight revision and live endpoint still require verification. Do not substitute a base model or infer a model identity from its size. Model cohorts must be reported separately.
 
 Upstream application: `a3173371079b53779a933e50ed79d528b7843a96`.
 Upstream tau2: `0c69df456a96aa76a1162591574dad9c427a34d7`.
@@ -76,8 +76,8 @@ Each stage records actual commands, execution location, scale, results and unres
 
 - P0–P3: huoshan upstream baseline **18 passed**; implemented full suite **107 passed**, followed by **2 passed** targeted checks for the final handoff fix. Ruff and frontend production build pass. Browser desktop/mobile flows **2 passed**; separate demo HTTP cancellation/approval and return/rejection checks both pass.
 - Frozen targets: development54, validation20, test40 and smoke8 all have completion markers. Original tasks, DB and split membership remain unchanged.
-- P4: the huoshan application and isolated inference dependencies are installed. Qwen3.5-9B's four weight shards match their recorded SHA256 digests. Actual CUDA/model protocol checks and live smoke8 are pending; demo tests are not a model score.
+- P4: the huoshan application and isolated inference dependencies are installed. Qwen3.5-9B's four weight shards match their recorded SHA256 digests. CUDA, initial native-tool and JSON protocol checks passed. Live multi-turn checks exposed and fixed a single-system layout error, then reproduced a thinking/tool-parser issue and 60-second HTTP timeouts. A separate explicit thinking=off cohort with 300-second request timeout is being validated; demo tests are not a model score.
 - P5: state/error/guide switches and deterministic tests are implemented. The current guide is policy-derived seed guidance, not learned from development traces. Live checks, development feedback and measured uplift are pending.
-- P6–P7: not run. Exact 27B weights/service have not been verified; no final test40 model results or claimed improvement exist.
+- P6–P7: not run. Exact deployed 27B weights/service have not been verified; no final test40 model results or claimed improvement exist.
 
 See [verification evidence](VERIFICATION.md) and [remote run locations](huoshan.md). Historical failed and incomplete runs remain preserved alongside subsequent passing runs.

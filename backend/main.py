@@ -149,6 +149,7 @@ def create_app(store=None, runner=None, artifact_dir=None):
             "status": "ok",
             "mode": config.MODE,
             "model": app.state.manifest["model"],
+            "thinking": config.MODEL_THINKING,
             "model_ready": config.MODE == "demo" or bool(config.API_KEY),
             "tools": len(app.state.retail.catalog),
             "domain": "retail",
@@ -304,7 +305,7 @@ def create_app(store=None, runner=None, artifact_dir=None):
         # Seal business state immediately. A pending model response may drain, but
         # the service and runner cannot execute tools or reopen this episode.
         app.state.store.finish(sid, body.reason)
-        deadline = asyncio.get_running_loop().time() + 70
+        deadline = asyncio.get_running_loop().time() + config.MODEL_REQUEST_TIMEOUT_SECONDS + 10
         while sid in app.state.busy:
             if asyncio.get_running_loop().time() >= deadline:
                 raise HTTPException(409, "任务已冻结，正在等待模型调用结束")

@@ -85,6 +85,7 @@ parser.add_argument("command", choices=["start-app", "start-model", "status", "s
 parser.add_argument("service", nargs="?", choices=["app", "model", "all"], default="all")
 parser.add_argument("--mode", choices=["demo", "live"], default="live")
 parser.add_argument("--gpu", type=int, default=1)
+parser.add_argument("--thinking", choices=["auto", "on", "off"], default="auto")
 parser.add_argument(
     "--shared-budget",
     type=float,
@@ -168,6 +169,7 @@ if name == "app":
         {
             "AGENT_MODE": args.mode,
             "MODEL_NAME": "qwen3.5-9b",
+            "MODEL_THINKING": args.thinking,
             "MODEL_BASE_URL": base_url,
             "MODEL_API_KEY": "EMPTY",
             "EVAL_API_TOKEN": os.environ.get("EVAL_API_TOKEN") or token_file.read_text().strip(),
@@ -191,6 +193,7 @@ if name == "app":
     manifest.update(
         {
             "mode": args.mode,
+            "thinking": args.thinking,
             "model": env["MODEL_NAME"],
             "model_base_url": base_url,
             "db_path": env["RETAIL_DB_PATH"],

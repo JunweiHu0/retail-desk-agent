@@ -126,6 +126,7 @@ def run(args):
             health.get("mode") != "live"
             or not health.get("model_ready")
             or health.get("model") != args.model
+            or health.get("thinking", "auto") != args.thinking
             or health.get("tools") != 16
             or health.get("protocol_version") != PROTOCOL_VERSION
         ):
@@ -150,6 +151,7 @@ def run(args):
         "simulator_base_url": model_url,
         "model": args.model,
         "temperature": args.temperature,
+        "thinking": args.thinking,
         "max_tokens": 4096,
         "max_user_actions": 30,
         "max_seconds": 600,
@@ -162,7 +164,9 @@ def run(args):
     write_json(output / "manifest.json", manifest)
     records = []
     with httpx.Client() as client:
-        simulator = Simulator(client, model_url, args.model, api_key, args.temperature)
+        simulator = Simulator(
+            client, model_url, args.model, api_key, args.temperature, thinking=args.thinking
+        )
         for fixture in fixtures:
             for trial_id, seed in enumerate(seeds):
                 attempts = []
@@ -238,6 +242,8 @@ def compare(args):
     ):
         if left_manifest[key] != right_manifest[key]:
             raise ValueError(f"Cannot pair different cohorts/protocol inputs: {key}")
+    if left_manifest.get("thinking", "auto") != right_manifest.get("thinking", "auto"):
+        raise ValueError("Cannot pair different thinking configurations")
     suites = [
         json.loads((folder / "results.json").read_text()) for folder in (args.left, args.right)
     ]
@@ -271,6 +277,10 @@ def compare(args):
                     key: runtime[key]
                     for key in ("mode", "model", "tau2_expected_sha", "policy_sha256")
                 }
+            )
+            runtime_signatures[-1]["thinking"] = runtime.get("thinking", "auto")
+            runtime_signatures[-1]["model_request_timeout_seconds"] = budget.get(
+                "model_request_timeout_seconds", 60
             )
     if any(value != runtime_signatures[0] for value in runtime_signatures):
         raise ValueError("Actual backend serving/policy cohorts differ")
@@ -372,6 +382,7 @@ def main():
     run_parser.add_argument("--variant", default="b1")
     run_parser.add_argument("--seeds", default="0,1,2")
     run_parser.add_argument("--temperature", type=float, default=0.0)
+    run_parser.add_argument("--thinking", choices=["auto", "on", "off"], default="auto")
     run_parser.set_defaults(func=run)
     compare_parser = sub.add_parser(
         "compare", help="Separate paired task-clustered bootstrap report"

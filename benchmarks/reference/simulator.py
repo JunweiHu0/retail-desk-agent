@@ -99,6 +99,7 @@ class Simulator:
     api_key: str
     temperature: float = 0.0
     max_tokens: int = 4096
+    thinking: str = "auto"
 
     def step(
         self, user_scenario: dict, session: dict, seed: int, timeout: float
@@ -114,6 +115,11 @@ class Simulator:
                 "max_tokens": self.max_tokens,
                 "seed": seed,
                 "response_format": {"type": "json_object"},
+                **(
+                    {"chat_template_kwargs": {"enable_thinking": self.thinking == "on"}}
+                    if self.thinking != "auto"
+                    else {}
+                ),
             },
             timeout=timeout,
         )

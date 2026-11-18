@@ -187,10 +187,15 @@ def get_model():
         api_key=config.API_KEY,
         base_url=config.BASE_URL,
         temperature=0,
-        timeout=60,
+        timeout=config.MODEL_REQUEST_TIMEOUT_SECONDS,
         max_retries=0,
         max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
         model_kwargs={"parallel_tool_calls": False},
+        extra_body=(
+            {"chat_template_kwargs": {"enable_thinking": config.MODEL_THINKING == "on"}}
+            if config.MODEL_THINKING != "auto"
+            else None
+        ),
     )
 
 
@@ -432,6 +437,8 @@ class AgentRunner:
         max_seconds = float(os.getenv("AGENT_MAX_ACTIVE_SECONDS", "600"))
         manifest["agent_runtime"] = {
             "implementation": "native-tool-loop-v1",
+            "model_request_timeout_seconds": config.MODEL_REQUEST_TIMEOUT_SECONDS,
+            "thinking": config.MODEL_THINKING,
             "max_model_calls": max_calls,
             "max_tool_calls": max_tools,
             "max_active_seconds": max_seconds,

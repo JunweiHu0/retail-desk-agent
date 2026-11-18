@@ -126,3 +126,5 @@ PY
 - evaluator 显式指定 `--base-url`、`--model-base-url`、`--model qwen3.8-27b`，不要沿用 huoshan 默认端口。当前 TACC 脚本声明的 `Qwen3.8-27B-AWQ-INT4` 路径及别名只表示配置，实际权重与工具协议仍须现场验证；量化 27B 与 BF16 9B 为独立模型组。
 
 上述为待 infra 落实的交接项，本轮未连接或发布 TACC。
+
+当前 9B 的工具结果续跑已复现 thinking/parser 兼容问题，功能验收使用显式非思考组：应用 `start-app --mode live --thinking off`，evaluator `run ... --thinking off`。默认 `auto` 保留给独立研究组；不要把两组混合或静默改变已运行批次。

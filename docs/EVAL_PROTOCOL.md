@@ -220,8 +220,8 @@ recorded token sum and `missing_calls` records the unknown call count. Token cos
 by DB-successful episodes; token cost per successful task uses tasks whose every
 requested seed succeeded. Both are null for unknown total usage or no successes.
 HTTP turn timing is not TTFT or inter-token latency: model invocation is not token
-streaming. The final seal/drain request allows 75 seconds for the backend's
-bounded pending-call drain; conversation and finish/drain durations are retained
+streaming. The final seal/drain request allows 315 seconds for the backend's
+310-second bounded pending-call drain (300-second model request timeout); conversation and finish/drain durations are retained
 separately from total elapsed time.
 
 
@@ -257,3 +257,12 @@ To audit a fresh pinned checkout without creating target completion markers:
 ```bash
 python -m benchmarks.run_http audit-reference --tau-root /verified/tau2-bench --output /fresh/path/audit.json
 ```
+
+Thinking control is a cohort parameter: backend `MODEL_THINKING=auto|on|off`
+and evaluator `--thinking auto|on|off` must match. `auto` omits the request
+switch; `on`/`off` send `chat_template_kwargs.enable_thinking` explicitly.
+Health, episode provenance and evaluator manifest retain the setting, and paired
+comparison rejects different settings or model request timeouts. Current 9B
+functional checks use a separate `off` cohort following a reproduced thinking/tool
+parser failure. No tools are extracted from reasoning text. Other services must
+verify support for the explicit template parameter before selecting it.

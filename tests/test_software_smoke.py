@@ -102,7 +102,7 @@ def test_scripted_contract_case_uses_public_message_then_explicit_decision(
                 + "\n\n",
             )
         if request.url.path.endswith("/finish"):
-            assert request.extensions["timeout"]["read"] == 75
+            assert request.extensions["timeout"]["read"] == 315
             return httpx.Response(200, json={"finished": True})
         if request.url.path.endswith("/snapshot"):
             return httpx.Response(

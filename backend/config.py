@@ -25,3 +25,8 @@ if not ARTIFACT_DIR.is_absolute():
     ARTIFACT_DIR = ROOT / ARTIFACT_DIR
 TAU2_COMMIT = "0c69df456a96aa76a1162591574dad9c427a34d7"
 VARIANTS = ("b1", "state", "errors", "guide", "enhanced")
+
+MODEL_REQUEST_TIMEOUT_SECONDS = 300
+MODEL_THINKING = os.getenv("MODEL_THINKING", "auto")
+if MODEL_THINKING not in {"auto", "on", "off"}:
+    raise ValueError("MODEL_THINKING must be auto, on or off")

@@ -36,4 +36,5 @@ def runtime_manifest():
         "mode": config.MODE,
         "model": "offline-demo" if config.MODE == "demo" else config.MODEL,
         "context_mode": "preauthenticated_customer_and_orders",
+        "thinking": config.MODEL_THINKING,
     }
