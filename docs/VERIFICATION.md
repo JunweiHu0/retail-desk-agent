@@ -14,7 +14,11 @@ B1固定在本地标签 `baseline/b1-http-v1@03ac358`。新增C1显式任务规�
 
 当前冻结版本 `5a928fe` 在 huoshan `c2-native-choice-20261118T092200Z/` 完整 **142 passed**（65.62s），Ruff通过；真实四操作案例最终DB匹配，四项均有executed回执，共1次planner、5次executor、1次reviewer，输入75,249/输出2,900 tokens，174.39s。该次运行未触发纠正分支；另在 `c2-native-tool-choice-protocol-20261118T092804Z/` 验证真实服务支持指定原生工具且参数正确，合成SDK/状态测试验证纠正分支和审批前DB不变，不能将协议验证当作benchmark提升。
 
-冻结的C1/C2完整smoke批次为 `c1-c2-v3-smoke-20261118T092829Z/`，顺序运行两组，复用schema-v2模拟器与固定target。`source-attestation.json`记录干净源码SHA `5a928fec0d2b7a575b9eeaac212d689950ac0016`、模型/权重/服务和B1引用批次。当前正在运行，完成标记出现前不称完整成绩。
+开发批次 `c1-c2-v3-smoke-20261118T092829Z/` 已因同对象任务替换错误中止并标记 `superseded_task_replacement_bug`，不是完整成绩。其源码与模型记录保留。`a341b50` 修复先合并再废弃导致新需求消失的问题，并保持替代任务的依赖；`dfe9b23` 保留模型截断响应及 SDK 已返回的实际 token 用量。
+
+最新代码 `dfe9b23` 在 huoshan `c1-c2-replacement-regression-20261118T094550Z/` 完整 **145 passed**（67.05s）。此前 `094517Z` 启动误用了未安装 tau2 的 Python，未进入测试；随后使用独立 app 环境重跑。`c1-v4-replacement-20261118T100234Z/` 真实9B两轮规划复测通过：仅输入公开对话、初始客户上下文、实际商品查询结果及首轮任务，用户补充两件替换商品和信用卡后保持唯一有效换货任务，保留正确参数。此为公开输入规划验证，不是benchmark成绩。
+
+冻结代码 `dfe9b23` 的新批次为 `c1-c2-v4-smoke-20261118T100356Z/`，使用已重启的同版应用、同一9B服务、schema-v2模拟器和原smoke8目标，顺序运行C1/C2。该批次当前已启动；源码、权重摘要及B1对照路径记录在 `source-attestation.json`。
 
 截至本节记录，C1/C2尚未取得完整smoke8比较；不得声称成功率提升。历史B1/enhanced的6/8结果见下节。原始数据、冻结目标和比较器保持现行版本。
 
