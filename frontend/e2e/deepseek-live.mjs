@@ -1,31 +1,34 @@
-// Explicit opt-in: this checks the actual running live service and incurs model usage.
+// Explicit opt-in: this checks the running live service and incurs model usage.
+import { mkdir } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { chromium, expect } from '@playwright/test'
 
 if (!process.argv.includes('--run-live')) throw new Error('Pass --run-live to allow paid model calls')
-const browser = await chromium.launch({ headless: true })
-const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } })
-const errors = []
-page.on('pageerror', e => errors.push(e.message))
-await page.goto('http://127.0.0.1:8000')
-await page.getByRole('button', { name: 'li.ming ↗', exact: true }).click()
-await page.getByRole('button', { name: '登录工作台 →', exact: true }).click()
-const health = await (await page.request.get('http://127.0.0.1:8000/api/health')).json()
-if (health.mode !== 'live' || !health.model.startsWith('deepseek')) throw new Error('Live DeepSeek service required')
-await expect(page.locator('.mode-tag')).toHaveText('真实模型')
-await page.getByRole('button', { name: /我的订单到哪了/ }).click()
-await expect(page.locator('.messages .assistant .bubble').first()).toBeVisible({ timeout: 180000 })
-await expect(page.getByRole('textbox', { name: '输入咨询内容' })).toBeEnabled({ timeout: 10000 })
-await expect(page.locator('.verified')).toBeVisible()
-await expect(page.locator('.order-card').first()).toBeVisible()
-await expect(page.locator('.error-banner')).toHaveCount(0)
-await page.getByRole('button', { name: '订单管理', exact: true }).click()
-await expect(page.locator('.order-tile').first()).toBeVisible()
-await page.getByRole('button', { name: '个人信息', exact: true }).click()
-await expect(page.getByText('li.ming@retail-demo.example.com', { exact: true })).toBeVisible()
-await page.getByRole('button', { name: '客服助手', exact: true }).click()
-await page.screenshot({ path: '../docs/screenshots/deepseek-live.png', fullPage: true })
-console.log(JSON.stringify({ status: 'passed', model: health.model,
-  verifiedCustomer: await page.locator('.customer-top h3').innerText(),
-  orderCards: await page.locator('.order-card').count(), browserErrors: errors }))
-await browser.close()
-if (errors.length) process.exitCode = 1
+const base = process.env.BASE_URL || 'http://127.0.0.1:8000'
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL })
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const errors = []
+  page.on('pageerror', err => errors.push(err.message))
+  await page.goto(base)
+  const health = await (await page.request.get(new URL('api/health', base.endsWith('/') ? base : base + '/').href)).json()
+  if (health.mode !== 'live' || !health.model.startsWith('deepseek')) throw new Error('Live DeepSeek service required')
+  await page.getByRole('button', { name: '填入演示账户 李明' }).click()
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  const input = page.getByRole('textbox', { name: '输入咨询内容' })
+  await input.fill('请查询我的订单状态。')
+  await page.getByRole('button', { name: '发送消息' }).click()
+  await expect(page.locator('.assistant .bubble').first()).toBeVisible({ timeout: 180000 })
+  await expect(input).toBeEnabled({ timeout: 10000 })
+  const nav = page.getByRole('navigation', { name: '账户导航' })
+  await nav.getByRole('link', { name: '我的订单' }).click()
+  await expect(page.locator('.listed-order').first()).toBeVisible()
+  await nav.getByRole('link', { name: '客户资料' }).click()
+  await expect(page.getByText('li.ming@retail-demo.example.com', { exact: true })).toBeVisible()
+  await nav.getByRole('link', { name: '客服助手' }).click()
+  const output = new URL('../test-results/', import.meta.url)
+  await mkdir(fileURLToPath(output), { recursive: true })
+  await page.screenshot({ path: fileURLToPath(new URL('deepseek-live.png', output)), fullPage: true })
+  expect(errors).toEqual([])
+  console.log(JSON.stringify({ status: 'passed', model: health.model }))
+} finally { await browser.close() }

@@ -1,106 +1,129 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from '@playwright/test'
 
-test.use({ viewport: { width: 1440, height: 1000 } });
-
-async function login(page: import("@playwright/test").Page, email = "li.ming") {
-  await page.goto("/");
-  await page.getByRole("button", { name: email + " ↗", exact: true }).click();
-  await page.getByRole("button", { name: "登录工作台 →", exact: true }).click();
-  await expect(
-    page.getByRole("navigation", { name: "账户导航" }),
-  ).toBeVisible();
+function accountNav(page: Page) {
+  return page.getByRole('navigation', { name: '账户导航' })
+}
+async function loginDemo(page: Page) {
+  await page.getByRole('button', { name: '填入演示账户 李明' }).click()
+  await expect(page.getByLabel('邮箱', { exact: true })).toHaveValue('li.ming@retail-demo.example.com')
+  await expect(page.getByLabel('密码', { exact: true })).toHaveValue('Demo@Retail2026!')
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(accountNav(page)).toBeVisible()
+}
+async function go(page: Page, name: '客服助手' | '我的订单' | '客户资料') {
+  await accountNav(page).getByRole('link', { name, exact: true }).click()
 }
 
-test("login, profile, order approval, agent context and account isolation", async ({
-  page,
-}) => {
-  await login(page);
-  await page.getByRole("button", { name: "个人信息", exact: true }).click();
-  await expect(
-    page.getByText("li.ming@retail-demo.example.com", { exact: true }),
-  ).toBeVisible();
-  await page.screenshot({ path: "test-results/profile.png", fullPage: true });
-  await page.getByRole("button", { name: "订单管理", exact: true }).click();
-  const order = page.locator(".order-tile").filter({ hasText: "#W9000001" });
-  await expect(order).toBeVisible();
-  await page.screenshot({ path: "test-results/orders.png", fullPage: true });
-  await order.getByRole("button", { name: "管理订单 →" }).click();
-  await page.getByRole("button", { name: "预览取消订单", exact: true }).click();
-  await page.getByRole("button", { name: "查看变更明细并处理 →" }).click();
-  const approval = page.getByTestId("approval-card");
-  await expect(approval).toBeVisible();
-  await expect(approval.getByText("尚未执行")).toBeVisible();
-  await page.getByRole("button", { name: "确认执行", exact: true }).click();
-  await expect(approval).toBeHidden();
-  await expect(page.getByText(/操作已完成，变更已持久化/)).toBeVisible();
-  await page.getByRole("button", { name: "订单管理", exact: true }).click();
-  await expect(
-    page
-      .locator(".order-tile")
-      .filter({ hasText: "#W9000001" })
-      .getByText("已取消", { exact: true }),
-  ).toBeVisible();
-  await page
-    .locator(".order-tile")
-    .filter({ hasText: "#W9000002" })
-    .getByRole("button", { name: "咨询此订单" })
-    .click();
-  await expect(page.locator(".message.assistant").last()).toContainText(
-    "#W9000002",
-  );
-  await page.getByRole("button", { name: "退出登录", exact: true }).click();
-  await login(page, "wang.fang");
-  await page.getByRole("button", { name: "订单管理", exact: true }).click();
-  await expect(
-    page.locator(".order-tile").filter({ hasText: "#W9000001" }),
-  ).toHaveCount(0);
-  await expect(
-    page.locator(".order-tile").filter({ hasText: "#W9000004" }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    page.getByRole("navigation", { name: "账户导航" }),
-  ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth,
-    ),
-  ).toBe(false);
-});
+test('login gives access to separate assistant, profile and full order pages', async ({ page }) => {
+  await page.goto('/#orders')
+  await expect(page.getByRole('heading', { name: '登录账户' })).toBeVisible()
+  await expect(accountNav(page)).toHaveCount(0)
+  await loginDemo(page)
+  await expect(page.getByRole('heading', { name: '我的订单' })).toBeVisible()
+  await expect(page.locator('.listed-order')).toHaveCount(3)
+  await page.getByLabel('筛选订单状态').selectOption('delivered')
+  await expect(page.locator('.listed-order')).toHaveCount(1)
+  await page.getByRole('button', { name: '订单详情' }).click()
+  const details = page.getByRole('dialog', { name: /^订单 / })
+  await expect(details.getByText('物流单号', { exact: true })).toBeVisible()
+  await expect(details.getByText('付款与退款记录', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await go(page, '客户资料')
+  await expect(page.getByRole('heading', { name: '客户资料' })).toBeVisible()
+  await expect(page.getByText('li.ming@retail-demo.example.com', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '默认收货地址' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '支付方式' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: '客户资料' })).toBeVisible()
+  await go(page, '客服助手')
+  await expect(page.getByRole('heading', { name: '在线客服' })).toBeVisible()
+  await expect(page.getByText('工具轨迹', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: '退出登录' }).click()
+  await expect(page.getByRole('heading', { name: '登录账户' })).toBeVisible()
+})
 
-test("default address preview can be rejected without mutation", async ({
-  page,
-}) => {
-  await login(page, "zhang.wei");
-  await page.getByRole("button", { name: "个人信息", exact: true }).click();
-  const field = page.getByLabel("街道地址", { exact: true });
-  const before = await field.inputValue();
-  await field.fill("123 Preview Only Road");
-  await page.getByRole("button", { name: "预览地址变更" }).click();
-  await page.getByRole("button", { name: "查看变更明细并处理 →" }).click();
-  await expect(page.getByTestId("approval-card")).toBeVisible();
-  await expect(page.getByTestId("approval-card")).toContainText(
-    "123 Preview Only Road",
-  );
-  await page.getByRole("button", { name: "取消操作", exact: true }).click();
-  await expect(page.getByTestId("approval-card")).toBeHidden();
-  await page.getByRole("button", { name: "个人信息", exact: true }).click();
-  await expect(page.getByLabel("街道地址", { exact: true })).toHaveValue(
-    before,
-  );
-});
+test('account-scoped cancellation can be reviewed and withdrawn from the assistant', async ({ page }) => {
+  await page.goto('/#orders')
+  await loginDemo(page)
+  const order = page.locator('.listed-order').filter({ has: page.locator('.status-tag.pending') }).first()
+  await expect(order).toBeVisible()
+  const orderId = await order.locator('header strong').innerText()
+  await order.getByRole('button', { name: '订单详情' }).click()
+  const dialog = page.getByRole('dialog', { name: /^订单 / })
+  await dialog.locator('summary').getByText('取消订单', { exact: true }).click()
+  await dialog.getByLabel('取消原因').selectOption('no longer needed')
+  await dialog.getByRole('button', { name: '预览取消订单' }).click()
+  const approval = page.getByTestId('approval-card')
+  await expect(approval).toContainText(orderId)
+  await expect(approval).toContainText('付款与退款记录')
+  await page.reload()
+  await expect(approval).toContainText(orderId)
+  await page.getByRole('button', { name: '取消操作', exact: true }).click()
+  await expect(page.getByText('已撤回本次申请，原有信息保持不变。')).toBeVisible()
+  await go(page, '我的订单')
+  await expect(page.locator('.listed-order').filter({ hasText: orderId }).locator('.status-tag')).toHaveText('待处理')
+})
 
-test("registration creates an empty private account", async ({ page }) => {
-  await page.goto("/");
-  await page.screenshot({ path: "test-results/login.png", fullPage: true });
-  await page.getByRole("button", { name: "没有账户？注册" }).click();
-  await page.getByLabel("名", { exact: true }).fill("Test");
-  await page.getByLabel("姓", { exact: true }).fill("Customer");
-  await page
-    .getByLabel("邮箱", { exact: true })
-    .fill(`web-${Date.now()}@example.com`);
-  await page.getByLabel("密码", { exact: true }).fill("TestPassword123!");
-  await page.getByRole("button", { name: "注册并登录", exact: true }).click();
-  await page.getByRole("button", { name: "订单管理", exact: true }).click();
-  await expect(page.getByText("暂无符合条件的订单。")).toBeVisible();
-});
+test('profile address changes are only displayed after confirmation and restore a receipt', async ({ page }) => {
+  await page.goto('/#profile')
+  await loginDemo(page)
+  const street = 'Test delivery address ' + Date.now()
+  await page.getByRole('button', { name: '编辑地址' }).click()
+  await page.getByLabel('街道地址', { exact: true }).fill(street)
+  await page.getByRole('button', { name: '预览地址变更' }).click()
+  await expect(page.getByTestId('approval-card')).toContainText(street)
+  await page.getByRole('button', { name: '确认执行', exact: true }).click()
+  await expect(page.getByTestId('receipt-card')).toContainText('修改默认地址')
+  await page.reload()
+  await expect(page.getByTestId('receipt-card')).toContainText('修改默认地址')
+  await go(page, '客户资料')
+  await expect(page.locator('.address-summary')).toContainText(street)
+})
+
+test('consulting an order opens the signed-in assistant and IME Enter does not send', async ({ page }) => {
+  let sends = 0
+  page.on('request', request => {
+    if (request.method() === 'POST' && request.url().endsWith('/messages')) sends += 1
+  })
+  await page.goto('/#orders')
+  await loginDemo(page)
+  const order = page.locator('.listed-order').first()
+  await expect(order).toBeVisible()
+  const orderId = await order.locator('header strong').innerText()
+  await order.getByRole('button', { name: '咨询此订单' }).click()
+  const input = page.getByRole('textbox', { name: '输入咨询内容' })
+  await expect(input).toHaveValue(new RegExp(orderId))
+  await expect(input).toBeEnabled()
+  await input.dispatchEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true })
+  expect(sends).toBe(0)
+  await page.getByRole('button', { name: '发送消息' }).click()
+  await expect(page.locator('.assistant .bubble').last()).toContainText(orderId)
+  expect(sends).toBe(1)
+})
+
+test('demo account buttons remain available when the model is configured for live mode', async ({ page }) => {
+  await page.route('**/api/health', route => route.fulfill({ json: { mode: 'live', model_ready: true } }))
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: /^填入演示账户/ })).toHaveCount(3)
+  await loginDemo(page)
+  await expect(page.locator('.availability')).toHaveText('在线')
+  await go(page, '我的订单')
+  await expect(page.locator('.listed-order')).toHaveCount(3)
+})
+
+test('a registered customer has empty account pages and does not inherit demo orders', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/#orders')
+  await page.getByRole('button', { name: '注册账户', exact: true }).click()
+  await page.getByLabel('姓', { exact: true }).fill('Test')
+  await page.getByLabel('名', { exact: true }).fill('New')
+  const email = 'new-' + Date.now() + '@example.test'
+  await page.getByLabel('邮箱', { exact: true }).fill(email)
+  await page.getByLabel('密码', { exact: true }).fill('Synthetic-test-2026!')
+  await page.getByRole('button', { name: '注册并登录' }).click()
+  await expect(page.getByText('当前账户暂无订单')).toBeVisible()
+  await go(page, '客户资料')
+  await expect(page.getByText(email, { exact: true })).toBeVisible()
+  await expect(page.getByText('暂无支付方式。')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
