@@ -90,9 +90,16 @@ class DemoRetailModel(BaseChatModel):
 
         def result(message):
             try:
-                return json.loads(message.content)
+                value = json.loads(message.content)
             except (ValueError, TypeError):
                 return message.content
+            if (
+                isinstance(value, dict)
+                and value.get("read_only") is True
+                and value.get("status") == "observed"
+            ):
+                return value["data"]
+            return value
 
         application = messages[0].additional_kwargs if messages else {}
         receipts = application.get("retail_receipts", [])

@@ -388,3 +388,18 @@ def test_extended_catalog_uses_real_sdk_tool_transport(service, tool_episode):
     assert "Two matching" in answer and len(requests) == 2
     assert dataset(service, ref["id"]) == before
     assert service.store.session(ref["id"])["usage"]["tool_calls"] == 1
+
+
+@pytest.mark.parametrize("variant", ["tools_structured", "tools_extended"])
+def test_existing_demo_flow_understands_read_envelopes(service, tool_episode, variant):
+    from backend.agent import DemoRetailModel
+
+    ref, initial, _ = tool_episode
+    with service.store.tx() as cx:
+        service.store.update(cx, ref["id"], variant=variant)
+    AgentRunner(service).run(
+        ref["id"], "Cancel order #W9000001 because it is no longer needed.", model=DemoRetailModel()
+    )
+    state = service.store.session(ref["id"])
+    assert state["pending"]["tool"] == "cancel_pending_order"
+    assert dataset(service, ref["id"]) == initial
