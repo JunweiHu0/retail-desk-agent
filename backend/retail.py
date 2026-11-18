@@ -12,6 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
+from backend.observations import normalize_variant_changes, variant_change_error
 from backend.store import encode, now
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
@@ -76,6 +77,8 @@ class RetailService:
     def authorize(self, session, db, name, args):
         uid = session["user_id"]
         if name in AUTH_TOOLS:
+            if session.get("owner_user_id"):
+                raise PermissionError("当前账号已登录，不能查询或切换其他客户身份。")
             return
         if not uid:
             raise PermissionError("请先通过邮箱或姓名和邮编核验身份。")
@@ -90,6 +93,9 @@ class RetailService:
             return
 
     def validate_write(self, name, args):
+        error = variant_change_error(name, args)
+        if error:
+            raise ValueError(error)
         if "item_ids" in args and not args["item_ids"]:
             raise ValueError("必须选择至少一件商品。")
         if "new_item_ids" in args and len(args["new_item_ids"]) != len(args["item_ids"]):
@@ -108,6 +114,7 @@ class RetailService:
                 if name not in self.catalog:
                     raise ValueError("Unknown retail tool")
                 args = self.catalog[name].params.model_validate(args).model_dump()
+                args = normalize_variant_changes(name, args)
                 self.authorize(session, db, name, args)
                 tools = RetailTools(db).get_tools()
                 if name in self.writes:
@@ -251,8 +258,12 @@ class RetailService:
         with self.store.tx() as cx:
             data = self.store.dataset(cx)
             samples = []
+            candidates = sorted(
+                data["orders"].values(),
+                key=lambda order: (not order["user_id"].startswith("demo_"), order["order_id"]),
+            )
             for status in ("pending", "delivered", "processed"):
-                order = next((o for o in data["orders"].values() if o["status"] == status), None)
+                order = next((o for o in candidates if o["status"] == status), None)
                 if order:
                     user = data["users"][order["user_id"]]
                     samples.append(
