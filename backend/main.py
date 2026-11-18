@@ -22,7 +22,7 @@ from backend.retail import RetailService
 from backend.store import Store
 
 log = logging.getLogger(__name__)
-Variant = Literal["b1", "state", "errors", "guide", "enhanced", "c1"]
+Variant = Literal["b1", "state", "errors", "guide", "enhanced", "c1", "c2"]
 
 
 class CreateSession(BaseModel):

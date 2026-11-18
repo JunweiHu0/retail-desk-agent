@@ -1,3 +1,4 @@
+import copy
 import os
 
 import pytest
@@ -37,3 +38,15 @@ def authenticate(service, sid, user_id):
 def dataset(service, sid=None):
     with service.store.tx() as cx:
         return service.store.dataset(cx, sid)
+
+
+@pytest.fixture
+def c1_episode(service, pending_order):
+    data = dataset(service)
+    uid = pending_order["user_id"]
+    a, b = copy.deepcopy(pending_order), copy.deepcopy(pending_order)
+    a["order_id"], b["order_id"] = "#W9000001", "#W9000002"
+    data["users"] = {uid: copy.deepcopy(data["users"][uid])}
+    data["users"][uid]["orders"] = [a["order_id"], b["order_id"]]
+    data["orders"] = {a["order_id"]: a, b["order_id"]: b}
+    return service.store.create_session(user_id=uid, variant="c1", initial_db=data)

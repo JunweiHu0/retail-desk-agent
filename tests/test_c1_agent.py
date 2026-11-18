@@ -74,22 +74,10 @@ def call(name, args, identifier="call-1"):
     )
 
 
-@pytest.fixture
-def episode(service, pending_order):
-    data = dataset(service)
-    uid = pending_order["user_id"]
-    a, b = copy.deepcopy(pending_order), copy.deepcopy(pending_order)
-    a["order_id"], b["order_id"] = "#W9000001", "#W9000002"
-    data["users"] = {uid: copy.deepcopy(data["users"][uid])}
-    data["users"][uid]["orders"] = [a["order_id"], b["order_id"]]
-    data["orders"] = {a["order_id"]: a, b["order_id"]: b}
-    return service.store.create_session(user_id=uid, variant="c1", initial_db=data)
-
-
 def test_four_operations_continue_after_each_receipt_and_survive_restart(
-    service, episode, monkeypatch
+    service, c1_episode, monkeypatch
 ):
-    sid, uid = episode["id"], service.context(episode["id"])["user"]["user_id"]
+    sid, uid = c1_episode["id"], service.context(c1_episode["id"])["user"]["user_id"]
     address = dict(service.context(sid)["user"]["address"], address1="777 New Street")
 
     def plan(body):
@@ -133,7 +121,7 @@ def test_four_operations_continue_after_each_receipt_and_survive_restart(
     monkeypatch.setattr("backend.agent.get_model", lambda: model)
     monkeypatch.setattr(config, "EVAL_API_TOKEN", "private-eval")
     before = dataset(service, sid)
-    headers = {"Authorization": "Bearer " + episode["token"]}
+    headers = {"Authorization": "Bearer " + c1_episode["token"]}
     with TestClient(create_app(service.store)) as client:
         response = client.post(
             f"/api/sessions/{sid}/messages",
@@ -184,8 +172,8 @@ def test_four_operations_continue_after_each_receipt_and_survive_restart(
     assert usage["phases"]["executor"]["model_calls"] == 5
 
 
-def test_wrong_argument_and_unmet_dependency_never_stage(service, episode):
-    sid, uid = episode["id"], service.context(episode["id"])["user"]["user_id"]
+def test_wrong_argument_and_unmet_dependency_never_stage(service, c1_episode):
+    sid, uid = c1_episode["id"], service.context(c1_episode["id"])["user"]["user_id"]
     address = dict(service.context(sid)["user"]["address"], address1="777 New Street")
 
     def plan(body):
@@ -224,8 +212,8 @@ def test_wrong_argument_and_unmet_dependency_never_stage(service, episode):
     assert all(t["status"] == "ready" for t in service.store.session(sid)["agent_state"]["tasks"])
 
 
-def test_rejection_does_not_reopen_without_new_message(service, episode):
-    sid = episode["id"]
+def test_rejection_does_not_reopen_without_new_message(service, c1_episode):
+    sid = c1_episode["id"]
     args = {"order_id": "#W9000001", "reason": "no longer needed"}
 
     def plan(body):
@@ -264,7 +252,7 @@ def test_rejection_does_not_reopen_without_new_message(service, episode):
     assert len(model.planning) == 2
 
 
-def test_invalid_plan_repaired_once_and_every_call_counted(service, episode):
+def test_invalid_plan_repaired_once_and_every_call_counted(service, c1_episode):
     counter = []
 
     def plan(body):
@@ -272,18 +260,18 @@ def test_invalid_plan_repaired_once_and_every_call_counted(service, episode):
         return "{broken" if len(counter) == 1 else {"tasks": [], "supersede": []}
 
     model = Model(plan, [AIMessage(content="Hello")])
-    AgentRunner(service).run(episode["id"], "Hello", model=model)
-    usage = service.store.session(episode["id"])["usage"]
+    AgentRunner(service).run(c1_episode["id"], "Hello", model=model)
+    usage = service.store.session(c1_episode["id"])["usage"]
     assert usage["model_calls"] == 3
     assert usage["phases"]["planner_repair"]["model_calls"] == 1
-    assert len(service.store.session(episode["id"])["agent_state"]["planning_attempts"]) == 2
+    assert len(service.store.session(c1_episode["id"])["agent_state"]["planning_attempts"]) == 2
 
 
-def test_repair_exhaustion_and_budget_never_execute_tools(service, episode, monkeypatch):
+def test_repair_exhaustion_and_budget_never_execute_tools(service, c1_episode, monkeypatch):
     model = Model(lambda body: "{broken", [])
     monkeypatch.setenv("AGENT_MAX_MODEL_CALLS", "1")
-    AgentRunner(service).run(episode["id"], "Cancel my orders", model=model)
-    current = service.store.session(episode["id"])
+    AgentRunner(service).run(c1_episode["id"], "Cancel my orders", model=model)
+    current = service.store.session(c1_episode["id"])
     assert current["status"] == "finished"
     assert current["termination_reason"] == "model_call_budget"
     assert current["usage"]["model_calls"] == 1
@@ -291,8 +279,8 @@ def test_repair_exhaustion_and_budget_never_execute_tools(service, episode, monk
     assert not model.execution
 
 
-def test_plan_evidence_cycles_and_omissions(service, episode):
-    context = service.context(episode["id"])
+def test_plan_evidence_cycles_and_omissions(service, c1_episode):
+    context = service.context(c1_episode["id"])
     m = {"id": "u1", "role": "user", "content": "Cancel all pending orders, no longer needed."}
     state = {}
     raw = {
@@ -364,8 +352,8 @@ def test_plan_evidence_cycles_and_omissions(service, episode):
     assert matching_write_task(state, a["operation"], a["proposed_args"]) is None
 
 
-def test_planner_failure_and_external_finish_preserve_db(service, episode):
-    sid = episode["id"]
+def test_planner_failure_and_external_finish_preserve_db(service, c1_episode):
+    sid = c1_episode["id"]
     before = dataset(service, sid)
     model = Model(lambda body: "{broken", [])
     with pytest.raises(ValueError, match="planning_error"):
@@ -392,8 +380,8 @@ def test_planner_failure_and_external_finish_preserve_db(service, episode):
     assert dataset(service, sid) == before
 
 
-def test_customer_change_supersedes_only_unexecuted_task(service, episode):
-    context = service.context(episode["id"])
+def test_customer_change_supersedes_only_unexecuted_task(service, c1_episode):
+    context = service.context(c1_episode["id"])
     first = {"id": "u1", "role": "user", "content": "Cancel the first order, no longer needed."}
     second = {
         "id": "u2",
@@ -428,8 +416,8 @@ def test_customer_change_supersedes_only_unexecuted_task(service, episode):
     )
 
 
-def test_planning_inputs_exclude_private_evaluation_data(service, episode):
-    sid = episode["id"]
+def test_planning_inputs_exclude_private_evaluation_data(service, c1_episode):
+    sid = c1_episode["id"]
     with service.store.tx() as cx:
         service.store.update(
             cx,
@@ -445,7 +433,7 @@ def test_planning_inputs_exclude_private_evaluation_data(service, episode):
     AgentRunner(service).run(sid, "Hello", model=Model(plan, [AIMessage(content="Hello")]))
 
 
-def test_distinct_informational_requests_are_not_collapsed(service, episode):
+def test_distinct_informational_requests_are_not_collapsed(service, c1_episode):
     message = {
         "id": "u1",
         "role": "user",
@@ -459,19 +447,19 @@ def test_distinct_informational_requests_are_not_collapsed(service, episode):
         "supersede": [],
     }
     state = {}
-    context = service.context(episode["id"])
+    context = service.context(c1_episode["id"])
     delta, parsed = parse_plan(json.dumps(raw), [message], context, state, service.catalog)
     apply_task_plan(state, delta, parsed, context, "u1")
     assert len(state["tasks"]) == 2
 
 
-def test_planner_schema_excludes_account_order_scope(service, episode):
+def test_planner_schema_excludes_account_order_scope(service, c1_episode):
     from jsonschema import Draft202012Validator
 
     from backend.agent_planner import PlanDelta
 
     message = {"id": "u1", "role": "user", "content": "Update my account address."}
-    uid = service.context(episode["id"])["user"]["user_id"]
+    uid = service.context(c1_episode["id"])["user"]["user_id"]
     bad = {
         "tasks": [task("account", "modify_user_address", uid, {}, message, scope="all_orders")],
         "supersede": [],
@@ -510,7 +498,7 @@ def test_planner_scope_schema_does_not_mix_single_order_arguments():
     assert not validate(raw)
 
 
-def test_two_unresolved_order_requests_remain_distinct(service, episode):
+def test_two_unresolved_order_requests_remain_distinct(service, c1_episode):
     m = {
         "id": "u1",
         "role": "user",
@@ -524,7 +512,7 @@ def test_two_unresolved_order_requests_remain_distinct(service, episode):
         "supersede": [],
     }
     state = {}
-    context = service.context(episode["id"])
+    context = service.context(c1_episode["id"])
     delta, parsed = parse_plan(json.dumps(raw), [m], context, state, service.catalog)
     apply_task_plan(state, delta, parsed, context, "u1")
     assert len(state["tasks"]) == 2

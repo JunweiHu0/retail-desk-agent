@@ -30,6 +30,14 @@ from backend.agent_planner import (
     parse_plan,
     planner_messages,
 )
+from backend.agent_review import (
+    REVIEW_PROMPT,
+    REVIEW_VERSION,
+    ReviewDecision,
+    parse_review,
+    ready_write_tasks,
+    review_messages,
+)
 from backend.agent_state import (
     apply_task_plan,
     matching_write_task,
@@ -318,7 +326,7 @@ class AgentRunner:
             state = session.get("agent_state") or {}
             if session.get("variant") in {"state", "enhanced"}:
                 reconcile_receipt(state, receipt, pending)
-            if session.get("variant") == "c1":
+            if session.get("variant") in {"c1", "c2"}:
                 latest_user_id = next(
                     m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
                 )
@@ -354,8 +362,9 @@ class AgentRunner:
         active_before = usage.get("active_seconds", 0)
         state = session.get("agent_state") or {}
         variant = session.get("variant", "b1")
-        with_tasks = variant == "c1"
-        with_state = variant in {"state", "enhanced", "c1"}
+        with_tasks = variant in {"c1", "c2"}
+        with_review = variant == "c2"
+        with_state = variant in {"state", "enhanced", "c1", "c2"}
         with_errors = variant in {"errors", "enhanced"}
         context = self.service.context(sid)
         if with_state:
@@ -484,6 +493,14 @@ class AgentRunner:
             manifest["agent_runtime"]["planner_schema_sha256"] = hashlib.sha256(
                 json.dumps(PlanDelta.model_json_schema(), sort_keys=True).encode()
             ).hexdigest()
+        if with_review:
+            manifest["agent_runtime"]["review_version"] = REVIEW_VERSION
+            manifest["agent_runtime"]["review_prompt_sha256"] = hashlib.sha256(
+                REVIEW_PROMPT.encode()
+            ).hexdigest()
+            manifest["agent_runtime"]["max_review_calls_per_turn"] = 1
+        review_used = False
+        review_feedback = ""
         emit({"type": "status", "status": "running", "message": "正在处理…"})
         save(status="running")
 
@@ -602,7 +619,13 @@ class AgentRunner:
                     m["id"] for m in reversed(session["messages"]) if m["role"] == "user"
                 )
                 if state.get("planned_message_id") != latest_user_id:
-                    plan_tasks([])
+                    plan_tasks(
+                        [
+                            {"name": m.name, "content": m.content}
+                            for m in history
+                            if isinstance(m, ToolMessage)
+                        ]
+                    )
             while True:
                 current = self.store.session(sid)
                 if current["status"] == "finished":
@@ -640,6 +663,8 @@ class AgentRunner:
                 system_content = (
                     prompt + "\nCUSTOMER CONTEXT:\n" + json.dumps(context, ensure_ascii=False)
                 )
+                if review_feedback:
+                    system_content += "\nAPPLICATION COMPLETION CHECK:\n" + review_feedback
                 if with_state:
                     system_content += "\nSTRUCTURED LEDGER:\n" + json.dumps(
                         {
@@ -652,7 +677,8 @@ class AgentRunner:
                                 else value
                             )
                             for key, value in state.items()
-                            if key != "planning_attempts"
+                            if key
+                            not in {"planning_attempts", "review_attempts", "completion_checks"}
                         },
                         ensure_ascii=False,
                     )
@@ -744,7 +770,11 @@ class AgentRunner:
                     ),
                     *conversation,
                 ]
-                message = invoke_stage(bound, request_messages, "executor")
+                message = invoke_stage(
+                    bound,
+                    request_messages,
+                    "executor_correction" if review_feedback else "executor",
+                )
                 invalid = message.invalid_tool_calls or []
                 for call in invalid:
                     if not call.get("id"):
@@ -772,6 +802,90 @@ class AgentRunner:
                         return finish(
                             "本次会话已达到处理预算，已停止自动处理。", "finished", "time_budget"
                         )
+                    if with_review:
+                        remaining = [
+                            t
+                            for t in state.get("tasks", [])
+                            if t["status"] not in {"executed", "answered", "superseded"}
+                        ]
+                        ready = ready_write_tasks(state, self.service.catalog)
+                        if not review_used:
+                            review_used = True
+                            feedback = ""
+                            if ready:
+                                feedback = (
+                                    "These customer-requested tasks have all required arguments and no pending approval: "
+                                    + json.dumps(
+                                        [
+                                            {
+                                                "id": t["id"],
+                                                "tool": t["operation"],
+                                                "args": t["known_args"],
+                                            }
+                                            for t in ready
+                                        ],
+                                        ensure_ascii=False,
+                                    )
+                                    + ". Stage the next preview using its business tool; the card supplies explicit execution confirmation. Do not request another chat yes."
+                                )
+                            elif remaining or session["messages"][-1]["role"] == "application":
+                                reviewer = runtime_model.bind(
+                                    response_format={
+                                        "type": "json_schema",
+                                        "json_schema": {
+                                            "name": "retail_completion_review",
+                                            "strict": True,
+                                            "schema": ReviewDecision.model_json_schema(),
+                                        },
+                                    },
+                                    max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
+                                )
+                                review = invoke_stage(
+                                    reviewer,
+                                    review_messages(
+                                        policy,
+                                        context,
+                                        state,
+                                        history,
+                                        content,
+                                        current["messages"],
+                                    ),
+                                    "reviewer",
+                                )
+                                if self.store.session(sid)["status"] == "finished":
+                                    raise AgentBudgetExceeded("episode_finished")
+                                record = {"candidate_reply": content, "review": review.content}
+                                state.setdefault("review_attempts", []).append(record)
+                                decision = parse_review(review.content, state, history)
+                                if decision.action in {"continue", "handoff"}:
+                                    feedback = decision.feedback
+                                    if decision.action == "handoff":
+                                        feedback += (
+                                            " Call transfer_to_human_agents with the actual reason."
+                                        )
+                                else:
+                                    content = decision.reply
+                                    history[-1] = message.model_copy(update={"content": content})
+                                    for answer in decision.answered:
+                                        task = next(
+                                            t for t in state["tasks"] if t["id"] == answer.task_id
+                                        )
+                                        task.update(
+                                            status="answered", answer_evidence=answer.model_dump()
+                                        )
+                            if feedback:
+                                state.setdefault("completion_checks", []).append(
+                                    {"candidate_reply": content, "feedback": feedback}
+                                )
+                                history.pop()  # This draft was never sent to the customer; preserve it in the private check log.
+                                review_feedback = feedback
+                                save()
+                                continue
+                        elif ready:
+                            content = "以下操作尚未执行，需要继续处理：" + "；".join(
+                                t["request"] for t in ready
+                            )
+                            history[-1] = message.model_copy(update={"content": content})
                     return finish(content)
                 # Reject an invalid parallel batch as a whole, retaining every call id.
                 # It cannot partially commit or leave unmatched tool messages in history.

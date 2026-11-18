@@ -110,13 +110,18 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
                         and t["operation"] == draft.operation
                         and t["object_id"] == oid
                         and (
-                            t["status"] not in {"executed", "superseded"}
+                            t["status"] not in {"executed", "answered", "superseded"}
                             or t["source_message_id"] == draft.source_message_id
                         )
                     ),
                     None,
                 )
-            if old and old["status"] in {"executed", "superseded", "awaiting_confirmation"}:
+            if old and old["status"] in {
+                "executed",
+                "answered",
+                "superseded",
+                "awaiting_confirmation",
+            }:
                 expanded.append(old["id"])
                 continue
             if (

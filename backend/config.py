@@ -24,7 +24,7 @@ ARTIFACT_DIR = Path(os.getenv("RETAIL_ARTIFACT_DIR", str(ROOT / "runtime/episode
 if not ARTIFACT_DIR.is_absolute():
     ARTIFACT_DIR = ROOT / ARTIFACT_DIR
 TAU2_COMMIT = "0c69df456a96aa76a1162591574dad9c427a34d7"
-VARIANTS = ("b1", "state", "errors", "guide", "enhanced", "c1")
+VARIANTS = ("b1", "state", "errors", "guide", "enhanced", "c1", "c2")
 
 MODEL_REQUEST_TIMEOUT_SECONDS = 300
 MODEL_THINKING = os.getenv("MODEL_THINKING", "auto")

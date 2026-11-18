@@ -318,3 +318,22 @@ B1 is frozen locally at tag `baseline/b1-http-v1` (commit
 tools and approval layer; planner output is not an additional business tool.
 C1 requires a model with structured JSON-schema output and native business-tool
 calling. Demo mode is not a C1 model-capability validation.
+
+## C2 completion-check candidate
+
+`variant=c2` uses C1's planner and ledger, then checks unsent free-form replies.
+When a ready write has every required argument and satisfied dependencies, a
+deterministic check instructs the executor once to stage its preview instead of
+asking for another chat yes. This is not execution authorization: the normal
+card and exact approval still gate every write. If the correction still fails,
+the response explicitly lists unexecuted work rather than claiming completion.
+
+Otherwise, unfinished tasks or a post-decision final response may trigger one
+structured review by the same model. It may ask a focused question, correct the
+reply, or request one executor continuation/handoff. Review calls count toward
+the same global budget. There is at most one correction/review opportunity per
+external turn. A reviewer cannot mark writes executed. Informational answers
+require a quote in the actual outgoing reply and references to existing context
+or tool observations; this validates evidence linkage, not semantic infallibility.
+Raw unsent drafts/checks stay in private agent_state and do not become user messages.
+Planner updates do not reopen already answered or executed tasks.
