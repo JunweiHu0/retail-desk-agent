@@ -5,7 +5,7 @@ import json
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from backend.agent import AgentRunner
+from backend.agent import GUIDE_PATH, AgentRunner
 from tests.conftest import authenticate, dataset
 
 
@@ -317,7 +317,7 @@ def test_variants_share_catalog_and_full_policy(service, session, variant, monke
     prompt = model.requests[0][0].content
     assert "APPLICATION CONTRACT" in prompt
     assert ("OPTIONAL STRUCTURED INTENT LEDGER" in prompt) == (variant in {"state", "enhanced"})
-    assert ("policy-derived seed" in prompt) == (variant in {"guide", "enhanced"})
+    assert (GUIDE_PATH.read_text() in prompt) == (variant in {"guide", "enhanced"})
     assert set(model.tool_names) == set(service.catalog)
     assert bool(service.store.session(sid)["manifest"].get("guide")) == (
         variant in {"guide", "enhanced"}

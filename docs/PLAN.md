@@ -65,7 +65,7 @@ TACC retains GPU service + CPU application jobs. Require live mode for evaluatio
 - [x] P1: Implement episode isolation, lifecycle, shared business execution and frontend contracts.
 - [x] P2: Implement B1 and deterministic model integration tests.
 - [x] P3: Implement reference evaluator and end-to-end HTTP smoke without a real model.
-- [ ] P4: Deploy application on huoshan; validate model protocol and run real 9B smoke8 when GPU resources permit.
+- [x] P4: Deploy application on huoshan; validate model protocol and run real 9B smoke8 when GPU resources permit.
 - [ ] P5: Implement independent state/error/guide switches; deterministic tests and 9B functional checks.
 - [ ] P6: Establish 27B development baseline and select enhancements on development54/validation20.
 - [ ] P7: Freeze all versions; run final B1/candidate test40 x 3 comparison and publish local artifacts/report.
@@ -74,10 +74,10 @@ Each stage records actual commands, execution location, scale, results and unres
 
 ### Current acceptance evidence (2026-11-17 America/Chicago / 2026-11-18 UTC)
 
-- P0–P3: huoshan upstream baseline **18 passed**; implemented full suite **107 passed**, followed by **2 passed** targeted checks for the final handoff fix. Ruff and frontend production build pass. Browser desktop/mobile flows **2 passed**; separate demo HTTP cancellation/approval and return/rejection checks both pass.
+- P0–P3: huoshan upstream baseline **18 passed**; latest implemented full suite **114 passed** after the real Qwen integration fixes. Ruff and frontend production build pass. Browser desktop/mobile flows **2 passed**; separate demo HTTP cancellation/approval and return/rejection checks both pass.
 - Frozen targets: development54, validation20, test40 and smoke8 all have completion markers. Original tasks, DB and split membership remain unchanged.
-- P4: the huoshan application and isolated inference dependencies are installed. Qwen3.5-9B's four weight shards match their recorded SHA256 digests. CUDA, initial native-tool and JSON protocol checks passed. Live multi-turn checks exposed and fixed a single-system layout error, then reproduced a thinking/tool-parser issue and 60-second HTTP timeouts. A separate explicit thinking=off cohort with 300-second request timeout is being validated; demo tests are not a model score.
-- P5: state/error/guide switches and deterministic tests are implemented. The current guide is policy-derived seed guidance, not learned from development traces. Live checks, development feedback and measured uplift are pending.
+- P4: the huoshan application and isolated inference dependencies are installed. Qwen3.5-9B's four weight shards match their recorded SHA256 digests. CUDA, initial native-tool and JSON protocol checks passed. Live multi-turn checks exposed and fixed a single-system layout error, then reproduced a thinking/tool-parser issue and 60-second HTTP timeouts. The explicit thinking=off cohort with 300-second request timeout completed B1 smoke8 at **6/8**, with all snapshots valid; demo tests are not a model score.
+- P5: state/error/guide switches and deterministic tests are implemented. The current guide is policy-derived seed guidance, not learned from development traces. The state variant now projects action-matched actual receipts into tool observations while preserving raw history; its new enhanced smoke8 is running. Development feedback, learned guidance and final measured uplift remain pending.
 - P6–P7: not run. Exact deployed 27B weights/service have not been verified; no final test40 model results or claimed improvement exist.
 
 See [verification evidence](VERIFICATION.md) and [remote run locations](huoshan.md). Historical failed and incomplete runs remain preserved alongside subsequent passing runs.
