@@ -142,6 +142,11 @@ def test_pending_stops_then_authoritative_receipt_continues(service, session, pe
     assert any(
         isinstance(m, SystemMessage) and "APPLICATION RECEIPT:" in str(m.content) for m in first
     )
+    assert any(
+        isinstance(m, ToolMessage)
+        and json.loads(m.content).get("status") == "awaiting_confirmation"
+        for m in first
+    )  # B1 retains its minimal raw observation + system receipt representation.
     humans = [m.content for m in first if isinstance(m, HumanMessage)]
     assert humans == ["Cancel this order, then calculate 1+2"]
     assert any(e["type"] == "receipt" for e in events)
@@ -353,3 +358,41 @@ def test_handoff_seals_episode_and_returns_required_customer_message(service, se
     saved = service.store.session(sid)
     assert saved["status"] == "finished" and saved["termination_reason"] == "handoff"
     assert saved["transferred"] and len(model.requests) == 1
+
+
+@pytest.mark.parametrize("variant", ["state", "enhanced"])
+@pytest.mark.parametrize("approve", [True, False])
+def test_state_projects_actual_receipt_without_changing_raw_history(
+    service, session, pending_order, variant, approve
+):
+    from langchain_core.messages import messages_from_dict
+
+    sid = session["id"]
+    authenticate(service, sid, pending_order["user_id"])
+    configure(service, sid, variant)
+    args = {"order_id": pending_order["order_id"], "reason": "no longer needed"}
+    runner = AgentRunner(service)
+    runner.run(sid, "Cancel this order", model=ScriptedModel(tool("cancel_pending_order", args)))
+    pending = service.store.session(sid)["pending"]
+    model = ScriptedModel(AIMessage(content="Handled the application outcome."))
+    runner.decide(sid, pending["id"], approve, model=model)
+    observations = [json.loads(m.content) for m in model.requests[0] if isinstance(m, ToolMessage)]
+    resolved = [
+        o for o in observations if isinstance(o, dict) and o.get("action_id") == pending["id"]
+    ]
+    assert len(resolved) == 1
+    assert resolved[0]["status"] == ("executed" if approve else "rejected")
+    assert resolved[0]["observation_source"] == "application_execution_receipt"
+    assert not any(
+        m.content
+        == "已生成变更预览，尚未执行。请核对操作、商品与支付或退款明细，再点击确认执行或取消。"
+        for m in model.requests[0]
+    )
+    raw = messages_from_dict(service.store.session(sid)["history"])
+    assert any(
+        isinstance(m, ToolMessage)
+        and json.loads(m.content).get("status") == "awaiting_confirmation"
+        for m in raw
+    )
+    expected_status = "cancelled" if approve else "pending"
+    assert dataset(service, sid)["orders"][pending_order["order_id"]]["status"] == expected_status

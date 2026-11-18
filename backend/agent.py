@@ -229,6 +229,9 @@ only an executed application receipt for the exact operation can do that. Read-o
 need not be entered. Preserve the customer's other unfinished requests after each receipt.
 """
 GUIDE_PATH = Path(__file__).parent / "guides" / "retail_seed.md"
+CONFIRMATION_PAUSE = (
+    "已生成变更预览，尚未执行。请核对操作、商品与支付或退款明细，再点击确认执行或取消。"
+)
 
 
 def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
@@ -439,6 +442,7 @@ class AgentRunner:
             "implementation": "native-tool-loop-v1",
             "model_request_timeout_seconds": config.MODEL_REQUEST_TIMEOUT_SECONDS,
             "thinking": config.MODEL_THINKING,
+            "state_receipt_projection": "action-matched-v1" if with_state else "disabled",
             "max_model_calls": max_calls,
             "max_tool_calls": max_tools,
             "max_active_seconds": max_seconds,
@@ -462,7 +466,7 @@ class AgentRunner:
                 if current["pending"]:
                     emit({"type": "proposal", "pending": current["pending"]})
                     return finish(
-                        "已生成变更预览，尚未执行。请核对操作、商品与支付或退款明细，再点击确认执行或取消。",
+                        CONFIRMATION_PAUSE,
                         "awaiting_confirmation",
                     )
                 if current["transferred"]:
@@ -504,6 +508,68 @@ class AgentRunner:
                     else:
                         conversation.append(entry)
                         user_messages += isinstance(entry, HumanMessage)
+                if with_state and receipts:
+                    # Resolve only matching preview observations from actual application events.
+                    # Raw history/events stay intact; the model sees the current operation state.
+                    outcomes = {
+                        receipt["action_id"]: receipt
+                        for event in receipts
+                        if str(event["content"]).startswith("APPLICATION RECEIPT:\n")
+                        for receipt in [json.loads(event["content"].split("\n", 1)[1])]
+                    }
+                    projected = []
+                    resolved_pause = False
+                    for entry in conversation:
+                        if isinstance(entry, ToolMessage):
+                            observation = json.loads(entry.content)
+                            receipt = (
+                                outcomes.get(observation.get("action_id"))
+                                if isinstance(observation, dict)
+                                else None
+                            )
+                            resolved_pause = bool(
+                                receipt and observation.get("status") == "awaiting_confirmation"
+                            )
+                            if resolved_pause:
+                                entry = entry.model_copy(
+                                    update={
+                                        "content": json.dumps(
+                                            {
+                                                **{
+                                                    key: receipt[key]
+                                                    for key in (
+                                                        "status",
+                                                        "action_id",
+                                                        "tool",
+                                                        "args",
+                                                        "result",
+                                                        "message",
+                                                    )
+                                                    if key in receipt
+                                                },
+                                                "observation_source": "application_execution_receipt",
+                                                "instruction": (
+                                                    "This action is already executed; do not request confirmation again. "
+                                                    "Continue the customer's remaining requests."
+                                                    if receipt["status"] == "executed"
+                                                    else "This action was rejected and did not execute. Do not assume approval."
+                                                ),
+                                            },
+                                            ensure_ascii=False,
+                                        )
+                                    }
+                                )
+                        elif (
+                            resolved_pause
+                            and isinstance(entry, AIMessage)
+                            and entry.content == CONFIRMATION_PAUSE
+                        ):
+                            resolved_pause = False
+                            continue
+                        else:
+                            resolved_pause = False
+                        projected.append(entry)
+                    conversation = projected
                 if receipts:
                     system_content += (
                         "\nTRUSTED APPLICATION EVENTS (chronological):\n"

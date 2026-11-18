@@ -56,6 +56,7 @@ def reconcile_receipt(state, receipt, pending):
             "status": receipt["status"],
             "action_id": pending["id"],
             "tool": pending["tool"],
+            "args": pending["args"],
         },
     )
     for entry in state.get("intents", []):

@@ -4,7 +4,7 @@ Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询
 
 当前默认 agent 是 **B1：政策全文 + 原生工具调用循环 + 会话历史**。`state`、`errors`、`guide`、`enhanced` 是可单独比较的增强配置；尚未经过真实模型评测的配置不代表已获得性能提升。`guide` 初始内容来自公开政策，不能称为训练轨迹学习结果。
 
-`state` 增加任务状态记录，`errors` 为工具错误附加已观察到的相关信息，`guide` 注入冻结操作指南，`enhanced` 同时启用三项。默认指南为 `backend/guides/retail_seed.md`，来源标记为 `policy_seed`。后端可通过 `AGENT_GUIDE_PATH` 指定开发集产生的指南文件；每个 episode 记录实际内容 SHA256，自定义文件默认标记为未核实来源。指南版本、开发来源及冻结要求见 [指南说明](backend/guides/README.md)。
+`state` 增加任务状态记录，并按 action ID 将实际执行/拒绝回执合入对应工具观察，解除已完成确认的暂停提示；原始审计轨迹保留。`errors` 为工具错误附加已观察到的相关信息，`guide` 注入冻结操作指南，`enhanced` 同时启用三项。默认指南为 `backend/guides/retail_seed.md`，来源标记为 `policy_seed`。后端可通过 `AGENT_GUIDE_PATH` 指定开发集产生的指南文件；每个 episode 记录实际内容 SHA256，自定义文件默认标记为未核实来源。指南版本、开发来源及冻结要求见 [指南说明](backend/guides/README.md)。
 
 ## 入口与文档
 

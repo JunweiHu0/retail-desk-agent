@@ -266,3 +266,12 @@ comparison rejects different settings or model request timeouts. Current 9B
 functional checks use a separate `off` cohort following a reproduced thinking/tool
 parser failure. No tools are extracted from reasoning text. Other services must
 verify support for the explicit template parameter before selecting it.
+
+The state enhancement also projects an actual application execution/rejection
+receipt onto the matching preview ToolMessage by action ID, keeping its original
+tool-call correlation. It omits the resolved synthetic confirmation pause in the
+model request only. Persisted raw history and business audit events remain
+unchanged. This projection never executes a tool, invents a receipt, changes tool
+arguments or bypasses approval; B1 retains its minimal raw observation + system
+receipt representation. Its version is recorded as `state_receipt_projection` in
+the agent runtime manifest.
