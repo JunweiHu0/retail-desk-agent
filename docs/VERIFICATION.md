@@ -190,3 +190,13 @@ huoshan `simulator-schema-v2-20261118T065020Z/` 完整 **119 passed**（55.98s�
 ![工具轨迹](screenshots/tools.png)
 
 ![手机布局](screenshots/mobile.png)
+
+## Advisory 实施与待执行实验（2026-11-18）
+
+v5 C2完整8题结束：3/8，186次模型调用/82次工具请求；4次simulator_finish、2次转人工、1次wall_time_budget、1次agent_error。最终agent_error在task47，存在一次未知usage，完整总token为null；已知agent输入2,279,387/输出40,261，不能当完整成本。task24虽然DB匹配，错误账本却导致撤回取消后反复围绕取消回复；task47错误商品约束阻挡正确执行并反复查询。C1同批仍在运行。
+
+新增 `advisory` 在 `80a85a1` 实现：模型账本不再强制工具或阻挡用户新参数；同轮重复/拒绝控制改由实际回执判断；增加通用对象筛选、撤回请求和拒绝含义提示。实际回执随后直接进入检查器，保持紧凑字段（最终代码 `040106a`）。原B1路径不变，新源版本C2也获得直接回执输入，历史v5批次不变。
+
+本机33项定向测试、Ruff和前端生产构建通过；补入检查器真实回执后，12项advisory/C2测试及5项最终advisory测试通过。huoshan早期 `advisory-software-20261118T131702Z` 完整150项通过（70.21s），最终代码 `040106a` 在 `advisory-final-software-20261118T132050Z` 完整 **151 passed**（73.03s）。
+
+新实验队列在 `advisory-experiment-20261118T132139Z`等待v5整批完成，不占用其模型推理队列；先在相同新源码下对C2/advisory分别运行撤回取消、拒绝后修改地址两个合成HTTP案例。只有advisory两个案例通过才运行完整smoke8，并与B1/v5 C2生成配对报告。首个等待任务 `advisory-experiment-20261118T131850Z` 在任何模型调用前被替代，状态为superseded，不是实验失败或成功。当前无advisory真实模型成绩。

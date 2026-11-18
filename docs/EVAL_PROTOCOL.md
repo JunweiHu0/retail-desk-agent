@@ -356,3 +356,22 @@ explicit supersession. Object IDs are bound by the application, not regenerated 
 business arguments. Validation failures and truncation share one repair attempt; if
 still invalid, keep the old ledger and ask the customer to clarify without staging
 new writes. All attempts, failures, and reported tokens remain in the private audit.
+
+## Advisory task-memory experiment
+
+`variant=advisory` retains the same planner, receipt projection and bounded completion
+review, but treats task notes as advisory. The executor follows the actual customer
+messages and policy; a planner-created constraint does not block a business proposal.
+The runtime neither forces a ready note's tool nor replaces the final response with
+a static unfinished-task template. Failed planning is logged and basic conversation
+can continue under the existing business/approval boundary.
+
+Real receipts, not inferred task state, prevent automatic resubmission: without a new
+customer message, an exactly executed action cannot be repeated, and a rejected
+operation on that object cannot be restaged with changed arguments. A new customer
+request can lead to a new preview. Business authorization, typed validation and card
+approval remain identical. A proposal contradicting advisory notes may not settle
+those notes; its actual receipt remains the execution evidence. Completion review now
+receives compact actual receipts (status/tool/action ID/args) directly, including when
+notes are stale. This shared review-input correction also applies to C2 at the new
+source version; historical cohorts retain their original implementation.
