@@ -6,7 +6,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-PLANNER_VERSION = "explicit-task-plan-v3"
+PLANNER_VERSION = "explicit-task-plan-v4"
 WRITE_NAMES = (
     "cancel_pending_order",
     "exchange_delivered_order_items",
@@ -157,6 +157,7 @@ def plan_response_schema(messages, context, catalog):
         prop = definition.get("properties", {}).get("source_message_id")
         if prop is not None:
             prop["enum"] = user_ids
+    definitions["Supersession"]["properties"]["source_message_id"]["enum"] = user_ids[-1:]
     orders = [o["order_id"] for o in context["orders"]]
     uid = (context.get("user") or {}).get("user_id", "")
     products = sorted({i["product_id"] for o in context["orders"] for i in o["items"]})
@@ -251,7 +252,14 @@ def parse_plan(content, messages, context, state, catalog):
         if object_key in args and args[object_key] != task.object_id:
             raise ValueError("Argument object differs from task object")
         parsed.append((task, args, users[task.source_message_id]))
+    latest_user_id = next(reversed(users))
     for drop in delta.supersede:
-        if drop.task_id not in existing or drop.source_message_id not in users:
-            raise ValueError("Supersession needs a known task and customer evidence")
+        if drop.task_id not in existing or drop.source_message_id != latest_user_id:
+            raise ValueError("Supersession needs a known task and the latest customer message")
+        if drop.task_id in keys:
+            raise ValueError(
+                "A replacement needs a new key; do not upsert and supersede the same task ID"
+            )
+        if existing[drop.task_id]["status"] in {"executed", "answered", "awaiting_confirmation"}:
+            raise ValueError("Cannot supersede an executed/answered task or an active approval")
     return delta, parsed

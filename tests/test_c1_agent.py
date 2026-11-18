@@ -621,3 +621,92 @@ def test_invalid_native_write_arguments_can_recover_without_corrupting_ledger(se
     current = service.store.session(sid)
     assert current["pending"]["args"] == args
     assert current["agent_state"]["tasks"][0]["status"] == "awaiting_confirmation"
+
+
+def test_same_object_replacement_keeps_new_task_and_rewires_dependencies(service, c1_episode):
+    context = service.context(c1_episode["id"])
+    first = {
+        "id": "u1",
+        "role": "user",
+        "content": "Change the first order address, then cancel it.",
+    }
+    second = {
+        "id": "u2",
+        "role": "user",
+        "content": "Use 888 Updated Street for that address instead.",
+    }
+    state = {}
+    original = {
+        "tasks": [
+            task(
+                "address",
+                "modify_pending_order_address",
+                "#W9000001",
+                {"address1": "777 New Street"},
+                first,
+            ),
+            task(
+                "cancel",
+                "cancel_pending_order",
+                "#W9000001",
+                {"reason": "no longer needed"},
+                first,
+                depends_on=["address"],
+            ),
+        ],
+        "supersede": [],
+    }
+    delta, parsed = parse_plan(json.dumps(original), [first], context, state, service.catalog)
+    apply_task_plan(state, delta, parsed, context, "u1")
+    old_id = state["tasks"][0]["id"]
+    replacement = {
+        "tasks": [
+            task(
+                "updated-address",
+                "modify_pending_order_address",
+                "#W9000001",
+                {"address1": "888 Updated Street"},
+                second,
+            )
+        ],
+        "supersede": [{"task_id": old_id, "source_message_id": "u2"}],
+    }
+    delta, parsed = parse_plan(
+        json.dumps(replacement), [first, second], context, state, service.catalog
+    )
+    apply_task_plan(state, delta, parsed, context, "u2")
+    assert len(state["tasks"]) == 3
+    assert state["tasks"][0]["status"] == "superseded"
+    new = state["tasks"][2]
+    assert new["status"] == "ready"
+    assert new["known_args"]["address1"] == "888 Updated Street"
+    assert state["tasks"][1]["depends_on"] == [new["id"]]
+    assert (
+        matching_write_task(
+            state, "cancel_pending_order", {"order_id": "#W9000001", "reason": "no longer needed"}
+        )
+        is None
+    )
+
+
+def test_supersession_requires_latest_message_and_distinct_replacement_key(service, c1_episode):
+    context = service.context(c1_episode["id"])
+    first = {"id": "u1", "role": "user", "content": "Cancel the first order."}
+    second = {"id": "u2", "role": "user", "content": "Keep it instead."}
+    state = {}
+    raw = {
+        "tasks": [task("cancel", "cancel_pending_order", "#W9000001", {}, first)],
+        "supersede": [],
+    }
+    delta, parsed = parse_plan(json.dumps(raw), [first], context, state, service.catalog)
+    apply_task_plan(state, delta, parsed, context, "u1")
+    identifier = state["tasks"][0]["id"]
+    stale = {"tasks": [], "supersede": [{"task_id": identifier, "source_message_id": "u1"}]}
+    with pytest.raises(ValueError, match="latest"):
+        parse_plan(json.dumps(stale), [first, second], context, state, service.catalog)
+    collision = {
+        "tasks": [task(identifier, "cancel_pending_order", "#W9000001", {}, second)],
+        "supersede": [{"task_id": identifier, "source_message_id": "u2"}],
+    }
+    with pytest.raises(ValueError, match="new key"):
+        parse_plan(json.dumps(collision), [first, second], context, state, service.catalog)

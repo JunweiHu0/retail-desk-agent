@@ -77,7 +77,14 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
     tasks = deepcopy(state.get("tasks", []))
     by_id = {t["id"]: t for t in tasks}
     aliases = {t["id"]: [t["id"]] for t in tasks}
+    existing_ids = set(by_id)
     dependency_updates = []
+    superseded_ids = {drop.task_id for drop in delta.supersede}
+    for drop in delta.supersede:
+        item = by_id[drop.task_id]
+        if item["status"] not in {"executed", "awaiting_confirmation"}:
+            item["status"] = "superseded"
+            item["superseded_by_message_id"] = drop.source_message_id
     for draft, constraints, source_quote in parsed:
         if draft.scope == "single":
             objects = [draft.object_id]
@@ -106,6 +113,7 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
                         t
                         for t in tasks
                         if oid
+                        and t["id"] not in superseded_ids
                         and draft.operation != "answer"
                         and t["operation"] == draft.operation
                         and t["object_id"] == oid
@@ -161,13 +169,30 @@ def apply_task_plan(state, delta, parsed, context, latest_message_id):
             expanded.append(identifier)
             dependency_updates.append((item, draft.depends_on))
         aliases[draft.key] = expanded
-    for drop in delta.supersede:
-        item = by_id[drop.task_id]
-        if item["status"] not in {"executed", "awaiting_confirmation"}:
-            item["status"] = "superseded"
-            item["superseded_by_message_id"] = drop.source_message_id
     for item, keys in dependency_updates:
         item["depends_on"] = list(dict.fromkeys(i for key in keys for i in aliases[key]))
+    replacements = {}
+    for identifier in superseded_ids:
+        previous = by_id[identifier]
+        successors = [
+            t["id"]
+            for t in tasks
+            if t["id"] not in superseded_ids
+            and t["id"] not in existing_ids
+            and t["operation"] == previous["operation"]
+            and t["object_id"] == previous["object_id"]
+        ]
+        if successors:
+            replacements[identifier] = successors
+    for item in tasks:
+        if item["status"] not in {"executed", "answered", "superseded"}:
+            item["depends_on"] = list(
+                dict.fromkeys(
+                    successor
+                    for dependency in item["depends_on"]
+                    for successor in replacements.get(dependency, [dependency])
+                )
+            )
     # Cycles make execution impossible, so reject the external plan before persisting.
     for item in tasks:
         visiting = set()
