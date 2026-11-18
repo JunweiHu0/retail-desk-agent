@@ -20,6 +20,7 @@ from langchain_core.messages import (
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
+from openai import LengthFinishReasonError
 
 from backend import config, telemetry
 from backend.agent_planner import (
@@ -524,11 +525,39 @@ class AgentRunner:
             call_started = time.monotonic()
             try:
                 reply = bound_model.invoke(messages)
-            except Exception:
-                usage["unknown_usage_calls"] += 1
-                phase_usage["unknown_usage_calls"] += 1
+            except Exception as exc:
+                completion = exc.completion if isinstance(exc, LengthFinishReasonError) else None
+                raw_usage = completion.usage if completion is not None else None
+                if (
+                    raw_usage is not None
+                    and raw_usage.prompt_tokens is not None
+                    and raw_usage.completion_tokens is not None
+                ):
+                    usage["known_usage_calls"] += 1
+                    for key, value in (
+                        ("input_tokens", raw_usage.prompt_tokens),
+                        ("output_tokens", raw_usage.completion_tokens),
+                    ):
+                        usage[key] += value
+                        phase_usage[key] += value
+                else:
+                    usage["unknown_usage_calls"] += 1
+                    phase_usage["unknown_usage_calls"] += 1
+                if completion is not None:
+                    state.setdefault("model_failures", []).append(
+                        {
+                            "phase": phase,
+                            "error": type(exc).__name__,
+                            "response": completion.model_dump(mode="json"),
+                        }
+                    )
                 rec.model_call(
-                    (time.monotonic() - call_started) * 1000, None, None, "error", [], phase=phase
+                    (time.monotonic() - call_started) * 1000,
+                    raw_usage.prompt_tokens if raw_usage else None,
+                    raw_usage.completion_tokens if raw_usage else None,
+                    "length" if completion is not None else "error",
+                    [],
+                    phase=phase,
                 )
                 raise
             tokens = reply.usage_metadata or {}
@@ -676,7 +705,12 @@ class AgentRunner:
                             )
                             for key, value in state.items()
                             if key
-                            not in {"planning_attempts", "review_attempts", "completion_checks"}
+                            not in {
+                                "planning_attempts",
+                                "review_attempts",
+                                "completion_checks",
+                                "model_failures",
+                            }
                         },
                         ensure_ascii=False,
                     )

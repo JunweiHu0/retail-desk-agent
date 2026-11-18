@@ -204,3 +204,49 @@ def test_c2_forced_preview_uses_standard_tool_choice_and_same_catalog(service, p
     assert len(calls) == 3
     assert service.store.session(ref["id"])["pending"]["args"] == args
     assert dataset(service, ref["id"])["orders"][pending_order["order_id"]]["status"] == "pending"
+
+
+def test_truncated_planner_response_preserves_known_cost_and_raw_failure(service, pending_order):
+    import pytest
+    from openai import LengthFinishReasonError
+
+    ref = service.store.create_session(user_id=pending_order["user_id"], variant="c1")
+
+    def transport(request):
+        return httpx.Response(
+            200,
+            json={
+                "id": "truncated",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "qwen-test",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": '{"tasks":['},
+                        "finish_reason": "length",
+                    }
+                ],
+                "usage": {"prompt_tokens": 17, "completion_tokens": 8, "total_tokens": 25},
+            },
+        )
+
+    model = ChatOpenAI(
+        model="qwen-test",
+        api_key="test-only",
+        http_client=httpx.Client(transport=httpx.MockTransport(transport)),
+    )
+    with pytest.raises(LengthFinishReasonError):
+        AgentRunner(service).run(ref["id"], "Cancel my order.", model=model)
+    state = service.store.session(ref["id"])
+    assert state["usage"]["model_calls"] == 1
+    assert state["usage"]["known_usage_calls"] == 1
+    assert state["usage"]["unknown_usage_calls"] == 0
+    assert state["usage"]["input_tokens"] == 17
+    assert state["usage"]["output_tokens"] == 8
+    assert state["usage"]["phases"]["planner"]["output_tokens"] == 8
+    assert (
+        state["agent_state"]["model_failures"][0]["response"]["choices"][0]["message"]["content"]
+        == '{"tasks":['
+    )
+    assert state["pending"] is None
