@@ -52,6 +52,13 @@ export AGENT_MODE=demo
 export BENCH_OUT="$OUT"
 
 cd "$TACC_WORKDIR"
+if [ -f "$TACC_WORKDIR/bench.env" ]; then
+    # `set -a` so the values reach the Python process, not just this shell.
+    set -a
+    # shellcheck disable=SC1091
+    . "$TACC_WORKDIR/bench.env"
+    set +a
+fi
 SCRIPT=$(cat "$TACC_WORKDIR/script.txt" 2>/dev/null | tr -d '\r' | head -1)
 bash "$QWEN_PROJECT_ROOT/runtime.sh" "$VENV/bin/python" "${SCRIPT:-main.py}"
 printf 'BENCH_DONE\n'

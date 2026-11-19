@@ -16,6 +16,7 @@ the run can be read by standard trajectory tooling.
 import json
 import os
 import statistics
+import threading
 import time
 import urllib.request
 import uuid
@@ -28,9 +29,9 @@ KEY = os.environ.get("MODEL_API_KEY", "EMPTY")
 OUT = os.environ["BENCH_OUT"]
 
 MAX_TOKENS = 512
-LEVELS = (1, 2, 4)
+LEVELS = tuple(int(x) for x in os.environ.get("BENCH_LEVELS", "1,2,4").split(",") if x.strip())
 MODES = ("on", "off")
-REQUESTS_PER_LEVEL = 24
+REQUESTS_PER_LEVEL = int(os.environ.get("BENCH_REQS", "24"))
 
 
 def iso_now():
@@ -255,7 +256,43 @@ def run_level(mode, level, prompt, tools, start_idx):
     return rows, summary
 
 
+def start_sampler():
+    """Sample /metrics once a second so KV pressure and preemptions are visible."""
+    import re
+
+    line_re = re.compile(r'(vllm:[a-z0-9_]+)\{(.*)\}\s+([0-9.eE+-]+)')
+    base = BASE.rsplit("/v1", 1)[0]
+
+    def loop():
+        with open(os.path.join(OUT, "metrics.jsonl"), "a") as fh:
+            while True:
+                try:
+                    text = urllib.request.urlopen(base + "/metrics", timeout=5).read().decode()
+                    v = {}
+                    for line in text.splitlines():
+                        m = line_re.match(line)
+                        if m:
+                            v[m.group(1)] = v.get(m.group(1), 0.0) + float(m.group(3))
+                    fh.write(json.dumps({
+                        "t": round(time.time(), 2),
+                        "running": v.get("vllm:num_requests_running", 0),
+                        "waiting": v.get("vllm:num_requests_waiting", 0),
+                        "kv": round(v.get("vllm:kv_cache_usage_perc", 0), 4),
+                        "preempt": v.get("vllm:num_preemptions_total", 0),
+                        "gen": v.get("vllm:generation_tokens_total", 0),
+                        "reqs": v.get("vllm:request_success_total", 0),
+                    }) + "\n")
+                    fh.flush()
+                except Exception:
+                    pass
+                time.sleep(1)
+
+    thread = threading.Thread(target=loop, daemon=True)
+    thread.start()
+
+
 def main():
+    start_sampler()
     prompt, tools = build_bundle()
     print(f"system prompt chars: {len(prompt)} | tools: {len(tools)}")
     print(f"max_tokens: {MAX_TOKENS} levels: {LEVELS} modes: {MODES} "
