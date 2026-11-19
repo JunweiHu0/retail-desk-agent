@@ -19,6 +19,8 @@ Usage: ./deploy/run.sh <mode> [args]
   tacc down        cancel OUR jobs and stop the tunnel (never anyone else's)
   tacc tunnel      (re)open the tunnel to the address recorded by `up`
   tacc bench       fixed-workload benchmark against the running serve job
+  tacc eval        tau2 quality evaluation (args go to benchmarks/run_retail.py)
+  docs             serve docs/ on http://127.0.0.1:8090
 
 See deploy/README.md and deploy/tacc/README.md.
 EOF
@@ -48,12 +50,16 @@ case "$mode" in
         done
         exec bash "$REPO_ROOT/scripts/dev.sh"
         ;;
+    docs)
+        shift
+        exec bash "$REPO_ROOT/deploy/docs.sh" "$@"
+        ;;
     tacc)
         shift
         sub=${1:-up}
         shift || true
         case "$sub" in
-            up|status|down|tunnel|bench)
+            up|status|down|tunnel|bench|eval)
                 exec bash "$REPO_ROOT/deploy/tacc/$sub.sh" "$@"
                 ;;
             *)

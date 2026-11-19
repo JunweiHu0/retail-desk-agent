@@ -17,6 +17,8 @@ ON, OFF = "#2a78d6", "#eb6834"
 
 def load(run_dir):
     run = json.loads((run_dir / "run.json").read_text())
+    prompt_file = run_dir / "system_prompt.txt"
+    run["system_prompt"] = prompt_file.read_text() if prompt_file.is_file() else ""
     rows = [json.loads(line) for line in (run_dir / "atif.jsonl").read_text().splitlines() if line]
     return run, rows
 
@@ -50,6 +52,7 @@ def build(run, rows):
                     for c in s.get("tool_calls") or []
                 ],
                 "msg": s.get("message") or "",
+                "reason": (s.get("extra") or {}).get("reasoning_content") or "",
                 "msg_q": r["steps"][0].get("message") or "",
                 "think": len((s.get("extra") or {}).get("reasoning_content") or ""),
                 "answer": len(s.get("message") or ""),
@@ -59,6 +62,23 @@ def build(run, rows):
     }
 
     import html as _html
+
+    def esc(x):
+        return _html.escape(str(x), quote=True)
+
+    summary_rows = "".join(
+        "<tr>"
+        f"<td>{esc(s.get('mode'))}</td><td>{esc(s.get('concurrency'))}</td>"
+        f"<td class='m'>{esc(s.get('ttft_p50_ms'))}</td>"
+        f"<td class='m'>{esc(s.get('ttft_p95_ms'))}</td>"
+        f"<td class='m'>{esc(s.get('tpot_p50_ms'))}</td>"
+        f"<td class='m'>{esc(s.get('e2e_p50_ms'))}</td>"
+        f"<td class='m'>{esc(s.get('completion_tokens_avg'))}</td>"
+        f"<td class='m'>{round((s.get('tool_call_rate') or 0) * 100)}%</td>"
+        f"<td class='m'>{esc(s.get('req_per_s'))}</td>"
+        "</tr>"
+        for s in run.get("summaries") or []
+    )
 
     pick = [p for p in data["points"] if p["tools"]][:2] + \
            [p for p in data["points"] if not p["tools"]][:2]
@@ -113,11 +133,23 @@ th,td{{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;whi
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){{text-align:left}}
 th{{color:var(--muted);font-weight:500;font-size:11.5px}}
 td.m{{font-family:ui-monospace,monospace}}
+.req{{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}}
+.req summary{{cursor:pointer;font-size:13px;color:var(--ink)}}
+.req pre{{white-space:pre-wrap;font:12px/1.55 ui-monospace,monospace;color:var(--muted);max-height:340px;overflow:auto;margin:8px 0 0}}
+.reqrow{{font-size:13px;margin:4px 0;color:var(--ink)}}
+.reqrow b{{display:inline-block;min-width:48px;color:var(--muted);font-weight:500}}
 .pairs{{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}}
 .pair{{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}}
 .pk{{font-size:11px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;margin-top:6px}}
 .pin,.pout{{font-size:13px;margin-top:2px;white-space:pre-wrap}}
 .pm{{font-size:11.5px;color:var(--muted);margin-top:8px}}
+tr.row{{cursor:pointer}}
+tr.row:hover td{{background:var(--tile)}}
+.drow td{{text-align:left;white-space:normal;background:var(--tile);padding:10px 12px}}
+.drow .lab{{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:8px}}
+.drow .lab:first-child{{margin-top:0}}
+.drow .txt{{font-size:13px;margin-top:2px;white-space:pre-wrap}}
+.legend{{font-size:12px;color:var(--muted);margin:8px 2px 0;line-height:1.8}}
 .foot{{margin-top:28px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}}
 </style></head>
 <body><main>
@@ -131,6 +163,19 @@ td.m{{font-family:ui-monospace,monospace}}
   <div class="tile"><div class="k">生成 token</div><div class="v">{gen_tok:,}</div></div>
   <div class="tile"><div class="k">思考字符</div><div class="v">{think_chars:,}</div></div>
 </div>
+<h2 style="font-size:15px;margin:26px 0 8px">六格汇总</h2>
+<div class="tblwrap" style="margin-top:0"><table>
+<thead><tr><th>思考</th><th>并发</th><th>TTFT p50</th><th>TTFT p95</th><th>TPOT p50</th>
+<th>e2e p50</th><th>生成 token</th><th>工具调用率</th><th>req/s</th></tr></thead>
+<tbody>{summary_rows}</tbody></table></div>
+
+<h2 style="font-size:15px;margin:26px 0 8px">这次请求里放了什么</h2>
+<details class="req"><summary>system prompt 全文（{len(run.get("system_prompt") or "")} 字符，含 16 个工具定义另计）</summary>
+<pre>{esc(run.get("system_prompt") or "")}</pre></details>
+<div class="reqrow"><b>user</b> {esc(data["points"][0]["msg_q"])}</div>
+<div class="reqrow"><b>参数</b> temperature=0 · max_tokens=512 · tools={run.get('tool_count')} 个 · stream=true</div>
+<div class="reqrow"><b>工具</b> {esc(", ".join(run.get("tool_names") or []))}</div>
+
 <h2 style="font-size:15px;margin:26px 0 8px">输入 → 输出</h2>
 <div class="pairs">{pairs}</div>
 
@@ -147,10 +192,14 @@ td.m{{font-family:ui-monospace,monospace}}
     <div id="c3"></div></div>
   <div class="card"><h3>工具调用分布</h3><div id="c4"></div></div>
 </div>
+<details><summary style="cursor:pointer;font-size:13px;color:var(--muted);margin-top:14px">逐条明细（{total} 条）</summary>
 <div class="tblwrap"><table>
 <thead><tr><th>#</th><th>思考</th><th>并发</th><th>TTFT</th><th>e2e</th><th>prompt</th>
 <th>gen</th><th>思考字符</th><th>回答字符</th><th>工具调用</th></tr></thead>
 <tbody id="tb"></tbody></table></div>
+<div class="legend">列含义：<b>TTFT</b> 第一个 token 的等待（ms）· <b>e2e</b> 整次请求耗时（ms）·
+<b>prompt</b> 输入 token 数 · <b>gen</b> 输出 token 数 · <b>思考字符</b> 推理文本长度 ·
+<b>回答字符</b> 用户看到的文本长度 · <b>工具调用</b> 模型选择调用的函数。点任意一行展开输入输出。</div></details>
 <div class="foot">run {run.get('slurm_job_id')} · {run.get('model')} · 系统提示 {run.get('system_prompt_chars')} 字符 ·
 {run.get('tool_count')} 个工具 · 数据 atif.jsonl</div>
 </main>
@@ -199,18 +248,31 @@ document.getElementById("c4").innerHTML = items.length ? items.map(([name,n]) =>
     <span style="font:11.5px ui-monospace,monospace;width:28px;text-align:right">${{n}}</span>
   </div>`).join("") : `<div style="color:var(--muted);font-size:13px">本次没有工具调用</div>`;
 const tb = document.getElementById("tb");
-tb.innerHTML = D.points.map((p,i) => `<tr>
-  <td>${{i+1}}</td><td>${{p.mode==="on"?"开":"关"}}</td><td>${{p.c}}</td>
+const E = s => String(s ?? "").replace(/[&<>"]/g, c => ({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}}[c]));
+tb.innerHTML = D.points.map((p,i) => `<tr class="row" data-i="${{i}}">
+  <td>${{i+1}} ▸</td><td>${{p.mode==="on"?"开":"关"}}</td><td>${{p.c}}</td>
   <td class="m">${{p.ttft ?? "–"}}</td><td class="m">${{p.e2e}}</td>
   <td class="m">${{p.ptok}}</td><td class="m">${{p.gtok}}</td>
   <td class="m">${{p.think}}</td><td class="m">${{p.answer}}</td>
-  <td class="m">${{(p.tools||[]).join(", ") || "–"}}</td></tr>`).join("");
+  <td class="m">${{(p.tools||[]).join(", ") || "–"}}</td></tr>
+<tr class="drow" id="d${{i}}" hidden><td colspan="10">
+  <div class="lab">输入 · 用户说</div><div class="txt">${{E(p.msg_q)}}</div>
+  <div class="lab">思考 · 模型内部，用户看不到</div><div class="txt">${{E(p.reason || "（无思考）")}}</div>
+  <div class="lab">输出 · 模型说</div><div class="txt">${{E(p.msg || "（空）")}}</div>
+  <div class="lab">工具调用</div><div class="txt">${{(p.tool_args||[]).map(t => E(t.name) + "(" + E(JSON.stringify(t.args)) + ")").join("<br>") || "无"}}</div>
+  <div class="lab">这些数字</div><div class="txt">TTFT ${{p.ttft}} ms（第一个 token）· e2e ${{p.e2e}} ms（整次）· 输入 ${{p.ptok}} token · 输出 ${{p.gtok}} token</div>
+</td></tr>`).join("");
+tb.querySelectorAll("tr.row").forEach(tr => tr.onclick = () => {{
+  const d = document.getElementById("d" + tr.dataset.i);
+  d.hidden = !d.hidden;
+}});
 </script>
 </body></html>"""
 
 
 def main():
-    run_dir, out = Path(sys.argv[1]), Path(sys.argv[2])
+    run_dir = Path(sys.argv[1])
+    out = Path(sys.argv[2]) if len(sys.argv) > 2 else run_dir / "view.html"
     run, rows = load(run_dir)
     out.write_text(build(run, rows), encoding="utf-8")
     print(f"{out}  ({len(rows)} steps)")
