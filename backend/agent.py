@@ -248,7 +248,18 @@ def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
                 message.content = ""
         return response
 
-    prompt = (
+    return create_deep_agent(
+        model=model or get_model(),
+        tools=tools,
+        system_prompt=system_prompt(),
+        middleware=[retail_only],
+        name="retail_customer_service",
+    )
+
+
+def system_prompt():
+    """The exact system prompt the app sends; the benchmark reuses it."""
+    return (
         config.POLICY_PATH.read_text()
         + """
 
@@ -266,13 +277,6 @@ APPLICATION CONTRACT (web customer-service mode):
 - This is a local sandbox seeded from tau2-bench, not a real store. Refunds and emails are simulated
   records; never claim a real payment provider was called or a real email was sent.
 """
-    )
-    return create_deep_agent(
-        model=model or get_model(),
-        tools=tools,
-        system_prompt=prompt,
-        middleware=[retail_only],
-        name="retail_customer_service",
     )
 
 

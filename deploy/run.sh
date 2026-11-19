@@ -18,6 +18,7 @@ Usage: ./deploy/run.sh <mode> [args]
   tacc status      show jobs, address and /api/health through the tunnel
   tacc down        cancel OUR jobs and stop the tunnel (never anyone else's)
   tacc tunnel      (re)open the tunnel to the address recorded by `up`
+  tacc bench       fixed-workload benchmark against the running serve job
 
 See deploy/README.md and deploy/tacc/README.md.
 EOF
@@ -52,7 +53,7 @@ case "$mode" in
         sub=${1:-up}
         shift || true
         case "$sub" in
-            up|status|down|tunnel)
+            up|status|down|tunnel|bench)
                 exec bash "$REPO_ROOT/deploy/tacc/$sub.sh" "$@"
                 ;;
             *)

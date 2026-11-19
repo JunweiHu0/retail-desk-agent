@@ -10,11 +10,14 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 TUNNEL=0
 SKIP_SETUP=0
 FORCE_SETUP=0
+SERVE_ONLY=0
 for arg in "$@"; do
     case "$arg" in
         --tunnel)      TUNNEL=1 ;;
         --skip-setup)  SKIP_SETUP=1 ;;
         --force-setup) FORCE_SETUP=1 ;;
+        # Leave the second QOS slot free for a benchmark job.
+        --serve-only)  SERVE_ONLY=1 ;;
         -h|--help)
             sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
@@ -196,6 +199,14 @@ while :; do
     fi
     die "vLLM failed; see $serve_log"
 done
+
+if [ "$SERVE_ONLY" = "1" ]; then
+    log "== serve only: leaving the second job slot for a benchmark =="
+    log "  serve : $serve_url (job $serve_id)"
+    log "  bench : ./deploy/run.sh tacc bench"
+    log "  stop  : ./deploy/run.sh tacc down"
+    exit 0
+fi
 
 # --------------------------------------------------------------- 3/3 agent
 log "== 3/3 agent =="
