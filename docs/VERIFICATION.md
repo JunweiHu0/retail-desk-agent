@@ -216,3 +216,11 @@ GitHub核实与设计映射见PLAN.md最新节。新增独立`lean`在 `74c3c2a`
 huoshan `tool-profiles-software-20261118T144622Z` 完整169项通过（83.28s）；最终源码 `cf632c4` 在 `tool-profiles-final-software-20261118T144955Z` 完整 **171 passed**（84.19s）。`tool-contract-fixture-*`的独立合成DB及重复商品官方修改target已离线验证，未调用模型。
 
 真实模型功能检查已排队：`tool-profiles-live-20261118T145026Z`，等待冻结的development54完成后，切换到该队列固定的源码，运行“只读筛选→正确预览→批准→官方DB修改”HTTP案例。该案例显式要求两个新助手，用于工具接口验收，不计作benchmark成绩。没有新工具版本的成功率提升结论；下一轮效果比较需在同一新evaluator源码下重跑B1与三个工具配置。
+
+## development54 完整结果与新工具验证修复（2026-11-19 UTC）
+
+`development54-b1-advisory-20261118T140835Z` 已完整结束，固定9B/非思考/seed0/同协议：B1 **31/54（57.41%）**，advisory **32/54（59.26%）**。两组均54个有效最终快照，模拟器格式协议错误0。配对差值+1.85个百分点，95% bootstrap区间[-14.81,+18.52]个百分点；尚无可信的成功率提升证据，且这是开发集单次运行。
+
+B1模型/工具调用428/217，完整总token 5,318,717；advisory为762/213，模型调用增加约78%。advisory有一次模拟器usage未知，因此完整总token为null，不以已知小计代替。B1有1次wall_time_budget，advisory有6次；不能把仅多通过一题解读为整体改进成功。B1仍为默认。
+
+`tool-profiles-live-20261118T145026Z` 原真实功能检查失败于测试脚本：它调用只接受finished状态的 `EpisodeHTTP.snapshot()` 检查中间只读/预览阶段，抛出 `Snapshot is not a frozen final episode`。这不是业务DB变更失败的证据。原输出保留；仅修改诊断脚本，在中间阶段直接调用允许活动快照的私有GET接口，最终仍使用要求冻结状态的snapshot验证。新目录 `tool-profiles-live-retest-20261119T015841Z` 已启动，应用源码仍为cf632c4，未修改正式DB比较器或当前工具实现。重测完成前不称真实工具闭环通过。
