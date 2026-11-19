@@ -20,6 +20,18 @@ source "$QWEN_ACTIVATE"
 export CUDA_VISIBLE_DEVICES=0,1
 
 TOOL_PARSER="${TOOL_PARSER:-qwen3_xml}"
+# Optional A/B overrides written by up.sh next to the job.
+if [ -f "$TACC_WORKDIR/overrides.env" ]; then
+    # shellcheck disable=SC1091
+    . "$TACC_WORKDIR/overrides.env"
+fi
+TP_SIZE="${TP_SIZE:-2}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"
+MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
+EXTRA=()
+if [ -n "${SPEC_JSON:-}" ]; then
+    EXTRA+=(--speculative-config "$SPEC_JSON")
+fi
 PORT="${PORT:-8000}"
 ROOT="$TACC_USERDIR/retail-agent"
 URL_FILE="$ROOT/server-url.txt"
@@ -84,7 +96,8 @@ mkdir -p -m 700 "$QWEN_CACHE_HOME"
 
 printf 'NODE=%s\n' "$(hostname)"
 printf 'SERVICE_BASE_URL=http://%s:%s/v1\n' "$HOST" "$PORT"
-printf 'SERVED_MODEL=qwen3.8-27b TOOL_PARSER=%s\n' "$TOOL_PARSER"
+printf 'SERVED_MODEL=qwen3.8-27b TOOL_PARSER=%s TP=%s MAX_LEN=%s SEQS=%s SPEC=%s\n' \
+    "$TOOL_PARSER" "$TP_SIZE" "$MAX_MODEL_LEN" "$MAX_NUM_SEQS" "${SPEC_JSON:-none}"
 
 printf 'PORT_CHECK_BEGIN\n'
 (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E ":${PORT}[[:space:]]" \
@@ -115,10 +128,10 @@ setsid bash "$QWEN_PROJECT_ROOT/runtime.sh" "$QWEN_PROJECT_ROOT/vllm-env/bin/pyt
     --served-model-name qwen3.8-27b \
     --safetensors-load-strategy prefetch \
     --host 0.0.0.0 --port "$PORT" \
-    --tensor-parallel-size 2 --language-model-only --dtype bfloat16 \
-    --gpu-memory-utilization 0.90 --max-model-len 32768 \
-    --max-num-seqs 4 --max-num-batched-tokens 4096 \
+    --tensor-parallel-size "$TP_SIZE" --language-model-only --dtype bfloat16 \
+    --gpu-memory-utilization 0.90 --max-model-len "$MAX_MODEL_LEN" \
+    --max-num-seqs "$MAX_NUM_SEQS" --max-num-batched-tokens 4096 \
     --reasoning-parser qwen3 --enable-prefix-caching \
-    --enable-auto-tool-choice --tool-call-parser "$TOOL_PARSER" &
+    --enable-auto-tool-choice --tool-call-parser "$TOOL_PARSER" "${EXTRA[@]}" &
 VLLM_PID=$!
 wait "$VLLM_PID"

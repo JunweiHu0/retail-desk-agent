@@ -127,6 +127,13 @@ stage_job serve "$TACC_DIR/serve" >/dev/null
 stage_job agent "$TACC_DIR/agent" >/dev/null
 render_serve_conf
 render_agent_conf
+# A/B knobs travel as a file: the local environment does not reach the job.
+{
+    printf 'TP_SIZE=%q\n' "${TP_SIZE:-}"
+    printf 'MAX_MODEL_LEN=%q\n' "${MAX_MODEL_LEN:-}"
+    printf 'MAX_NUM_SEQS=%q\n' "${MAX_NUM_SEQS:-}"
+    printf 'SPEC_JSON=%q\n' "${SPEC_JSON:-}"
+} > "$STAGE/serve/overrides.env"
 ensure_frontend_dist
 stage_app
 log "staged under $STAGE"
