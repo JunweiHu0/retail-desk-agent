@@ -27,6 +27,7 @@ AGENT_BASE_PORT="$AGENT_PORT"
 SETUP_TIMEOUT=${SETUP_TIMEOUT:-1900}
 SERVE_START_TIMEOUT=${SERVE_START_TIMEOUT:-900}
 AGENT_START_TIMEOUT=${AGENT_START_TIMEOUT:-300}
+MAX_SETUP_TRIES=3
 MAX_SERVE_TRIES=4
 MAX_AGENT_TRIES=3
 
@@ -47,6 +48,29 @@ stage_job() {  # stage_job <name> <source-dir>
         cp "$src/requirements.txt" "$STAGE/$name/"
     fi
     printf '%s' "$STAGE/$name"
+}
+
+# The course runtime unpacks an Ubuntu rootfs into node-local /tmp, which every
+# user on that node shares. When /tmp is full the job dies before our own steps
+# start, so the only useful response is to skip that node.
+job_node_from_log() {  # job_node_from_log <stage-dir> <log>
+    cat_log "$1" "$2" | sed -n 's/^srun: error: \([^:]*\): task.*/\1/p' | head -1
+}
+
+disk_full_log() {  # disk_full_log <stage-dir> <log>
+    cat_log "$1" "$2" | grep -q 'No space left on device'
+}
+
+# /tmp exhaustion is node-wide, so drop the node for all three jobs at once.
+exclude_node_everywhere() {  # exclude_node_everywhere <node> <reason>
+    local node=$1 reason=$2
+    printf '%s\n' "$node" >> "$STATE/exclude"
+    printf '%s\n' "$node" >> "$STATE/setup_exclude"
+    printf '%s\n' "$node" >> "$STATE/agent_exclude"
+    log "node $node: $reason; excluding it for setup, vLLM and the agent"
+    render_setup_conf
+    render_serve_conf
+    render_agent_conf
 }
 
 render_serve_conf() {
@@ -86,6 +110,25 @@ render_agent_conf() {
     fi
 }
 
+# The setup job does not use a GPU, but it does need node-local /tmp: the
+# course runtime unpacks its rootfs there, and /tmp is shared with every user
+# on the node. A full /tmp therefore fails setup before our script starts.
+render_setup_conf() {
+    local conf="$STAGE/setup/tuxiv.conf" excludes
+    excludes=$(
+        {
+            printf '%s\n' "${SETUP_EXCLUDE:-}" | tr ',' '\n'
+            cat "$STATE/setup_exclude" 2>/dev/null || true
+        } | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort -u | paste -sd, -
+    )
+    printf '%s\n' "$excludes" | tr ',' '\n' | sed '/^$/d' > "$STATE/setup_exclude"
+    if [ -n "$excludes" ]; then
+        sed "s/__EXCLUDE__/${excludes}/" "$TACC_DIR/setup/tuxiv.conf" > "$conf"
+    else
+        grep -v '^    - exclude=' "$TACC_DIR/setup/tuxiv.conf" > "$conf"
+    fi
+}
+
 stage_app() {
     local dest="$STAGE/agent/app"
     rm -rf "$dest"
@@ -119,6 +162,7 @@ mkdir -p "$STAGE"
 stage_job setup "$TACC_DIR/setup" >/dev/null
 stage_job serve "$TACC_DIR/serve" >/dev/null
 stage_job agent "$TACC_DIR/agent" >/dev/null
+render_setup_conf
 render_serve_conf
 render_agent_conf
 ensure_frontend_dist
@@ -130,17 +174,39 @@ if [ "$SKIP_SETUP" = "1" ]; then
     log "== 1/3 setup: skipped (--skip-setup) =="
 else
     log "== 1/3 setup =="
-    setup_id=$(submit_job "$STAGE/setup") || die "setup submit failed"
-    printf '%s\n' "$setup_id" > "$STATE/setup.job"
-    setup_log="slurm_log/retail-setup-${setup_id}.log"
-    log "setup job $setup_id"
-    wait_log "$STAGE/setup" "$setup_log" "$SETUP_TIMEOUT" \
-        'SETUP_DONE|Traceback|Exited with exit code' "setup" \
-        || { tail_log "$STAGE/setup" "$setup_log"; die "setup failed; see $setup_log"; }
-    if ! cat_log "$STAGE/setup" "$setup_log" | grep -q 'SETUP_DONE'; then
+    setup_try=0
+    while :; do
+        setup_try=$((setup_try + 1))
+        [ "$setup_try" -le "$MAX_SETUP_TRIES" ] || die "setup did not succeed after $MAX_SETUP_TRIES tries"
+
+        render_setup_conf
+        setup_id=$(submit_job "$STAGE/setup") || die "setup submit failed"
+        printf '%s\n' "$setup_id" > "$STATE/setup.job"
+        setup_log="slurm_log/retail-setup-${setup_id}.log"
+        log "setup job $setup_id (try $setup_try)"
+        wait_log "$STAGE/setup" "$setup_log" "$SETUP_TIMEOUT" \
+            'SETUP_DONE|Traceback|Exited with exit code' "setup" \
+            || { tail_log "$STAGE/setup" "$setup_log"; die "setup failed; see $setup_log"; }
+
+        if cat_log "$STAGE/setup" "$setup_log" | grep -q 'SETUP_DONE'; then
+            break
+        fi
+
+        # A full node-local /tmp breaks the course runtime's rootfs unpack
+        # before our own steps run. Move to another node rather than stopping.
+        if disk_full_log "$STAGE/setup" "$setup_log"; then
+            node=$(job_node_from_log "$STAGE/setup" "$setup_log")
+            if [ -n "$node" ]; then
+                exclude_node_everywhere "$node" "node-local /tmp is full"
+            else
+                log "setup hit 'No space left on device' before the node was reported; retrying"
+            fi
+            continue
+        fi
+
         tail_log "$STAGE/setup" "$setup_log"
         die "setup did not finish; see $setup_log"
-    fi
+    done
     if cat_log "$STAGE/setup" "$setup_log" | grep -q 'IMPORT_FAILURES [1-9]'; then
         cat_log "$STAGE/setup" "$setup_log" | grep 'IMPORT .* FAIL' >&2
         die "dependency import check failed"
@@ -169,7 +235,19 @@ while :; do
         "serve address" || { tail_log "$STAGE/serve" "$serve_log"; die "see $serve_log"; }
 
     raw_url=$(cat_log "$STAGE/serve" "$serve_log" | sed -n 's/^SERVICE_BASE_URL=//p' | head -1)
-    [ -n "$raw_url" ] || { tail_log "$STAGE/serve" "$serve_log"; die "could not read SERVICE_BASE_URL"; }
+    if [ -z "$raw_url" ]; then
+        if disk_full_log "$STAGE/serve" "$serve_log"; then
+            node=$(job_node_from_log "$STAGE/serve" "$serve_log")
+            if [ -n "$node" ]; then
+                exclude_node_everywhere "$node" "node-local /tmp is full"
+            else
+                log "serve hit 'No space left on device' before the node was reported; retrying"
+            fi
+            continue
+        fi
+        tail_log "$STAGE/serve" "$serve_log"
+        die "could not read SERVICE_BASE_URL"
+    fi
     serve_url=$(printf '%s' "$raw_url" | normalise_url)
     printf '%s\n' "$serve_url" > "$STATE/serve.url"
 
@@ -184,6 +262,16 @@ while :; do
     fi
 
     tail_log "$STAGE/serve" "$serve_log"
+    if disk_full_log "$STAGE/serve" "$serve_log"; then
+        node=$(job_node_from_log "$STAGE/serve" "$serve_log")
+        job_running "$serve_id" && "$TCLOUD" cancel -j "$serve_id" >/dev/null 2>&1 || true
+        if [ -n "$node" ]; then
+            exclude_node_everywhere "$node" "node-local /tmp is full"
+        else
+            log "serve hit 'No space left on device' before the node was reported; retrying"
+        fi
+        continue
+    fi
     if cat_log "$STAGE/serve" "$serve_log" | grep -qE 'out of memory|Engine core initialization failed'; then
         node=$(cat_log "$STAGE/serve" "$serve_log" | sed -n 's/^NODE=//p' | head -1)
         if [ -n "$node" ]; then
@@ -218,6 +306,16 @@ while :; do
     fi
 
     tail_log "$STAGE/agent" "$agent_log"
+    if disk_full_log "$STAGE/agent" "$agent_log"; then
+        node=$(job_node_from_log "$STAGE/agent" "$agent_log")
+        job_running "$agent_id" && "$TCLOUD" cancel -j "$agent_id" >/dev/null 2>&1 || true
+        if [ -n "$node" ]; then
+            exclude_node_everywhere "$node" "node-local /tmp is full"
+        else
+            log "agent hit 'No space left on device' before the node was reported; retrying"
+        fi
+        continue
+    fi
     if cat_log "$STAGE/agent" "$agent_log" | grep -q 'PORT_BUSY'; then
         job_running "$agent_id" && "$TCLOUD" cancel -j "$agent_id" >/dev/null 2>&1 || true
         AGENT_PORT=$((AGENT_PORT + 1))
