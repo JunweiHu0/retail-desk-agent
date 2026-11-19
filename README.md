@@ -99,3 +99,15 @@ npm run build
 `lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。
 
 后端工具接口实验通过内部评测创建请求的 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API契约、比较口径见 `docs/EVAL_PROTOCOL.md`。这些是独立工具实验，尚无成功率提升结论。
+
+## LangGraph 候选与实验
+
+新增 `lg_b1`、`lg_described`、`lg_structured`、`lg_extended`、`lg_context`、
+`lg_sop`、`lg_notes`、`lg_review`，分别测试框架迁移、工具接口、上下文、业务指引、
+轻量需求笔记和有界完成检查。B1 保持默认；选择 `lg_*` 才会进入 StateGraph。
+笔记与检查器不能直接修改 DB 或审批。SQLite 仍是唯一持久状态来源，不自动重放
+中断的写操作。main 前端及 cookie/auth/order API 不变。
+
+新浏览器会话可由服务端 `BROWSER_AGENT_VARIANT` 选择配置；内部评测继续使用
+variant 字段。9B 自动分阶段实验入口为 `python -m benchmarks.run_graph_experiments --help`，
+各阶段结果和限制见 [验收记录](docs/VERIFICATION.md)。软件测试通过不代表模型提分。

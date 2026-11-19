@@ -276,3 +276,25 @@ runner; model-input equivalence is verified with scripted B1/lg_b1 requests.
 Subsequent changes add interrupted-observation recovery, real SDK graph transport
 coverage and the staged experiment orchestrator; they require final validation.
 No LangGraph model-performance uplift is claimed from these software tests.
+
+### Final LangGraph software gate and live queue
+
+Final code `f1305dc` (baseline tag `baseline/b1-main-http-v2` at `1ed6e37`),
+release `20261119T031526Z-f1305dc-2527338`: huoshan
+`langgraph-final-software-20261119T031600Z` completed **233 passed** (105.33s),
+frontend production build and **3 browser tests passed** (12.2s). Ruff and
+`uv lock --check --offline` pass locally. The orchestration test originally
+mocked subprocess.run too broadly and intercepted Git provenance discovery;
+it was corrected to stub provenance separately before this final run.
+
+Real-model queue `langgraph-9b-20261119T031700Z` uses the same frozen release,
+a separate CPU app on 127.0.0.1:18884, an isolated DB and the existing 9B endpoint
+18880 (thinking off). It first runs explicit-helper read/preview/approve/DB
+contracts for lg_extended and lg_review, then sequential B1/lg_* smoke8.
+The configured follow-on is development54 for admitted candidates and frozen
+B1/selected-candidate validation20×3. `experiments/progress.json` is authoritative
+for stage completion; `promotion.json` is written only after validation.
+The old application at 18881 and model process were not restarted. No test40,
+27B or TACC run is included; no live default or GitHub branch was updated.
+At this documentation point the first live component contract is running, so
+there is no graph benchmark success-rate result yet.
