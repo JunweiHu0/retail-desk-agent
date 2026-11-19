@@ -35,6 +35,8 @@ with open(ARGS.out,'a') as out:
                 'queries': v.get('vllm:prefix_cache_queries_total',0),
                 'ttft_sum': v.get('vllm:time_to_first_token_seconds_sum',0),
                 'ttft_n': v.get('vllm:time_to_first_token_seconds_count',0),
+                'itl_sum': v.get('vllm:inter_token_latency_seconds_sum',0),
+                'itl_n': v.get('vllm:inter_token_latency_seconds_count',0),
                 'e2e_sum': v.get('vllm:e2e_request_latency_seconds_sum',0),
                 'e2e_n': v.get('vllm:e2e_request_latency_seconds_count',0)})+'\n')
             out.flush()

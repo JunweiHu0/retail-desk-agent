@@ -82,6 +82,17 @@ cp deploy/tacc/env.example deploy/tacc/env    # 填 SSH 账号/私钥
 
 细节、排错表、时限与合规说明见 [`tacc/README.md`](tacc/README.md)。
 
+## 跑评测
+
+```bash
+./deploy/run.sh tacc up --serve-only
+EVAL_NAME=test40 ./deploy/run.sh tacc eval --agent bare --task-ids 5,9,12 --user-model openai/qwen3.8-27b
+```
+
+`EVAL_NAME` 是 checkpoint 目录名。任务跑完一个就落盘，作业被砍后同名重提会跳过已完成的；
+但 **tau2 不允许换任务集后复用同名**（会报 `cannot resume changed language/task/persona content`），
+所以换一批任务就换一个名字，最后合并结果。
+
 ## 看 infra：/infra 面板
 
 应用自带一个 infra 页面，和 agent 同一个端口，不需要额外开作业或端口：

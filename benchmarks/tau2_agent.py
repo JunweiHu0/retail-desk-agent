@@ -23,6 +23,17 @@ class RetailAgentState:
     messages: list = field(default_factory=list)
 
 
+def _usage(message):
+    """LangChain usage_metadata -> the shape tau2 records on a message."""
+    meta = getattr(message, "usage_metadata", None) or {}
+    if not meta:
+        return None
+    return {
+        "prompt_tokens": meta.get("input_tokens"),
+        "completion_tokens": meta.get("output_tokens"),
+    }
+
+
 class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
     def __init__(self, tools, domain_policy, model=None):
         super().__init__(tools, domain_policy)
@@ -106,6 +117,7 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         output = AssistantMessage(
             role="assistant",
             content=content or None,
+            usage=_usage(original),
             tool_calls=[
                 ToolCall(id=t["id"], name=t["name"], arguments=t["args"])
                 for t in original.tool_calls
@@ -115,5 +127,65 @@ class DeepRetailAgent(HalfDuplexAgent[RetailAgentState]):
         return output, state
 
 
+class NoToolAgent(HalfDuplexAgent[RetailAgentState]):
+    """Bare-model control: the same model and policy, but no tools at all.
+
+    It cannot look anything up or change anything, so it should score near zero
+    on tasks that need an action. Its purpose is to be the floor of the quality
+    comparison, and to exercise the tau2 runner without the tool layer.
+    """
+
+    def __init__(self, tools, domain_policy, model=None):
+        super().__init__(tools, domain_policy)
+        self.model = model or get_model()
+        self.call_names = {}
+
+    def convert(self, message):
+        if isinstance(message, MultiToolMessage):
+            return [converted for m in message.tool_messages for converted in self.convert(m)]
+        if isinstance(message, ToolMessage):
+            return [
+                LCToolMessage(
+                    content=message.content or "",
+                    tool_call_id=message.id,
+                    name=self.call_names.get(message.id),
+                )
+            ]
+        if isinstance(message, AssistantMessage):
+            return [AIMessage(content=message.content or "")]
+        return [HumanMessage(content=message.content or "")]
+
+    def get_init_state(self, message_history=None):
+        return RetailAgentState([m for item in message_history or [] for m in self.convert(item)])
+
+    def generate_next_message(self, message, state):
+        from langchain_core.messages import SystemMessage
+
+        state.messages.extend(self.convert(message))
+        prompt = (
+            self.domain_policy
+            + "\nYou are a retail customer service agent. You have NO tools: you cannot "
+            "look up or change any order. Answer the customer as best you can, and say "
+            "plainly when an action cannot be completed."
+        )
+        response = self.model.invoke([SystemMessage(content=prompt), *state.messages])
+        content = response.content
+        if isinstance(content, list):
+            content = "".join(b.get("text", "") for b in content if isinstance(b, dict))
+        state.messages.append(AIMessage(content=content or ""))
+        return (
+            AssistantMessage(
+                role="assistant",
+                content=str(content or "").strip() or None,
+                usage=_usage(response),
+            ),
+            state,
+        )
+
+
 def factory(tools, domain_policy, **kwargs):
     return DeepRetailAgent(tools=tools, domain_policy=domain_policy)
+
+
+def no_tool_factory(tools, domain_policy, **kwargs):
+    return NoToolAgent(tools=tools, domain_policy=domain_policy)

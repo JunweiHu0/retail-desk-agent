@@ -6,7 +6,11 @@
 | --- | --- | --- | --- | --- |
 | 2026-11-17 | [serving-29378](experiments/2026-11-17-serving-29378/README.md) | 29378 | 合成 5k 前缀的并发扫描 | 作废（前缀不真实） |
 | 2026-11-17 | [agent-29402](experiments/2026-11-17-agent-29402/README.md) | 29402 | 真实 prompt + 16 工具 schema，思考开/关 × 并发 1/2/4 | **当前基线** |
-| 2026-11-17 | [tau2-bare-29388](experiments/2026-11-17-tau2-bare-29388/README.md) | 29388 | 2 个 tau2 任务、裸模型、pass^1 = 0 | 质量下限 |
+| 2026-11-17 | [tau2-bare-29388](experiments/2026-11-17-tau2-bare-29388/README.md) | 29388 | 2 个 tau2 任务、裸模型、pass^1 = 0 | 早期冒烟 |
+| 2026-11-17 | [tau2-bare-29439](experiments/2026-11-17-tau2-bare-29439/README.md) | 29439 | 10 个 test 任务（8 有效）+ 逐轮引擎指标 | **质量下限** |
+| 2026-11-17 | [tau2-bare-29443](experiments/2026-11-17-tau2-bare-29443/README.md) | 29443 | 补跑 4 个，全部失败（judge 模型） | 失败记录 |
+| 2026-11-17 | [tau2-bare-29450](experiments/2026-11-17-tau2-bare-29450/README.md) | 29450 | 补跑 6 个（5 有效），合计 13 有效任务 | 中间批次 |
+| 2026-11-17 | [tau2-test40](experiments/2026-11-17-tau2-test40/README.md) | test40 / test40-b | test split 全部 40 任务（34 有效），244 轮引擎指标 | **当前基线** |
 
 ## 每组目录里有什么
 

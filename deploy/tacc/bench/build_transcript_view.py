@@ -17,24 +17,46 @@ def load(run_dir):
     results = None
     if (run_dir / "results.json").is_file():
         results = json.loads((run_dir / "results.json").read_text())
-    return trajs, results
+    turns = []
+    if (run_dir / "turns.jsonl").is_file():
+        turns = [json.loads(l) for l in (run_dir / "turns.jsonl").read_text().splitlines() if l]
+    return trajs, results, turns
 
 
-def bubbles(steps):
+def metrics_line(row):
+    if not row:
+        return ""
+    parts = []
+    if row.get("engine_ttft_ms") is not None:
+        parts.append(f"TTFT {row['engine_ttft_ms']} ms")
+    if row.get("engine_tpot_ms") is not None:
+        parts.append(f"TPOT {row['engine_tpot_ms']} ms")
+    if row.get("engine_kv_pct_max") is not None:
+        parts.append(f"KV 峰值 {row['engine_kv_pct_max']}%")
+    if row.get("engine_gen_tokens"):
+        parts.append(f"引擎生成 {row['engine_gen_tokens']} token")
+    if row.get("engine_cache_hit") is not None:
+        parts.append(f"缓存命中 {row['engine_cache_hit'] * 100:.0f}%")
+    parts.append(f"用时 {row['duration_s']} s")
+    return f'<div class="met">{" · ".join(parts)}</div>'
+
+
+def bubbles(steps, turns_by_end=None):
     out = []
     for step in steps:
         source = step.get("source")
         role = "用户" if source == "user" else "模型" if source in ("agent", "assistant") else "系统"
         cls = "u" if source == "user" else "a"
         text = html.escape(str(step.get("message") or ""))
+        row = (turns_by_end or {}).get(step.get("timestamp"))
         out.append(
             f'<div class="msg {cls}"><div class="who">{role}</div>'
-            f'<div class="txt">{text or "（空）"}</div></div>'
+            f'<div class="txt">{text or "（空）"}{metrics_line(row)}</div></div>'
         )
     return "".join(out)
 
 
-def build(trajs, results):
+def build(trajs, results, turns=None):
     sims = {str(s.get("task_id")): s for s in (results or {}).get("simulations", [])}
     cards = []
     for traj in trajs:
@@ -42,13 +64,21 @@ def build(trajs, results):
         sim = sims.get(task_id, {})
         duration = sim.get("duration")
         termination = sim.get("termination_reason") or (traj.get("extra") or {}).get("termination")
+        turns_by_end = {
+            r["end"]: r for r in (turns or []) if str(r.get("task_id")) == str(task_id)
+        }
         cards.append(
             f'<section class="card"><h2>task {html.escape(task_id)}'
             f'<span class="m">{len(traj["steps"])} 条消息'
             f'{" · " + f"{duration:.1f} s" if duration else ""}'
             f'{" · " + html.escape(str(termination)) if termination else ""}</span></h2>'
-            f'<div class="chat">{bubbles(traj["steps"])}</div></section>'
+            f'<div class="chat">{bubbles(traj["steps"], turns_by_end)}</div></section>'
         )
+    tposts = [t["engine_tpot_ms"] for t in (turns or []) if t.get("engine_tpot_ms")]
+    kvs = [t["engine_kv_pct_max"] for t in (turns or []) if t.get("engine_kv_pct_max") is not None]
+    tp = f"{sum(tposts) / len(tposts):.1f}" if tposts else "–"
+    kv = f"{max(kvs):.1f}" if kvs else "–"
+
     return f"""<!doctype html>
 <html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -74,6 +104,7 @@ h1{{font-size:24px;margin:0 0 6px}}
 .who{{font-size:12px;color:var(--muted);padding-top:2px}}
 .msg.u .who{{color:var(--u);font-weight:600}}
 .txt{{white-space:pre-wrap;font-size:14px}}
+.met{{margin-top:6px;font:11.5px ui-monospace,monospace;color:var(--muted)}}
 </style></head><body><main>
 <h1>无工具基线的对话</h1>
 <p class="sub">同一模型、同一政策，但没有任何工具。它只能解释自己做不到，任务因此全部失败——这是质量对比的地板。</p>
@@ -81,6 +112,8 @@ h1{{font-size:24px;margin:0 0 6px}}
   <div class="tile"><div class="k">Pass^1</div><div class="v">0.000</div></div>
   <div class="tile"><div class="k">任务数</div><div class="v">{len(trajs)}</div></div>
   <div class="tile"><div class="k">DB 对比</div><div class="v">0 / {len(trajs)}</div></div>
+  <div class="tile"><div class="k">平均 TPOT</div><div class="v">{tp} ms</div></div>
+  <div class="tile"><div class="k">KV 峰值</div><div class="v">{kv}%</div></div>
 </div>
 {"".join(cards)}
 </main></body></html>"""
@@ -88,8 +121,8 @@ h1{{font-size:24px;margin:0 0 6px}}
 
 def main():
     run_dir = Path(sys.argv[1])
-    trajs, results = load(run_dir)
-    (run_dir / "view.html").write_text(build(trajs, results), encoding="utf-8")
+    trajs, results, turns = load(run_dir)
+    (run_dir / "view.html").write_text(build(trajs, results, turns), encoding="utf-8")
     print(f"{run_dir / 'view.html'}  ({len(trajs)} trajectories)")
 
 
