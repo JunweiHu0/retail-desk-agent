@@ -1,6 +1,6 @@
 # 后端与 Agent 说明：接口、执行流程、评测及 TACC 部署
 
-适用代码：`feat/retail-agent-eval`，包含工具接口增强 `cf632c4`。本文说明当前实现，不表示 TACC 已部署或已通过真实模型验收。实际测试证据见 [VERIFICATION.md](VERIFICATION.md)；详细评测契约见 [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)。
+适用代码：`feat/retail-agent-eval`，包含工具接口增强 `cf632c4` 及 main@f3d9765 的账号/订单 API 合并。本文说明当前实现，不表示 TACC 已部署或已通过真实模型验收。实际测试证据见 [VERIFICATION.md](VERIFICATION.md)；详细评测契约见 [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)。
 
 ## 1. 职责与部署模块
 
@@ -10,7 +10,7 @@
 
 ```text
 前端 / evaluator 客户端
-        │ HTTP 消息、确认/拒绝；接收 SSE
+        │ HTTP 消息、确认/拒绝；接收 SSE 或 JSON
         ▼
 FastAPI + AgentRunner + RetailService + SQLite   ← CPU 应用进程
         │ OpenAI-compatible /v1/chat/completions
@@ -87,7 +87,8 @@ workspace/
 
 | 文件 | 职责 |
 | --- | --- |
-| `backend/main.py` | HTTP入口、会话授权、SSE、同会话运行互斥、私有eval接口 |
+| `backend/main.py` | main 的 cookie/订单 HTTP 入口、SSE/JSON、同会话运行互斥、私有 eval 接口 |
+| `backend/auth.py` | main 的密码哈希、登录 cookie 会话及撤销、账号注册与登录限流 |
 | `backend/agent.py` | 消息历史、模型调用、工具选择与顺序执行、审批后的续跑、调用/时间预算 |
 | `backend/retail.py` | 官方工具catalog、身份/订单归属校验、写预览、批准后调用官方写函数 |
 | `backend/tool_profiles.py` | 工具描述、只读结果包装、两个纯查询助手；不读取评测答案 |
@@ -113,7 +114,7 @@ workspace/
 5. 写工具在RetailDB副本上调用官方函数以验证并生成before/after预览，不保存这份业务变更。
 6. 返回awaiting_confirmation后暂停。前端/evaluator批准或拒绝准确的action_id。
 7. 批准：重新读取当前数据，校验预览对应状态，执行官方函数，在事务中保存业务DB及receipt；拒绝：DB不变，保存拒绝receipt。
-8. 把实际receipt放回历史，agent继续剩余请求。
+8. 把实际receipt放回历史。公共浏览器接口按 main 返回 JSON，下一条用户消息继续；内部评测接口自动续跑并返回 SSE。
 
 重要区分：模型说“完成”、tool预览成功、SSE的done，都不等于DB已经修改。以实际executed receipt和DB为准。当前聊天中的yes不会代替decisions接口；若改为聊天确认，需另外实现并冻结交互协议。
 
@@ -121,9 +122,10 @@ workspace/
 
 ## 5. 会话、状态和数据隔离
 
-一个应用SQLite文件可包含多个episode。隔离方式是 `session_datasets` 按session ID保存独立的完整RetailDB JSON，不是每个用户共享同一份可变seed，也不要求每个episode一个sqlite文件。
+一个应用SQLite文件包含浏览器会话和评测 episode。`owner_user_id` 非空的浏览器会话读取共享业务 `dataset`，所有入口按账号校验归属，确保聊天修改可在订单页立即看到。无 owner 的评测会话通过 `session_datasets` 保存独立完整 RetailDB JSON，不改变浏览器数据或其他 episode。旧匿名会话不自动归属账号；main 的既有账号会话继续使用共享数据。
 
-- `dataset`：初始化seed。
+- `dataset`：持久业务 DB，同时作为未指定 initial_db 的内部 episode 初始来源。
+- `accounts` / `auth_sessions` / `login_attempts`：main 的密码哈希、可撤销 cookie 会话及登录限流。
 - `sessions`：用户身份、消息、模型历史、pending、agent_state、usage、manifest、结束原因。
 - `session_datasets`：每个episode当前业务数据库。
 - `events` / `actions`：工具观察、决定、实际写入和回执等审计记录。
@@ -134,7 +136,7 @@ pending/历史/账本随SQLite保存，应用重启且保留同一DB文件时可
 
 ## 6. Agent与工具实验配置
 
-variant在创建会话/episode时固定，前端无须理解其内部实现。
+浏览器按 main 创建默认 B1，并隐藏两个身份查询工具（14 工具）；下表工具数量指内部评测配置。variant 在内部创建评测 episode 时固定，前端无须理解其内部实现。
 
 | 配置 | 执行结构 | 工具数 |
 | --- | --- | --- |
@@ -159,16 +161,20 @@ variant在创建会话/episode时固定，前端无须理解其内部实现。
 
 | 调用者 | 接口 | 输入/返回 |
 | --- | --- | --- |
-| 前端 | POST `/api/sessions` | `{scenario_id?, variant?}` → `{id, token, ...}` |
+| 前端 | POST `/api/auth/register`、`/api/auth/login`、`/api/auth/logout` | main 的账号流程；login 设置 HttpOnly cookie |
+| 前端 | GET `/api/me`、`/api/orders`、`/api/orders/{oid}` | 仅当前客户资料和订单 |
+| 前端 | POST `/api/me/address`、`/api/orders/{oid}/actions` | 返回待审批 session，写前 DB 不变 |
+| 前端 | GET/POST `/api/sessions` | 列出账号会话 / 无请求体创建账号 B1 会话，不返回 token |
 | 前端 | POST `/api/sessions/{id}/messages` | `{message}` → SSE |
-| 前端 | POST `/api/sessions/{id}/decisions` | `{action_id, approve}` → receipt和后续SSE |
+| 前端 | POST `/api/sessions/{id}/decisions` | `{action_id, approve}` → JSON `{receipt, session}` |
 | 前端 | GET `/api/sessions/{id}` | 消息、客户/订单上下文、pending、状态、usage等 |
 | 运维 | GET `/api/health` | 模式、模型配置、variants、基础tools=16及各配置tool_interfaces |
 | eval | POST `/internal/eval/episodes` | 初始DB、customer_id、variant、task/trial/seed；不接收target |
+| eval | GET `/internal/eval/episodes/{id}`；POST `.../messages`、`.../decisions` | episode Bearer token；消息/审批返回 SSE，审批后自动续跑 |
 | eval | POST `/internal/eval/episodes/{id}/finish` | `{reason}`，冻结并导出 |
 | eval | GET `/internal/eval/episodes/{id}/snapshot` | 私有完整实际DB、manifest、agent_state等 |
 
-前端按会话token认证；eval按独立EVAL_API_TOKEN认证。后者不交给前端或agent。SSE包含status/tool_start/tool_end/proposal/receipt/done/error，可能出现keepalive。done表示本轮结束，正文目前不是逐token流。不同于早期版本，decisions也返回SSE，前端须按相同流协议消费。
+前端使用 main 的 `retail_auth` cookie；公共 API 不接受 episode Bearer token。注册/登录/退出、SameSite=Lax、HTTPS Secure、Origin 校验与 APP_BASE_PATH cookie 路径保持 main 约定。内部评测创建/冻结/快照使用 EVAL_API_TOKEN，交互使用 episode token；登录 cookie 不能访问评测会话。评测 token 不交给前端或 agent。messages 返回 SSE；公共 decisions 返回 JSON 且不调用模型；内部 decisions 返回 SSE 并自动续跑。SSE 的 done 仅表示本轮结束。协议已升级为 retail-http-v2，旧 evaluator 必须同步升级路由。
 
 `/api/health` 的model_ready只是当前代码的配置级检查，不证明模型已成功生成tool_calls。TACC验收必须另测工具调用和工具结果续跑。
 
@@ -297,6 +303,14 @@ cd "$TACC_WORKDIR/app"
 3. 验证独立session、只读不改DB、写预览不改DB、批准只执行对应方案、拒绝不改DB、审批后续跑，以及finish后不能继续写入。
 4. 验证新工具配置：基础目录16，tools_extended为18；health/episode manifest/实际绑定一致，额外工具只读且受客户隔离约束。
 5. 私有eval通过同一HTTP链路运行少量完整episode并保存最终快照，再扩大固定任务集。检查输出可在作业结束后读取，缺快照不得算完整suite。
-6. 核对前端只持有session token，eval token/target/参考动作不进入前端或agent。前端接收messages和decisions的SSE，不把done当整题成功。
+6. 核对浏览器使用 HttpOnly cookie、messages SSE 和 decisions JSON；eval token/target/参考动作不进入前端或 agent。内部 evaluator 使用 v2 路由，不能把 done 当整题成功。
 
 实验效果与部署验收分开记录。模型、量化、thinking、交互确认模式、工具集合或模拟用户配置变化后，建立新的对照组，不拼接旧分数。
+
+### Main 登录界面的数据准备
+
+首次部署需要登录账户。注册只创建空客户，不继承 tau2 数据。若使用 main
+登录页的六个演示账号，应在应用启动前，对单独的应用 DB 运行
+`python -m scripts.seed_demo --apply`（先确认 RETAIL_DB_PATH 指向应用 DB；脚本会备份并更新演示清单）；AuthService 启动时
+按 `DEMO_ACCOUNTS=1` 创建这些合成账号。不要对冻结 benchmark fixtures
+执行 seed。生产式环境可设 `DEMO_ACCOUNTS=0` 并走注册或管理员开户流程。

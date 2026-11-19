@@ -1,6 +1,6 @@
 # Retail Desk — 业务操作与最终数据库评测
 
-Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询数据、生成修改预览，在用户确认后提交真实的沙盒数据库变更。每个会话对应独立 episode，互不污染。
+Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询数据、生成修改预览，在用户确认后提交真实的沙盒数据库变更。浏览器会话按登录账号归属，订单与资料共享持久化业务数据；评测 episode 使用独立 DB。
 
 当前默认 agent 是 **B1：政策全文 + 原生工具调用循环 + 会话历史**。`state`、`errors`、`guide`、`enhanced` 是可单独比较的增强配置；尚未经过真实模型评测的配置不代表已获得性能提升。`guide` 初始内容来自公开政策，不能称为训练轨迹学习结果。
 
@@ -26,32 +26,37 @@ Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询
 
 ## 业务流程
 
-1. 选择合成客户场景与 agent 配置，创建独立数据库会话。
+1. 通过 main 的 cookie 登录创建账号所属会话，或从订单/个人资料页发起操作。
 2. 发送消息；后端调用模型，执行一个业务工具，将结果交回模型继续决策。
 3. 写工具先在副本上预演；页面显示具体商品、支付/退款及修改前后信息。
 4. 通过确认卡批准或拒绝；只有后端执行回执才证明数据库已改变。
-5. 确认后的回执交给 agent，继续处理同一客户的剩余需求。
+5. 浏览器确认返回 JSON 回执和会话状态；下一条消息继续对话。内部评测确认仍以 SSE 自动续跑 agent。
 
 聊天文本中的“yes”不代替确认接口。刷新页面会恢复会话和待确认操作。工具进度通过 SSE 展示，正文在本轮完成后展示；不将进度事件称为 token 流。
 
 ## API
 
-普通会话接口继续使用 `Authorization: Bearer <session token>`。
+公共 API 与 `origin/main@f3d9765` 对齐：使用 `retail_auth` HttpOnly cookie，支持 `APP_BASE_PATH`。浏览器不接收 session token，也不能凭 Bearer 绕过登录。
 
 | 方法 | 路径 | 内容 |
 | --- | --- | --- |
 | GET | `/api/health` | 模式、模型配置、工具数、可用变体 |
-| GET | `/api/samples` | 合成客户场景 |
-| POST | `/api/sessions` | `{scenario_id?, variant?}`，返回独立 episode 与 capability |
+| POST | `/api/auth/register`、`/api/auth/login`、`/api/auth/logout` | 注册、登录、退出 |
+| GET | `/api/me`、`/api/orders`、`/api/orders/{oid}` | 当前客户资料与订单 |
+| POST | `/api/orders/{oid}/actions`、`/api/me/address` | 创建待审批操作，返回 session |
+| GET | `/api/samples` | 当前登录客户订单示例 |
+| GET | `/api/sessions` | 当前账号历史会话 |
+| POST | `/api/sessions` | 无请求体，创建当前账号的 B1 会话，返回 id 等信息，不含 token |
 | GET | `/api/sessions/{id}` | 消息、订单、pending、真实回执、状态和 usage |
 | POST | `/api/sessions/{id}/messages` | `{message}`，返回 SSE |
-| POST | `/api/sessions/{id}/decisions` | `{action_id, approve}`，返回 SSE，提交后继续 agent |
+| POST | `/api/sessions/{id}/decisions` | `{action_id, approve}`，返回 JSON `{receipt, session}`，不额外调用模型 |
 
-评测接口使用独立的 `EVAL_API_TOKEN`；未配置时关闭。
+评测创建/快照/结束使用独立的 `EVAL_API_TOKEN`；未配置时无法创建评测。评测消息/审批使用创建时返回的 episode token，仅访问内部路由。
 
 | 方法 | 路径 | 内容 |
 | --- | --- | --- |
 | POST | `/internal/eval/episodes` | 公开初始 DB、客户、variant、task/trial/seed |
+| POST | `/internal/eval/episodes/{id}/messages`、`/internal/eval/episodes/{id}/decisions` | episode Bearer token；SSE，共用 agent/工具执行器 |
 | POST | `/internal/eval/episodes/{id}/finish` | `{reason}`，冻结并导出状态 |
 | GET | `/internal/eval/episodes/{id}/snapshot` | 完整实际 RetailDB、会话与运行 manifest |
 
@@ -93,4 +98,4 @@ npm run build
 
 `lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。
 
-后端工具接口实验通过现有 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API契约、比较口径见 `docs/EVAL_PROTOCOL.md`。这些是独立工具实验，尚无成功率提升结论。
+后端工具接口实验通过内部评测创建请求的 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API契约、比较口径见 `docs/EVAL_PROTOCOL.md`。这些是独立工具实验，尚无成功率提升结论。

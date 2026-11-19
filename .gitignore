@@ -13,3 +13,8 @@ frontend/playwright-report/
 deploy/tacc/env
 deploy/tacc/.run/
 deploy/tacc/.stage/
+
+.env.*
+!.env.example
+!.env.deepseek.example
+.deployment/

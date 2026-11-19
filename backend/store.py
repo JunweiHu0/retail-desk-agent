@@ -53,6 +53,7 @@ class Store:
             # Preserve conversations when opening a pre-episode application database.
             columns = {row["name"] for row in cx.execute("PRAGMA table_info(sessions)")}
             for name, definition in {
+                "owner_user_id": "TEXT",
                 "variant": "TEXT NOT NULL DEFAULT 'b1'",
                 "status": "TEXT NOT NULL DEFAULT 'ready'",
                 "manifest": "TEXT NOT NULL DEFAULT '{}'",
@@ -62,12 +63,15 @@ class Store:
             }.items():
                 if name not in columns:
                     cx.execute(f"ALTER TABLE sessions ADD COLUMN {name} {definition}")
+            cx.execute(
+                "CREATE INDEX IF NOT EXISTS sessions_owner ON sessions(owner_user_id,updated_at)"
+            )
             if not cx.execute("SELECT 1 FROM dataset WHERE id=1").fetchone():
                 cx.execute("INSERT INTO dataset VALUES(1,?)", (seed.read_text(),))
             cx.execute("""
                 INSERT INTO session_datasets(session_id,data)
                 SELECT sessions.id,dataset.data FROM sessions CROSS JOIN dataset
-                WHERE dataset.id=1 AND sessions.id NOT IN
+                WHERE dataset.id=1 AND sessions.owner_user_id IS NULL AND sessions.id NOT IN
                     (SELECT session_id FROM session_datasets)
             """)
             cx.execute("""
@@ -104,9 +108,14 @@ class Store:
         trial_id=None,
         seed=0,
         metadata=None,
+        owner_user_id=None,
     ):
         from tau2.domains.retail.data_model import RetailDB
 
+        if owner_user_id is not None:
+            if initial_db is not None:
+                raise ValueError("Browser sessions use the account database")
+            user_id = owner_user_id
         sid, token, stamp = uuid.uuid4().hex, uuid.uuid4().hex, now()
         with self.tx() as cx:
             data = self.dataset(cx) if initial_db is None else initial_db
@@ -132,8 +141,8 @@ class Store:
             }
             cx.execute(
                 """INSERT INTO sessions(
-                    id,token,title,created_at,updated_at,user_id,variant,status,manifest
-                ) VALUES(?,?,?,?,?,?,?,?,?)""",
+                    id,token,title,created_at,updated_at,user_id,variant,status,manifest,owner_user_id
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
                 (
                     sid,
                     token,
@@ -144,12 +153,14 @@ class Store:
                     variant,
                     "ready",
                     encode(manifest),
+                    owner_user_id,
                 ),
             )
-            cx.execute(
-                "INSERT INTO session_datasets VALUES(?,?)",
-                (sid, encode(initial)),
-            )
+            if owner_user_id is None:
+                cx.execute(
+                    "INSERT INTO session_datasets VALUES(?,?)",
+                    (sid, encode(initial)),
+                )
         return {
             "id": sid,
             "token": token,
@@ -218,7 +229,7 @@ class Store:
             ]
 
     def dataset(self, cx, sid=None):
-        if sid is None:
+        if sid is None or self.session(sid, cx)["owner_user_id"] is not None:
             row = cx.execute("SELECT data FROM dataset WHERE id=1").fetchone()
         else:
             row = cx.execute(
@@ -229,8 +240,8 @@ class Store:
         return json.loads(row[0])
 
     def save_dataset(self, cx, data, sid=None):
-        # Omitting sid is reserved for explicit seed fixture setup; business tools pass it.
-        if sid is None:
+        # Owned browser sessions share account data; evaluator sessions remain isolated.
+        if sid is None or self.session(sid, cx)["owner_user_id"] is not None:
             cx.execute("UPDATE dataset SET data=? WHERE id=1", (encode(data),))
         else:
             cx.execute("UPDATE session_datasets SET data=? WHERE session_id=?", (encode(data), sid))

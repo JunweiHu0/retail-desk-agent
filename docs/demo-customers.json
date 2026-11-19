@@ -1,0 +1,129 @@
+{
+  "created_users": 6,
+  "created_orders": 18,
+  "total_users": 506,
+  "total_orders": 1018,
+  "customers": [
+    {
+      "user_id": "demo_li_ming_2026",
+      "name": "Ming Li",
+      "email": "li.ming@retail-demo.example.com",
+      "zip": "78701",
+      "orders": [
+        {
+          "order_id": "#W9000001",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000002",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000003",
+          "status": "processed"
+        }
+      ]
+    },
+    {
+      "user_id": "demo_wang_fang_2026",
+      "name": "Fang Wang",
+      "email": "wang.fang@retail-demo.example.com",
+      "zip": "98101",
+      "orders": [
+        {
+          "order_id": "#W9000004",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000005",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000006",
+          "status": "processed"
+        }
+      ]
+    },
+    {
+      "user_id": "demo_zhang_wei_2026",
+      "name": "Wei Zhang",
+      "email": "zhang.wei@retail-demo.example.com",
+      "zip": "02108",
+      "orders": [
+        {
+          "order_id": "#W9000007",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000008",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000009",
+          "status": "processed"
+        }
+      ]
+    },
+    {
+      "user_id": "demo_chen_xi_2026",
+      "name": "Xi Chen",
+      "email": "chen.xi@retail-demo.example.com",
+      "zip": "80202",
+      "orders": [
+        {
+          "order_id": "#W9000010",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000011",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000012",
+          "status": "processed"
+        }
+      ]
+    },
+    {
+      "user_id": "demo_liu_yang_2026",
+      "name": "Yang Liu",
+      "email": "liu.yang@retail-demo.example.com",
+      "zip": "97201",
+      "orders": [
+        {
+          "order_id": "#W9000013",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000014",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000015",
+          "status": "processed"
+        }
+      ]
+    },
+    {
+      "user_id": "demo_zhao_min_2026",
+      "name": "Min Zhao",
+      "email": "zhao.min@retail-demo.example.com",
+      "zip": "60601",
+      "orders": [
+        {
+          "order_id": "#W9000016",
+          "status": "pending"
+        },
+        {
+          "order_id": "#W9000017",
+          "status": "delivered"
+        },
+        {
+          "order_id": "#W9000018",
+          "status": "processed"
+        }
+      ]
+    }
+  ],
+  "backup": "/home/mnyh/projects/retail-agent/runtime/backups/pre-demo-20261027-002535.sqlite3"
+}

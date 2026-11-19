@@ -30,21 +30,24 @@ def test_minimal_demo_real_tools_and_memory(service, session, pending_order):
     assert "已取消" in runner.run(sid, f"查询订单 {pending_order['order_id']}")
 
 
-def test_api_stream_approval_and_capability_tokens(service, pending_order):
+def test_api_stream_approval_and_login(service, pending_order):
     with TestClient(create_app(service.store)) as client:
         assert client.get("/api/health").json()["domain"] == "retail"
+        assert client.post("/api/sessions").status_code == 401
+        email = dataset(service)["users"][pending_order["user_id"]]["email"]
+        client.app.state.auth.provision_for_existing(pending_order["user_id"], "TestPassword123!")
+        assert (
+            client.post(
+                "/api/auth/login", json={"email": email, "password": "TestPassword123!"}
+            ).status_code
+            == 200
+        )
         session = client.post("/api/sessions").json()
         sid = session["id"]
-        headers = {"Authorization": f"Bearer {session['token']}"}
+        assert "token" not in session
+        headers = {}
         path = f"/api/sessions/{sid}"
-        assert client.get(path).status_code == 403
-        assert client.get(path, headers={"Authorization": "Bearer wrong"}).status_code == 403
-        other = client.post("/api/sessions").json()
-        assert (
-            client.get(path, headers={"Authorization": f"Bearer {other['token']}"}).status_code
-            == 403
-        )
-        email = dataset(service)["users"][pending_order["user_id"]]["email"]
+        assert client.get(path).status_code == 200
         response = client.post(
             path + "/messages",
             headers=headers,
@@ -72,16 +75,10 @@ def test_api_stream_approval_and_capability_tokens(service, pending_order):
             json={"action_id": proposal["id"], "approve": True},
         )
         assert result.status_code == 200
-        decision_events = [
-            json.loads(line[6:]) for line in result.text.splitlines() if line.startswith("data: ")
-        ]
-        receipt = next(event["receipt"] for event in decision_events if event["type"] == "receipt")
+        assert result.headers["content-type"].startswith("application/json")
+        receipt = result.json()["receipt"]
         assert receipt["result"]["status"] == "cancelled"
-        assert decision_events[-1]["type"] == "done"
-        assert (
-            len([e for e in decision_events[-1]["session"]["events"] if e["kind"] == "receipt"])
-            == 1
-        )
+        assert len([e for e in result.json()["session"]["events"] if e["kind"] == "receipt"]) == 1
         assert (
             client.post(
                 path + "/decisions",

@@ -127,7 +127,7 @@ def test_four_operations_continue_after_each_receipt_and_survive_restart(
     headers = {"Authorization": "Bearer " + c1_episode["token"]}
     with TestClient(create_app(service.store)) as client:
         response = client.post(
-            f"/api/sessions/{sid}/messages",
+            f"/internal/eval/episodes/{sid}/messages",
             headers=headers,
             json={
                 "message": "Update my account and all pending order addresses to 777 New Street, then cancel #W9000001 because no longer needed."
@@ -142,7 +142,7 @@ def test_four_operations_continue_after_each_receipt_and_survive_restart(
             restarted = Store(service.store.path)
             assert restarted.session(sid)["agent_state"] == current["agent_state"]
             response = client.post(
-                f"/api/sessions/{sid}/decisions",
+                f"/internal/eval/episodes/{sid}/decisions",
                 headers=headers,
                 json={"action_id": current["pending"]["id"], "approve": True},
             )
@@ -152,7 +152,7 @@ def test_four_operations_continue_after_each_receipt_and_survive_restart(
                 if line.startswith("data: ")
             ]
             assert events[-1]["type"] == "done", events[-1]
-        public = client.get(f"/api/sessions/{sid}", headers=headers).json()
+        public = client.get(f"/internal/eval/episodes/{sid}", headers=headers).json()
         assert "agent_state" not in public
         final = client.post(
             f"/internal/eval/episodes/{sid}/finish",

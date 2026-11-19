@@ -1,4 +1,4 @@
-"""Synchronous HTTP driver. The browser and evaluator share message/decision routes."""
+"""Synchronous HTTP driver. Internal evaluator routes reuse the browser agent/service with isolated DBs."""
 
 import json
 import time
@@ -80,7 +80,7 @@ class EpisodeHTTP:
             )
         with self.client.stream(
             "POST",
-            f"{self.base}/api/sessions/{self.sid}/{path}",
+            f"{self.base}/internal/eval/episodes/{self.sid}/{path}",
             json=body,
             headers=self.session_headers,
             timeout=timeout,

@@ -91,13 +91,13 @@ Authorization: Bearer $EVAL_API_TOKEN
 
 Only public protocol/source identifiers are placed in metadata. The create
 response provides `{session:{id,token,...}, manifest}`. The capability token is
-kept in memory, excluded from saved artifacts, and used for browser-compatible
-session operations:
+kept in memory, excluded from saved artifacts, and used only for internal
+episode operations (retail-http-v2):
 
 ```text
-POST /api/sessions/{id}/messages   {message}
-POST /api/sessions/{id}/decisions  {action_id, approve}
-GET  /api/sessions/{id}
+POST /internal/eval/episodes/{id}/messages   {message}
+POST /internal/eval/episodes/{id}/decisions  {action_id, approve}
+GET  /internal/eval/episodes/{id}
 ```
 
 The model transport uses one leading system message containing policy, public
@@ -417,3 +417,16 @@ record the actual bound interface. Comparison validates it against the cohort
 manifest and labels changes with `comparison_kind=tool_interface`. Target/scoring,
 model and simulator equality, budget checks, and complete-sample requirements stay
 in force. A changed evaluator source requires a new same-source baseline comparison.
+
+## Main API alignment (2026-11-19 UTC)
+
+Public browser APIs follow main@f3d9765: HttpOnly retail_auth cookies, owned
+conversation listing, account/order endpoints, message SSE, and decision JSON
+{receipt, session}. Browser approval records the receipt without invoking the
+model; the next customer message resumes it. Browser sessions use shared account
+data. Evaluator sessions retain independent DBs, bearer capabilities, and
+automatic post-decision continuation, under /internal/eval/episodes/{id}.
+Both reuse AgentRunner and RetailService, but this is no longer an identical
+browser/evaluator interaction protocol. Report that distinction explicitly.
+The comparator and frozen targets are unchanged; HTTP/provenance is now v2.
+Do not combine v1/v2 cohort results as a matched comparison.

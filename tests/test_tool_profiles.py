@@ -199,7 +199,7 @@ def test_health_advertises_variant_specific_tools_without_changing_base(service)
         assert health["tools"] == 16
         assert health["tool_interfaces"]["tools_extended"]["count"] == 18
         assert health["tool_interfaces"]["b1"]["count"] == 16
-        assert client.post("/api/sessions", json={"variant": "tools_extended"}).status_code == 201
+        assert client.post("/api/sessions", json={"variant": "tools_extended"}).status_code == 401
 
 
 def test_evaluator_refuses_unadvertised_extended_tools(tmp_path, monkeypatch):
@@ -226,7 +226,7 @@ def test_evaluator_refuses_unadvertised_extended_tools(tmp_path, monkeypatch):
                     "model_ready": True,
                     "thinking": "off",
                     "tools": 16,
-                    "protocol_version": "retail-http-v1",
+                    "protocol_version": "retail-http-v2",
                 },
                 request=httpx.Request("GET", "http://test/api/health"),
             )

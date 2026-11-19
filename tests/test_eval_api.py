@@ -40,7 +40,7 @@ def test_eval_http_workflow_isolated_and_frozen(service, pending_order, monkeypa
         second = client.post("/internal/eval/episodes", json=body, headers=eval_headers).json()[
             "session"
         ]
-        path = f"/api/sessions/{ref['id']}"
+        path = f"/internal/eval/episodes/{ref['id']}"
         headers = {"Authorization": f"Bearer {ref['token']}"}
         state = client.get(path, headers=headers).json()
         assert state["context"]["user"]["user_id"] == uid
@@ -107,7 +107,7 @@ def test_committed_receipt_survives_model_error(service, pending_order, monkeypa
     with TestClient(create_app(service.store, runner=FailContinuation(service))) as client:
         headers = {"Authorization": f"Bearer {ref['token']}"}
         response = client.post(
-            f"/api/sessions/{ref['id']}/decisions",
+            f"/internal/eval/episodes/{ref['id']}/decisions",
             headers=headers,
             json={
                 "action_id": proposal["action_id"],
@@ -126,7 +126,7 @@ def test_committed_receipt_survives_model_error(service, pending_order, monkeypa
         assert len([e for e in state["events"] if e["kind"] == "receipt"]) == 1
         assert (
             client.post(
-                f"/api/sessions/{ref['id']}/decisions",
+                f"/internal/eval/episodes/{ref['id']}/decisions",
                 headers=headers,
                 json={
                     "action_id": proposal["action_id"],
@@ -151,7 +151,19 @@ def test_private_eval_fields_rejected_at_boundary(service, pending_order, monkey
             },
         )
         assert response.status_code == 422
-        assert client.post("/api/sessions", json={"variant": "arbitrary-prompt"}).status_code == 422
+        assert (
+            client.post(
+                "/internal/eval/episodes",
+                headers={"Authorization": "Bearer test-eval"},
+                json={
+                    "initial_db": dataset(service),
+                    "customer_id": pending_order["user_id"],
+                    "task_id": "test",
+                    "variant": "arbitrary-prompt",
+                },
+            ).status_code
+            == 422
+        )
 
 
 def test_finish_seals_business_state_while_model_turn_drains(service, pending_order, monkeypatch):
@@ -182,7 +194,7 @@ def test_finish_seals_business_state_while_model_turn_drains(service, pending_or
         with ThreadPoolExecutor(max_workers=1) as pool:
             turn = pool.submit(
                 client.post,
-                f"/api/sessions/{ref['id']}/messages",
+                f"/internal/eval/episodes/{ref['id']}/messages",
                 headers={"Authorization": f"Bearer {ref['token']}"},
                 json={"message": "cancel"},
             )

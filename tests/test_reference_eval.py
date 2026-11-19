@@ -386,7 +386,7 @@ def test_error_sse_after_commit_preserves_session_and_is_not_infrastructure(db, 
     assert result["termination"] == "agent_error"
     assert result["infrastructure_error"] is False
     assert result["success"] is True
-    assert calls.count("/api/sessions/s/messages") == 1
+    assert calls.count("/internal/eval/episodes/s/messages") == 1
     trace = json.loads((tmp_path / "attempt/trace.json").read_text())
     assert trace[0]["events"][0]["data"]["status"] == "executed"
 

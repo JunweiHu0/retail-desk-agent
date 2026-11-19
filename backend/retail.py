@@ -12,6 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
+from backend.observations import normalize_variant_changes, variant_change_error
 from backend.store import encode, now
 from backend.tool_profiles import (
     DESCRIPTIONS,
@@ -83,9 +84,11 @@ class RetailService:
             if getattr(RetailTools, name).__tool_type__ == ToolType.WRITE
         }
 
-    def tool_definitions(self, variant):
+    def tool_definitions(self, variant, *, account_bound=False):
         definitions = []
         for name, upstream in self.catalog.items():
+            if account_bound and name in AUTH_TOOLS:
+                continue
             if variant in TOOL_PROFILES:
                 description = DESCRIPTIONS[name]
                 if name in self.writes:
@@ -116,8 +119,8 @@ class RetailService:
             )
         return definitions
 
-    def tool_manifest(self, variant):
-        definitions = self.tool_definitions(variant)
+    def tool_manifest(self, variant, *, account_bound=False):
+        definitions = self.tool_definitions(variant, account_bound=account_bound)
         specifications = [
             {
                 "name": t.name,
@@ -139,6 +142,8 @@ class RetailService:
     def authorize(self, session, db, name, args):
         uid = session["user_id"]
         if name in AUTH_TOOLS:
+            if session.get("owner_user_id"):
+                raise PermissionError("当前账号已登录，不能查询或切换其他客户身份。")
             return
         if not uid:
             raise PermissionError("请先通过邮箱或姓名和邮编核验身份。")
@@ -179,6 +184,11 @@ class RetailService:
                     args
                 )
                 args = params.model_dump()
+                if session["owner_user_id"] is not None:
+                    args = normalize_variant_changes(name, args)
+                    error = variant_change_error(name, args)
+                    if error:
+                        raise ValueError(error)
                 self.authorize(session, db, name, args)
                 tools = RetailTools(db).get_tools()
                 if helper:
@@ -347,8 +357,12 @@ class RetailService:
         with self.store.tx() as cx:
             data = self.store.dataset(cx)
             samples = []
+            candidates = sorted(
+                data["orders"].values(),
+                key=lambda order: (not order["user_id"].startswith("demo_"), order["order_id"]),
+            )
             for status in ("pending", "delivered", "processed"):
-                order = next((o for o in data["orders"].values() if o["status"] == status), None)
+                order = next((o for o in candidates if o["status"] == status), None)
                 if order:
                     user = data["users"][order["user_id"]]
                     samples.append(

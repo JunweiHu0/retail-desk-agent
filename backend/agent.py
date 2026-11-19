@@ -117,7 +117,8 @@ class DemoRetailModel(BaseChatModel):
                     "已根据订单生成变更预览。请核对下方操作、商品和退款方式，再点击「确认执行」。确认前数据不会改变。"
                 )
         email = re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", query)
-        if email and not any(m.name == "find_user_id_by_email" for m in recent):
+        trusted_uid = (application.get("retail_context", {}).get("user") or {}).get("user_id")
+        if email and not trusted_uid and not any(m.name == "find_user_id_by_email" for m in recent):
             return call("find_user_id_by_email", {"email": email.group()})
         auth = next(
             (
@@ -225,8 +226,11 @@ def get_model():
         max_retries=0,
         max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
         model_kwargs={"parallel_tool_calls": False},
+        use_responses_api=False,
         extra_body=(
-            {"chat_template_kwargs": {"enable_thinking": config.MODEL_THINKING == "on"}}
+            {"thinking": {"type": "disabled"}}
+            if config.IS_DEEPSEEK
+            else {"chat_template_kwargs": {"enable_thinking": config.MODEL_THINKING == "on"}}
             if config.MODEL_THINKING != "auto"
             else None
         ),
@@ -282,7 +286,8 @@ CONFIRMATION_PAUSE = (
 
 def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
     """Bind the selected, recorded tool interface; dispatch remains in RetailService."""
-    variant = service.store.session(sid)["variant"]
+    session = service.store.session(sid)
+    variant = session["variant"]
     tools = [
         StructuredTool(
             name=spec.name,
@@ -290,7 +295,9 @@ def build_agent(service, sid, emit=lambda event: None, model=None, rec=None):
             args_schema=spec.params,
             func=lambda **args: None,
         )
-        for spec in service.tool_definitions(variant)
+        for spec in service.tool_definitions(
+            variant, account_bound=session["owner_user_id"] is not None
+        )
     ]
     return (model or get_model()).bind_tools(
         tools,
@@ -328,7 +335,9 @@ class AgentRunner:
             )
         return self._loop(sid, emit, model, text)
 
-    def decide(self, sid, action_id, approve, emit=lambda event: None, model=None):
+    def decide(
+        self, sid, action_id, approve, emit=lambda event: None, model=None, *, continue_agent=True
+    ):
         pending = self.store.session(sid)["pending"]
         receipt = self.service.decide(sid, action_id, approve)
         # The receipt is trusted application context, never a fabricated customer instruction.
@@ -355,10 +364,22 @@ class AgentRunner:
                 agent_state=state,
                 status="finished" if session["status"] == "finished" else "running",
                 messages=session["messages"]
-                + [{"id": uuid.uuid4().hex, "role": "application", "content": receipt["message"]}],
+                + [
+                    {
+                        "id": uuid.uuid4().hex,
+                        "role": "application" if continue_agent else "assistant",
+                        "content": receipt["message"],
+                    }
+                ],
             )
         emit({"type": "receipt", "receipt": receipt})
-        self._loop(sid, emit, model, "[application decision]")
+        if continue_agent:
+            self._loop(sid, emit, model, "[application decision]")
+        else:
+            with self.store.tx() as cx:
+                current = self.store.session(sid, cx)
+                if current["status"] != "finished":
+                    self.store.update(cx, sid, status="ready")
         return receipt
 
     def _loop(self, sid, emit, model, turn_text):
@@ -495,7 +516,9 @@ class AgentRunner:
         max_calls = int(os.getenv("AGENT_MAX_MODEL_CALLS", "80"))
         max_tools = int(os.getenv("AGENT_MAX_TOOL_CALLS", "80"))
         max_seconds = float(os.getenv("AGENT_MAX_ACTIVE_SECONDS", "600"))
-        manifest["tool_interface"] = self.service.tool_manifest(variant)
+        manifest["tool_interface"] = self.service.tool_manifest(
+            variant, account_bound=session["owner_user_id"] is not None
+        )
         manifest["agent_runtime"] = {
             "implementation": "native-tool-loop-v1",
             "task_control": "advisory-v1" if advisory else "gated" if with_tasks else "disabled",

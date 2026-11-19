@@ -24,7 +24,7 @@ def runtime_manifest():
         if result.returncode == 0:
             sha = result.stdout.strip()
     return {
-        "protocol_version": "retail-http-v1",
+        "protocol_version": "retail-http-v2",
         "source_sha": sha or "unknown",
         "source_dirty": deployed.get("application_dirty"),
         "source_snapshot_sha256": deployed.get("retail-desk-agent_snapshot_sha256"),

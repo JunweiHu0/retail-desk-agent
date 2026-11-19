@@ -4,12 +4,14 @@ import asyncio
 import hmac
 import json
 import logging
+import os
 import threading
 import uuid
 from contextlib import asynccontextmanager, contextmanager
 from typing import Literal
+from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,6 +19,7 @@ from tau2.domains.retail.data_model import RetailDB
 
 from backend import config, infra
 from backend.agent import AgentRunner
+from backend.auth import SESSION_TTL, AuthService
 from backend.provenance import runtime_manifest
 from backend.retail import RetailService
 from backend.store import Store
@@ -36,12 +39,6 @@ Variant = Literal[
     "tools_structured",
     "tools_extended",
 ]
-
-
-class CreateSession(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    scenario_id: str | None = None
-    variant: Variant = "b1"
 
 
 class EvalEpisode(BaseModel):
@@ -77,6 +74,7 @@ def create_app(store=None, runner=None, artifact_dir=None):
         app.state.store = store or Store()
         app.state.retail = RetailService(app.state.store)
         app.state.runner = runner or AgentRunner(app.state.retail)
+        app.state.auth = AuthService(app.state.store, os.getenv("DEMO_ACCOUNTS", "1") == "1")
         app.state.manifest = runtime_manifest()
         app.state.artifact_dir = artifact_dir or (
             store.path.parent / "episodes" if store else config.ARTIFACT_DIR
@@ -88,7 +86,147 @@ def create_app(store=None, runner=None, artifact_dir=None):
         if app.state.tasks:
             await asyncio.gather(*app.state.tasks, return_exceptions=True)
 
-    app = FastAPI(title="Retail Agent API", version="0.2.0", lifespan=lifespan)
+    prefix = os.getenv("APP_BASE_PATH", "").rstrip("/")
+    cookie_path = prefix + "/"
+    app = FastAPI(title="Retail Agent API", version="0.3.0", lifespan=lifespan, root_path=prefix)
+
+    @app.middleware("http")
+    async def same_origin(request, call_next):
+        origin = request.headers.get("origin")
+        if (
+            request.method not in {"GET", "HEAD", "OPTIONS"}
+            and origin
+            and urlparse(origin).netloc != request.headers.get("host")
+        ):
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse({"detail": "请求来源不匹配"}, status_code=403)
+        response = await call_next(request)
+        if request.url.path.startswith(prefix + "/api/") or request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    def identity(request: Request):
+        uid = app.state.auth.current(request.cookies.get("retail_auth"))
+        if not uid:
+            raise HTTPException(401, "请先登录")
+        return uid
+
+    def customer(uid):
+        with app.state.store.tx() as cx:
+            return app.state.store.dataset(cx)["users"][uid]
+
+    class Login(BaseModel):
+        email: str = Field(min_length=3, max_length=254)
+        password: str = Field(min_length=1, max_length=128)
+
+    class Registration(Login):
+        password: str = Field(min_length=10, max_length=128)
+        first_name: str = Field(min_length=1, max_length=60)
+        last_name: str = Field(min_length=1, max_length=60)
+
+    @app.post("/api/auth/register", status_code=201)
+    def register(body: Registration):
+        if "@" not in body.email or not body.first_name.strip() or not body.last_name.strip():
+            raise HTTPException(422, "请填写有效邮箱和姓名")
+        try:
+            app.state.auth.register(
+                body.email, body.password, body.first_name.strip(), body.last_name.strip()
+            )
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        return {"message": "注册成功，请登录"}
+
+    @app.post("/api/auth/login")
+    def login(body: Login, request: Request, response: Response):
+        try:
+            token, uid = app.state.auth.login(body.email, body.password, request.client.host)
+        except PermissionError as exc:
+            raise HTTPException(401, str(exc)) from None
+        except TimeoutError as exc:
+            raise HTTPException(429, str(exc)) from None
+        app.state.auth.logout(request.cookies.get("retail_auth"))
+        response.set_cookie(
+            "retail_auth",
+            token,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+            max_age=SESSION_TTL,
+            path=cookie_path,
+        )
+        return customer(uid)
+
+    @app.post("/api/auth/logout")
+    def logout(request: Request, response: Response):
+        app.state.auth.logout(request.cookies.get("retail_auth"))
+        response.delete_cookie("retail_auth", path=cookie_path)
+        return {"message": "已退出"}
+
+    @app.get("/api/me")
+    def me(uid=Depends(identity)):
+        return customer(uid)
+
+    @app.get("/api/orders")
+    def orders(uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            return {
+                "orders": [
+                    o for o in app.state.store.dataset(cx)["orders"].values() if o["user_id"] == uid
+                ]
+            }
+
+    @app.get("/api/orders/{oid}")
+    def order(oid: str, uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            value = app.state.store.dataset(cx)["orders"].get(oid)
+        if not value or value["user_id"] != uid:
+            raise HTTPException(404, "订单不存在")
+        return value
+
+    class Action(BaseModel):
+        tool: str
+        args: dict = Field(default_factory=dict)
+
+    def stage(uid, tool, args):
+        sid = app.state.store.create_session(owner_user_id=uid)["id"]
+        result = app.state.retail.call(sid, tool, args)
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(422, result["error"])
+        with app.state.store.tx() as cx:
+            app.state.store.update(
+                cx,
+                sid,
+                title="订单 / 资料变更确认",
+                messages=[
+                    {
+                        "id": uuid.uuid4().hex,
+                        "role": "assistant",
+                        "content": "已生成操作预览。请核对变更后确认执行，确认前数据不会改变。",
+                    }
+                ],
+            )
+        return snapshot(sid)
+
+    @app.post("/api/orders/{oid}/actions", status_code=201)
+    def order_action(oid: str, body: Action, uid=Depends(identity)):
+        order(oid, uid)
+        if body.tool not in app.state.retail.writes - {"modify_user_address"}:
+            raise HTTPException(422, "不支持的订单操作")
+        return stage(uid, body.tool, body.args | {"order_id": oid})
+
+    @app.post("/api/me/address", status_code=201)
+    def address(body: dict, uid=Depends(identity)):
+        return stage(uid, "modify_user_address", body | {"user_id": uid})
+
+    def authorized(sid: str, uid=Depends(identity)):
+        try:
+            session = app.state.store.session(sid)
+        except LookupError:
+            raise HTTPException(404, "会话不存在") from None
+        if session["owner_user_id"] != uid:
+            raise HTTPException(404, "会话不存在")
+        return session
 
     def get_session(sid):
         try:
@@ -96,8 +234,10 @@ def create_app(store=None, runner=None, artifact_dir=None):
         except LookupError:
             raise HTTPException(404, "会话不存在") from None
 
-    def authorized(sid: str, authorization: str = Header(default="")):
+    def episode_authorized(sid: str, authorization: str = Header(default="")):
         session = get_session(sid)
+        if session["owner_user_id"] is not None:
+            raise HTTPException(404, "评测会话不存在")
         if not hmac.compare_digest(authorization, f"Bearer {session['token']}"):
             raise HTTPException(403, "无权访问此会话")
         return session
@@ -173,21 +313,44 @@ def create_app(store=None, runner=None, artifact_dir=None):
             "tool_interfaces": {v: app.state.retail.tool_manifest(v) for v in config.VARIANTS},
             "domain": "retail",
             "variants": list(config.VARIANTS),
-            "protocol_version": "retail-http-v1",
+            "protocol_version": "retail-http-v2",
+            "browser_auth": "retail_auth_cookie",
+            "eval_protocol_version": "retail-eval-http-v2",
         }
 
     @app.get("/api/samples")
-    def samples():
-        return {"samples": app.state.retail.samples()}
+    def samples(uid=Depends(identity)):
+        user = customer(uid)
+        return {
+            "samples": [
+                {
+                    "email": user["email"],
+                    "name": " ".join(user["name"].values()),
+                    "order_id": o["order_id"],
+                    "status": o["status"],
+                    "items": len(o["items"]),
+                }
+                for o in orders(uid)["orders"]
+            ]
+        }
+
+    @app.get("/api/sessions")
+    def list_sessions(uid=Depends(identity)):
+        with app.state.store.tx() as cx:
+            return {
+                "sessions": [
+                    dict(r)
+                    for r in cx.execute(
+                        "SELECT id,title,updated_at FROM sessions WHERE owner_user_id=? ORDER BY updated_at DESC",
+                        (uid,),
+                    )
+                ]
+            }
 
     @app.post("/api/sessions", status_code=201)
-    def create_session(body: CreateSession | None = None):
-        body = body or CreateSession()
-        try:
-            ref = app.state.store.create_session(user_id=body.scenario_id, variant=body.variant)
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from None
-        return ref
+    def create_session(uid=Depends(identity)):
+        value = app.state.store.create_session(owner_user_id=uid)
+        return {k: v for k, v in value.items() if k != "token"}
 
     @app.get("/api/sessions/{sid}")
     def session_snapshot(sid: str, session=Depends(authorized)):
@@ -292,7 +455,29 @@ def create_app(store=None, runner=None, artifact_dir=None):
         return stream_turn(sid, "message", (text,))
 
     @app.post("/api/sessions/{sid}/decisions")
-    async def decide(sid: str, body: Decision, session=Depends(authorized)):
+    def decide(sid: str, body: Decision, session=Depends(authorized)):
+        with exclusive(sid):
+            try:
+                receipt = app.state.runner.decide(
+                    sid, body.action_id, body.approve, continue_agent=False
+                )
+            except (ValueError, PermissionError) as exc:
+                raise HTTPException(409, str(exc)) from None
+        return {"receipt": receipt, "session": snapshot(sid)}
+
+    @app.get("/internal/eval/episodes/{sid}")
+    def episode_session(sid: str, session=Depends(episode_authorized)):
+        return snapshot(sid)
+
+    @app.post("/internal/eval/episodes/{sid}/messages")
+    async def episode_chat(sid: str, body: ChatInput, session=Depends(episode_authorized)):
+        text = body.message.strip()
+        if not text:
+            raise HTTPException(422, "消息不能为空")
+        return stream_turn(sid, "message", (text,))
+
+    @app.post("/internal/eval/episodes/{sid}/decisions")
+    async def episode_decide(sid: str, body: Decision, session=Depends(episode_authorized)):
         return stream_turn(sid, "decision", (body.action_id, body.approve))
 
     @app.post("/internal/eval/episodes", dependencies=[Depends(eval_authorized)], status_code=201)
@@ -314,13 +499,15 @@ def create_app(store=None, runner=None, artifact_dir=None):
 
     @app.get("/internal/eval/episodes/{sid}/snapshot", dependencies=[Depends(eval_authorized)])
     def eval_snapshot(sid: str):
-        get_session(sid)
+        if get_session(sid)["owner_user_id"] is not None:
+            raise HTTPException(404, "评测会话不存在")
         with exclusive(sid):
             return export(sid, "snapshot")
 
     @app.post("/internal/eval/episodes/{sid}/finish", dependencies=[Depends(eval_authorized)])
     async def finish_episode(sid: str, body: FinishInput):
-        get_session(sid)
+        if get_session(sid)["owner_user_id"] is not None:
+            raise HTTPException(404, "评测会话不存在")
         # Seal business state immediately. A pending model response may drain, but
         # the service and runner cannot execute tools or reopen this episode.
         app.state.store.finish(sid, body.reason)

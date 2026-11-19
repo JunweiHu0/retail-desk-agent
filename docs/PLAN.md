@@ -301,3 +301,25 @@ huoshan队列：`development54-b1-advisory-20261118T140835Z`，等待 `advisory-
 API复用现有variant字段，无前端改动。health新增各variant的tool_interfaces；模型绑定与episode manifest使用同一工具定义，记录profile/count/names/spec_sha256/return_format。评测仍仅看最终DB，但preflight必须验证扩展工具声明；配对报告标明工具接口差异，并拒绝实际执行工具清单与声明漂移。此修改导致evaluator源码hash变化，新工具比较需在同一新代码下重跑对照，不能直接拼接旧development54成绩。
 
 验证：合成DB覆盖权限、精确筛选/零匹配、重复数量、未上架款式、完整data保留、官方写入等价、审批前不变DB、真实SDK18工具调用与计费、health声明、评测拒绝未声明工具/运行时漂移。完整套件在huoshan运行。真实模型小案例和后续开发对照单列输出，正在运行的development54继续使用冻结040106a，不热更新其应用。扩展是否提分尚待实际比较。
+
+### Main API integration (2026-11-19 UTC)
+
+User requested main's API/cookie/auth/order contracts to take precedence. Merge
+origin/main@f3d9765 into feat/retail-agent-eval; keep main frontend unchanged.
+Preserve current AgentRunner/tool variants and isolated DB evaluation.
+
+- Public browser: main AuthService, owned sessions, orders/profile endpoints,
+  shared business DB, message SSE and decision JSON without model continuation.
+- Internal evaluator: move session/message/decision access under
+  /internal/eval/episodes/{id}; bearer capability, automatic continuation and
+  isolated DB retained. Protocol/provenance v2; old paired cohorts are historical.
+- Validate existing main account/subpath tests, existing agent/evaluator tests,
+  cross-session order visibility, browser/eval credential and data separation,
+  profile rejection/commit, and migration from main's SQLite schema.
+- Run full software suite and main's three browser tests on huoshan with a new
+  synthetic DB and separate demo server. Do not restart the live model service.
+
+Main integration validation completed: huoshan final run
+`main-api-final-20261119T023030Z` passed 196 software tests, frontend build and all
+3 main browser scenarios. See VERIFICATION.md for source digest and initial
+failure corrections. No new model benchmark claim; deployment remains separate.

@@ -133,7 +133,7 @@ def test_scripted_contract_case_uses_public_message_then_explicit_decision(
     assert result["comparison"]["success"] is True
     assert bool(result["errors"]) is decision_error
     assert result["preview_comparison"]["success"] is True
-    assert calls.count("/api/sessions/s/decisions") == 1
+    assert calls.count("/internal/eval/episodes/s/decisions") == 1
     artifacts = "".join(path.read_text() for path in (tmp_path / case["name"]).glob("*.json"))
     assert "CAPABILITY" not in artifacts
     assert "EVAL_SECRET" not in artifacts

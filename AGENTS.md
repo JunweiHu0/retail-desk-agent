@@ -17,3 +17,9 @@ only) add two read-only helpers. Official write functions/approval semantics and
 DB targets stay fixed. Record tool counts/schema-description hashes and label
 these comparisons as tool-interface experiments, not same-tool harness gains.
 Frontend implementation is outside the current scope; maintain backend contracts.
+
+Main integration: public cookie/auth/order/session APIs and frontend follow
+origin/main@f3d9765. Keep development on feat/retail-agent-eval in this workspace;
+upstream WSL paths and branch conventions do not replace local instructions.
+Browser account data is shared; internal evaluator episodes remain isolated.
+Public decisions return JSON, evaluator decisions stream and resume the agent.

@@ -224,3 +224,43 @@ huoshan `tool-profiles-software-20261118T144622Z` 完整169项通过（83.28s）
 B1模型/工具调用428/217，完整总token 5,318,717；advisory为762/213，模型调用增加约78%。advisory有一次模拟器usage未知，因此完整总token为null，不以已知小计代替。B1有1次wall_time_budget，advisory有6次；不能把仅多通过一题解读为整体改进成功。B1仍为默认。
 
 `tool-profiles-live-20261118T145026Z` 原真实功能检查失败于测试脚本：它调用只接受finished状态的 `EpisodeHTTP.snapshot()` 检查中间只读/预览阶段，抛出 `Snapshot is not a frozen final episode`。这不是业务DB变更失败的证据。原输出保留；仅修改诊断脚本，在中间阶段直接调用允许活动快照的私有GET接口，最终仍使用要求冻结状态的snapshot验证。新目录 `tool-profiles-live-retest-20261119T015841Z` 已启动，应用源码仍为cf632c4，未修改正式DB比较器或当前工具实现。重测完成前不称真实工具闭环通过。
+
+## Main cookie/auth/order API merge (2026-11-19 UTC)
+
+Merged source: `origin/main@f3d9765ea466007316d198de3ffa1b5618673e20`
+into local `feat/retail-agent-eval`, retaining current agent variants and private
+DB evaluator. Main frontend is byte-for-byte identical to that upstream tree.
+Public APIs now use main's HttpOnly cookie, account-owned sessions, order/profile
+routes and JSON decision response. Browser decisions persist the real receipt
+without a model call; further conversation resumes on the next user message.
+Identity lookup tools are hidden for logged-in browser sessions (14 tools).
+Internal evaluation keeps the 16/18-tool profiles, isolated DB and streaming
+post-decision continuation, now under `/internal/eval/episodes/{id}`. Protocol
+and provenance are v2. This is a transport integration, not a benchmark gain;
+browser and evaluator interaction semantics must be reported separately.
+
+Local targeted checks covered main login/subpath APIs, shared order visibility,
+address rejection/commit, browser/episode credential separation, old main DB
+migration, account-bound tools and seed idempotence. The first huoshan full run
+`main-api-integration-20261119T022700Z` had 194 passes and one seed test failure:
+main's demo-first sample ordering had not yet been ported. After restoring it,
+the seed test was also adapted to create an owned browser session (anonymous
+internal sessions intentionally retain isolated data).
+
+Final tested release: `20261119T023010Z-316e14b-2443936`, run
+`/vePFS/han/retail-desk/runs/main-api-final-20261119T023030Z`.
+Full suite: **196 passed**, 66.76 seconds; Ruff passed locally. Remote and local
+backend/benchmark/test Python inventory SHA256 both equal
+`bdcb2f8c3c0baf77812a2b0719bd748f35b0ac8f567264aac7ea0372a476edd2`.
+The release records the pre-merge HEAD plus dirty source/snapshot hashes;
+source equivalence was checked before the local merge commit. Original main
+reports were imported unchanged, including their two existing trailing spaces.
+No TACC job, VPS install script, shared-branch push, or live model restart was
+performed. Existing live service retains its prior source; this run uses a
+separate deterministic demo server on localhost:18883 and a new synthetic DB.
+
+The final run completed successfully: main frontend `vue-tsc -b && vite build`
+passed; unchanged main Playwright suite **3 passed** (11.3 seconds): login/profile,
+order approval and agent context/account isolation; address rejection without
+mutation; empty-account registration. The temporary demo server was stopped by
+the run's cleanup trap. These are software/UI contract checks, not model scores.
