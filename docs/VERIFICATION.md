@@ -298,3 +298,27 @@ The old application at 18881 and model process were not restarted. No test40,
 27B or TACC run is included; no live default or GitHub branch was updated.
 At this documentation point the first live component contract is running, so
 there is no graph benchmark success-rate result yet.
+
+Both live component contracts subsequently passed on the frozen source:
+
+| Explicit helper → preview → approval case | lg_extended | lg_review |
+| --- | ---: | ---: |
+| Final scoped DB match | pass | pass |
+| Model / business tool calls | 5 / 3 | 9 / 3 |
+| Input / output tokens | 42,130 / 800 | 62,458 / 1,265 |
+| Elapsed seconds | 49.30 | 82.63 |
+
+lg_review exercised two notes calls, one reviewer call and one executor
+correction, with no missing usage or notes schema errors. Trace review found a
+**false-positive reviewer warning**: it flagged an execution claim despite the
+matching executed receipt and modified order state. The correction did not
+cause another write; final DB still matched. This is evidence that the optional
+reviewer can add unnecessary work, not evidence of better reasoning. Keep it as
+an ablation, not a trusted validator or default. Both cases explicitly name the
+helper operations and expected user-selected modification, so they are component
+checks, not tau2 success-rate measurements.
+
+The automated experiment queue has now entered smoke8, starting with B1, then
+lg_b1 and the declared candidates. No completed benchmark comparison is yet
+available. The complete original traces, snapshots and component summaries are
+under `langgraph-9b-20261119T031700Z/contract-lg_extended` and `contract-lg_review`.
