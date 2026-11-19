@@ -28,11 +28,13 @@ from backend.agent import (
     get_model,
 )
 from backend.graph_context import (
+    EXECUTION_GUIDANCE,
     NOTES_PROMPT,
     REVIEW_PROMPT,
     SOP,
     CompletionReview,
     RequestNotes,
+    approval_message,
     model_context,
 )
 from backend.graph_profiles import GRAPH_PROFILES
@@ -109,7 +111,9 @@ def run_graph(self, sid, emit, model, turn_text):
         "max_output_tokens": int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
         "model_request_timeout_seconds": config.MODEL_REQUEST_TIMEOUT_SECONDS,
         "policy_sha256": hashlib.sha256(policy.encode()).hexdigest(),
-        "guidance_sha256": hashlib.sha256((SOP if profile.sop else "").encode()).hexdigest(),
+        "guidance_sha256": hashlib.sha256(
+            ((SOP if profile.sop else "") + (EXECUTION_GUIDANCE if profile.guided else "")).encode()
+        ).hexdigest(),
         "notes_prompt_sha256": hashlib.sha256(
             (NOTES_PROMPT if profile.notes else "").encode()
         ).hexdigest(),
@@ -150,7 +154,14 @@ def run_graph(self, sid, emit, model, turn_text):
             or not isinstance(history[-1], AIMessage)
             or history[-1].tool_calls
         ):
-            history.append(AIMessage(content=content))
+            history.append(
+                AIMessage(
+                    content=content,
+                    additional_kwargs={"application_pause_action_id": current["pending"]["id"]}
+                    if profile.guided and status == "awaiting_confirmation" and current["pending"]
+                    else {},
+                )
+            )
         save(messages=messages, status=status, termination_reason=reason)
         current = self.store.session(sid)
         status, reason = current["status"], current["termination_reason"]
@@ -287,7 +298,15 @@ def run_graph(self, sid, emit, model, turn_text):
             emit({"type": "proposal", "pending": current["pending"]})
             return {
                 "route": "finish",
-                "content": CONFIRMATION_PAUSE,
+                "content": approval_message(
+                    current["pending"],
+                    self.store.events(sid),
+                    chinese=any("\u4e00" <= c <= "\u9fff" for c in user_messages[-1]["content"])
+                    if user_messages
+                    else False,
+                )
+                if profile.guided
+                else CONFIRMATION_PAUSE,
                 "status": "awaiting_confirmation",
                 "reason": None,
             }
@@ -362,6 +381,8 @@ def run_graph(self, sid, emit, model, turn_text):
             system_content += (
                 "\nADVISORY CHECK (verify against original messages and receipts):\n" + feedback
             )
+        if profile.guided:
+            system_content += "\n" + EXECUTION_GUIDANCE
         message = invoke_stage(
             bound,
             [

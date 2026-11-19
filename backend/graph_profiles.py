@@ -10,6 +10,7 @@ class GraphProfile:
     sop: bool = False
     notes: bool = False
     review: bool = False
+    guided: bool = False
 
 
 GRAPH_PROFILES = {
@@ -17,6 +18,7 @@ GRAPH_PROFILES = {
     "lg_described": GraphProfile("tools_described"),
     "lg_structured": GraphProfile("tools_structured"),
     "lg_extended": GraphProfile("tools_extended"),
+    "lg_guided": GraphProfile("tools_extended", context=True, guided=True),
     "lg_context": GraphProfile("tools_extended", context=True),
     "lg_sop": GraphProfile("tools_extended", context=True, sop=True),
     "lg_notes": GraphProfile("tools_extended", context=True, sop=True, notes=True),

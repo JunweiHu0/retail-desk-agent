@@ -67,6 +67,17 @@ class DemoRetailModel(BaseChatModel):
                 return message.content
             if (
                 isinstance(value, dict)
+                and value.get("observation_source") == "identical_read_reference"
+            ):
+                original = next(
+                    m
+                    for m in messages
+                    if isinstance(m, ToolMessage)
+                    and m.tool_call_id == value["same_result_as_tool_call_id"]
+                )
+                return result(original)
+            if (
+                isinstance(value, dict)
                 and value.get("read_only") is True
                 and value.get("status") == "observed"
             ):

@@ -38,12 +38,13 @@ web/infra/             TACC 可用的运行诊断页面
 
 B1 保持为默认原生循环。LangGraph 使用同一业务工具和数据库层，通过 StateGraph 组织阶段；没有单独的模型服务器、向量库或多 agent 委派。
 
-| 配置 | 累计增加的能力 |
+| 配置 | 主要能力 |
 | --- | --- |
 | `lg_b1` | 与 B1 同策略的图执行器 |
 | `lg_described` | 改进工具描述 |
 | `lg_structured` | 只读结果格式 |
 | `lg_extended` | 订单商品及款式筛选工具 |
+| `lg_guided` | 上下文末尾的操作顺序指引、明确的单操作审批状态；不额外调用 planner/reviewer |
 | `lg_context` | 实际回执投影、相同查询结果压缩 |
 | `lg_sop` | 取消、地址、商品、退换货及支付指引 |
 | `lg_notes` | 每条新用户消息一次辅助需求笔记 |

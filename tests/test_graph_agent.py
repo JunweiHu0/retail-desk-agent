@@ -280,3 +280,64 @@ def test_restart_closes_missing_tool_observation_without_replaying_write(service
     assert isinstance(messages[-2], ToolMessage)
     assert "interrupted" in messages[-2].content
     assert messages[-1].content == "Do not cancel"
+
+
+def test_guided_pause_describes_one_action_and_survives_receipt_projection(service, pending_order):
+    ref = service.store.create_session(user_id=pending_order["user_id"], variant="lg_guided")
+    runner = AgentRunner(service)
+    model = ScriptedModel(
+        tool(
+            "cancel_pending_order",
+            {"order_id": pending_order["order_id"], "reason": "no longer needed"},
+        )
+    )
+    text = runner.run(ref["id"], "Cancel this order", model=model)
+    assert "Pending approval ONLY" in text and pending_order["order_id"] in text
+    assert "No changes have been executed" in text
+    assert "NEXT-ACTION CHECKLIST" in model.requests[0][0].content
+    pending = service.store.session(ref["id"])["pending"]
+    followup = ScriptedModel(AIMessage(content="Cancellation recorded."))
+    runner.decide(ref["id"], pending["id"], True, model=followup)
+    assert not any(m.content == text for m in followup.requests[0])
+    assert any(
+        isinstance(m, ToolMessage) and '"status": "executed"' in m.content
+        for m in followup.requests[0]
+    )
+    assert service.store.session(ref["id"])["usage"]["model_calls"] == 2
+
+
+def test_approval_summary_does_not_claim_other_orders_or_rejections_completed():
+    from backend.graph_context import approval_message
+
+    pending = {"tool": "modify_pending_order_address", "args": {"order_id": "order-B"}}
+    events = [
+        {
+            "kind": "receipt",
+            "data": {
+                "status": "executed",
+                "tool": "modify_user_address",
+                "args": {"user_id": "customer"},
+            },
+        },
+        {
+            "kind": "receipt",
+            "data": {
+                "status": "rejected",
+                "tool": "modify_pending_order_address",
+                "args": {"order_id": "order-A"},
+            },
+        },
+    ]
+    text = approval_message(pending, events)
+    assert "order-B" in text and "NOT executed" in text
+    assert "account default address change customer" in text
+    assert "order-A" not in text
+    assert "待审批" in approval_message(pending, events, chinese=True)
+
+
+def test_guided_demo_repeated_reads_keep_multi_turn_dialogue(service, pending_order):
+    ref = service.store.create_session(user_id=pending_order["user_id"], variant="lg_guided")
+    runner = AgentRunner(service)
+    for _ in range(2):
+        reply = runner.run(ref["id"], "查询订单 " + pending_order["order_id"])
+        assert pending_order["order_id"] in reply

@@ -34,6 +34,7 @@ Variant = Literal[
     "lg_described",
     "lg_structured",
     "lg_extended",
+    "lg_guided",
     "lg_context",
     "lg_sop",
     "lg_notes",
