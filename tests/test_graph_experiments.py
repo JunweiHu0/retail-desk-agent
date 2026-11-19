@@ -88,6 +88,7 @@ def test_pipeline_freezes_selection_before_validation_and_never_uses_test40(tmp_
             Path(arg("--output")).write_text(json.dumps({"ci_95": [0.01, 0.3]}))
         return SimpleNamespace(returncode=0)
 
+    monkeypatch.setattr(experiment, "version_manifest", lambda: {"test_source": "synthetic"})
     monkeypatch.setattr(experiment.subprocess, "run", run)
     experiment.main()
     assert json.loads((output / "progress.json").read_text())["status"] == "complete"
