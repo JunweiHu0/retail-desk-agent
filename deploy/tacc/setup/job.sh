@@ -85,7 +85,7 @@ printf 'IMPORT_CHECK_BEGIN\n'
 venv_py - <<'PY'
 import sys
 print("python", sys.version.split()[0])
-mods = ["fastapi", "uvicorn", "pydantic", "deepagents", "langchain",
+mods = ["fastapi", "uvicorn", "pydantic", "langgraph",
         "langchain_openai", "tau2", "pandas", "numpy", "dotenv"]
 bad = 0
 for m in mods:

@@ -15,7 +15,7 @@ if not TAU_ROOT.is_absolute():
     TAU_ROOT = (ROOT / TAU_ROOT).resolve()
 DATA_PATH = TAU_ROOT / "data/tau2/domains/retail/db.json"
 POLICY_PATH = TAU_ROOT / "data/tau2/domains/retail/policy.md"
-DB_PATH = Path(os.getenv("RETAIL_DB_PATH", str(ROOT / "runtime/retail.sqlite3")))
+DB_PATH = Path(os.getenv("RETAIL_DB_PATH", str(ROOT.parent / "retail-desk-data/retail.sqlite3")))
 if not DB_PATH.is_absolute():
     DB_PATH = ROOT / DB_PATH
 MODE = os.getenv("AGENT_MODE", "demo")
@@ -31,20 +31,12 @@ API_KEY = os.getenv("MODEL_API_KEY") or os.getenv(
 if IS_DEEPSEEK and BASE_URL is None:
     BASE_URL = "https://api.deepseek.com"
 EVAL_API_TOKEN = os.getenv("EVAL_API_TOKEN", "")
-ARTIFACT_DIR = Path(os.getenv("RETAIL_ARTIFACT_DIR", str(ROOT / "runtime/episodes")))
+ARTIFACT_DIR = Path(os.getenv("RETAIL_ARTIFACT_DIR", str(DB_PATH.parent / "episodes")))
 if not ARTIFACT_DIR.is_absolute():
     ARTIFACT_DIR = ROOT / ARTIFACT_DIR
 TAU2_COMMIT = "0c69df456a96aa76a1162591574dad9c427a34d7"
 VARIANTS = (
     "b1",
-    "state",
-    "errors",
-    "guide",
-    "enhanced",
-    "c1",
-    "c2",
-    "advisory",
-    "lean",
     "tools_described",
     "tools_structured",
     "tools_extended",

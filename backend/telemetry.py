@@ -29,7 +29,7 @@ def _now():
 
 def _dir():
     raw = os.getenv("INFRA_DIR")
-    base = Path(raw) if raw else config.ROOT / "runtime/infra"
+    base = Path(raw) if raw else config.DB_PATH.parent / "infra"
     if not base.is_absolute():
         base = (config.ROOT / base).resolve()
     return base

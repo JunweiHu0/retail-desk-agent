@@ -19,9 +19,9 @@ from tests.test_agent_runtime import ScriptedModel, tool
 
 
 @pytest.fixture
-def tool_episode(service, c1_episode):
-    initial = copy.deepcopy(dataset(service, c1_episode["id"]))
-    uid = service.context(c1_episode["id"])["user"]["user_id"]
+def tool_episode(service, multi_order_episode):
+    initial = copy.deepcopy(dataset(service, multi_order_episode["id"]))
+    uid = service.context(multi_order_episode["id"])["user"]["user_id"]
     variants = {
         "small": {
             "item_id": "small",
@@ -116,7 +116,7 @@ def test_new_tools_are_explicitly_scoped_and_require_authentication(service, too
     assert "error" in service.call(ref["id"], "find_customer_order_items", {"user_id": "other"})
     unauth = service.store.create_session(variant="tools_extended")
     assert "error" in service.call(unauth["id"], "find_product_variants", {"product_id": "shirt"})
-    for variant in ["b1", "lean", "tools_described", "tools_structured"]:
+    for variant in ["b1", "lg_b1", "tools_described", "tools_structured"]:
         with service.store.tx() as cx:
             service.store.update(cx, ref["id"], variant=variant)
         assert "error" in service.call(ref["id"], "find_product_variants", {"product_id": "shirt"})

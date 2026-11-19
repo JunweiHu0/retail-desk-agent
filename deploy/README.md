@@ -115,15 +115,8 @@ deploy/
 
 `.run/`（作业号、地址、隧道 pid）和 `.stage/`（提交用的打包目录）都是生成物，已 gitignore。
 
-## Main account API integration
+## 账号与业务接口
 
-The browser now follows main's cookie login and order API. See
-[accounts and orders](../docs/accounts-and-orders.md) and
-[backend API contract](../docs/BACKEND_AGENT.md#7-前端与eval接口).
-`APP_BASE_PATH` controls the cookie path and application prefix; build the main
-frontend with the matching Vite base when using a subpath. Existing main account
-DBs migrate in place; back up a deployment DB before upgrading. Anonymous legacy
-sessions are not assigned to accounts. Browser decisions return JSON; internal
-v2 evaluator decisions still stream. Historical v1 evaluator clients must be
-upgraded with the application. The upstream VPS install script is retained but
-was not executed by this integration.
+当前 cookie/auth/order API 与 main 对齐，见 [项目说明](../README.md)。
+浏览器审批返回 JSON，内部 evaluator 审批返回 SSE。使用子路径时 APP_BASE_PATH
+和前端 Vite base 应保持一致。

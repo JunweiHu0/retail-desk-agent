@@ -117,6 +117,14 @@ def run(args):
     task_ids = fixture_manifest["task_ids"]
     if not completion["complete"] or completion["task_ids"] != task_ids:
         raise ValueError("Fixture set is incomplete")
+    requested = getattr(args, "task_ids", None)
+    if requested is not None:
+        selected = requested.split(",")
+        if len(set(selected)) != len(selected) or not set(selected) <= set(task_ids):
+            raise ValueError(
+                "Requested task IDs must be distinct members of the frozen fixture set"
+            )
+        task_ids = selected
     seeds = [int(value) for value in args.seeds.split(",")]
     if len(set(seeds)) != len(seeds) or not seeds or not set(seeds) <= {0, 1, 2}:
         raise ValueError("Seeds must be distinct members of 0,1,2")
@@ -160,6 +168,7 @@ def run(args):
         **version_manifest(),
         "run_id": run_id,
         "variant": args.variant,
+        "task_selection": "explicit_subset" if requested else "full_fixture_set",
         "tool_interface": tool_interface,
         "split": fixture_manifest["split"],
         "task_ids": task_ids,
@@ -175,7 +184,7 @@ def run(args):
         "max_seconds": 600,
         "concurrency": 1,
         "infrastructure_retries": 1,
-        "fixture_hashes": completion["fixture_hashes"],
+        "fixture_hashes": {task: completion["fixture_hashes"][task] for task in task_ids},
         "source_hashes": fixture_manifest["source_hashes"],
         "preflight": health,
     }
@@ -388,7 +397,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     build_parser = sub.add_parser(
-        "build-targets", help="Run only on huoshan; replay frozen reference actions"
+        "build-targets", help="Replay frozen official reference actions into a new fixture directory"
     )
     build_parser.add_argument("--tau-root", type=Path, required=True)
     build_parser.add_argument(
@@ -411,6 +420,9 @@ def main():
     )
     run_parser.add_argument("--api-key-env", default="MODEL_API_KEY")
     run_parser.add_argument("--eval-token-env", default="EVAL_API_TOKEN")
+    run_parser.add_argument(
+        "--task-ids", help="Explicit comma-separated diagnostic subset, e.g. 41,47"
+    )
     run_parser.add_argument("--variant", default="b1")
     run_parser.add_argument("--seeds", default="0,1,2")
     run_parser.add_argument("--temperature", type=float, default=0.0)

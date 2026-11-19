@@ -1,113 +1,122 @@
-# Retail Desk — 业务操作与最终数据库评测
+# Retail Desk
 
-Vue 3 + FastAPI 零售客服沙盒。Agent 通过官方 tau2 Retail 工具查询数据、生成修改预览，在用户确认后提交真实的沙盒数据库变更。浏览器会话按登录账号归属，订单与资料共享持久化业务数据；评测 episode 使用独立 DB。
+Vue + FastAPI 零售客服。模型通过 tau2 Retail 工具查询订单、生成修改预览；用户批准后，后端调用官方写工具修改数据库。
 
-当前默认 agent 是 **B1：政策全文 + 原生工具调用循环 + 会话历史**。`state`、`errors`、`guide`、`enhanced` 是可单独比较的增强配置；尚未经过真实模型评测的配置不代表已获得性能提升。`guide` 初始内容来自公开政策，不能称为训练轨迹学习结果。
+## 项目结构
 
-`state` 增加任务状态记录，并按 action ID 将实际执行/拒绝回执合入对应工具观察，解除已完成确认的暂停提示；原始审计轨迹保留。`errors` 为工具错误附加已观察到的相关信息，`guide` 注入冻结操作指南，`enhanced` 同时启用三项。默认指南为 `backend/guides/retail_seed.md`，来源标记为 `policy_seed`。后端可通过 `AGENT_GUIDE_PATH` 指定开发集产生的指南文件；每个 episode 记录实际内容 SHA256，自定义文件默认标记为未核实来源。指南版本、开发来源及冻结要求见 [指南说明](backend/guides/README.md)。
+```text
+backend/               认证、API、agent、工具与 SQLite
+  main.py              main 的 cookie/auth/order API；SSE 消息与 JSON 审批
+  auth.py              账号、密码哈希、登录 cookie 与退出
+  agent.py             B1 原生工具循环及运行器入口
+  graph_agent.py       LangGraph 每轮执行图
+  graph_profiles.py    候选配置
+  graph_context.py     上下文整理、业务指引、需求笔记与检查
+  retail.py            官方工具、权限校验、预览、实际提交与回执
+  store.py             账号会话及隔离评测 DB
+  tool_profiles.py     工具描述、返回格式与两个只读助手
+frontend/              main 前端及浏览器测试
+benchmarks/             HTTP 评测、冻结目标、最终 DB 比较
+scripts/               本地启动及合成演示客户初始化
+tests/                 当前实现的回归测试
+deploy/tacc/           TACC 环境、作业、打包和隧道
+web/infra/             TACC 可用的运行诊断页面
+```
 
-已有 huoshan 的 Qwen3.5-9B 功能实验和软件验证；不同候选、工具配置及批次的成绩与限制统一记录在[验收记录](docs/VERIFICATION.md)，不能用小样本功能检查替代正式评测。当前分支尚未完成 TACC 27B 部署验收。
+历史 agent、研究文档、非 TACC 部署工具和实验产物不属于应用发布包。
+默认数据库、快照和运行日志位于仓库外的同级 `retail-desk-data/`；可通过环境变量覆盖。
 
-## 入口与文档
+## Agent 执行流程
 
-- [后端与 Agent 说明、最小部署模块与 TACC 交接](docs/BACKEND_AGENT.md)
-- [实施计划与阶段状态](docs/PLAN.md)
-- [前后端 / evaluator 协议](docs/EVAL_PROTOCOL.md)
-- [正式评测前的具体对齐问题](docs/EVAL_ALIGNMENT.md)
-- [huoshan 部署与验证](docs/huoshan.md)
-- [实际验收记录](docs/VERIFICATION.md)
-- [原有 TACC 部署](deploy/tacc/README.md)
+```text
+用户消息 → 读取身份/历史/回执 → 模型决策
+  ├─ 查询工具 → 保存观察 → 继续决策
+  ├─ 修改工具 → 生成待审批预览 → 结束本轮
+  └─ 回复或追问 → 保存对话 → 结束本轮
+用户审批 → 官方写工具执行或拒绝 → 真实回执与当前会话 JSON
+```
 
-源码从 `deploy/tacc` 的 `a3173371079b53779a933e50ed79d528b7843a96` 开始。tau2 固定为 `0c69df456a96aa76a1162591574dad9c427a34d7`，同级 `../tau2-bench` 或通过 `TAU2_ROOT` 指定源码与数据。
+B1 保持为默认原生循环。LangGraph 使用同一业务工具和数据库层，通过 StateGraph 组织阶段；没有单独的模型服务器、向量库或多 agent 委派。
 
-`c1` 是新增的实验候选：显式提取需求、展开多订单任务、按真实回执结算、校验写操作与任务约束。规划和修复调用计入同一预算，B1 仍为默认。C1 的真实模型效果以验收记录为准；它需要支持 JSON Schema 的模型服务。
+| 配置 | 累计增加的能力 |
+| --- | --- |
+| `lg_b1` | 与 B1 同策略的图执行器 |
+| `lg_described` | 改进工具描述 |
+| `lg_structured` | 只读结果格式 |
+| `lg_extended` | 订单商品及款式筛选工具 |
+| `lg_context` | 实际回执投影、相同查询结果压缩 |
+| `lg_sop` | 取消、地址、商品、退换货及支付指引 |
+| `lg_notes` | 每条新用户消息一次辅助需求笔记 |
+| `lg_review` | 条件触发的一次检查及一次反馈修正 |
 
-`c2` 在 C1 上增加有界的回复前完成检查，优先消除参数已齐全时的额外聊天确认；缺少用户选择时继续提问，业务写入仍必须经卡片批准。C1/C2 的规划与检查成本分阶段记录，均计入公共预算。
+笔记不生成可执行参数，不决定是否批准，不阻止合法写入。执行事实来自真实回执。
+SQLite 是唯一持久状态来源；重启后恢复会话和待审批操作，不自动重放未知结果的工具调用。
+`BROWSER_AGENT_VARIANT` 只控制新浏览器会话，默认 `b1`；已有会话保留原配置。
+内部保留 `tools_described/structured/extended` 三个接口对照别名。
 
-## 业务流程
+## 前后端 API
 
-1. 通过 main 的 cookie 登录创建账号所属会话，或从订单/个人资料页发起操作。
-2. 发送消息；后端调用模型，执行一个业务工具，将结果交回模型继续决策。
-3. 写工具先在副本上预演；页面显示具体商品、支付/退款及修改前后信息。
-4. 通过确认卡批准或拒绝；只有后端执行回执才证明数据库已改变。
-5. 浏览器确认返回 JSON 回执和会话状态；下一条消息继续对话。内部评测确认仍以 SSE 自动续跑 agent。
+登录使用 `retail_auth` HttpOnly cookie，支持 `APP_BASE_PATH`；前端不接收 session token。
 
-聊天文本中的“yes”不代替确认接口。刷新页面会恢复会话和待确认操作。工具进度通过 SSE 展示，正文在本轮完成后展示；不将进度事件称为 token 流。
+| 接口 | 行为 |
+| --- | --- |
+| POST `/api/auth/register`、`login`、`logout` | 注册、登录、退出 |
+| GET `/api/me`、`/api/orders`、`/api/orders/{oid}` | 当前账号资料和订单 |
+| POST `/api/me/address`、`/api/orders/{oid}/actions` | 创建待审批操作，返回会话 |
+| GET/POST `/api/sessions` | 列出/创建当前账号会话 |
+| GET `/api/sessions/{id}` | 消息、上下文、待审批操作和回执 |
+| POST `/api/sessions/{id}/messages` | `{message}`，返回 SSE |
+| POST `/api/sessions/{id}/decisions` | `{action_id, approve}`，返回 JSON `{receipt, session}` |
 
-## API
+浏览器审批后等待下一条用户消息，不自动调用模型。订单页和聊天读取同一账号业务数据。
+内部评测的审批接口则会自动续跑并返回 SSE，这两种交互语义不能混同。
 
-公共 API 与 `origin/main@f3d9765` 对齐：使用 `retail_auth` HttpOnly cookie，支持 `APP_BASE_PATH`。浏览器不接收 session token，也不能凭 Bearer 绕过登录。
+## 运行与 TACC
 
-| 方法 | 路径 | 内容 |
-| --- | --- | --- |
-| GET | `/api/health` | 模式、模型配置、工具数、可用变体 |
-| POST | `/api/auth/register`、`/api/auth/login`、`/api/auth/logout` | 注册、登录、退出 |
-| GET | `/api/me`、`/api/orders`、`/api/orders/{oid}` | 当前客户资料与订单 |
-| POST | `/api/orders/{oid}/actions`、`/api/me/address` | 创建待审批操作，返回 session |
-| GET | `/api/samples` | 当前登录客户订单示例 |
-| GET | `/api/sessions` | 当前账号历史会话 |
-| POST | `/api/sessions` | 无请求体，创建当前账号的 B1 会话，返回 id 等信息，不含 token |
-| GET | `/api/sessions/{id}` | 消息、订单、pending、真实回执、状态和 usage |
-| POST | `/api/sessions/{id}/messages` | `{message}`，返回 SSE |
-| POST | `/api/sessions/{id}/decisions` | `{action_id, approve}`，返回 JSON `{receipt, session}`，不额外调用模型 |
-
-评测创建/快照/结束使用独立的 `EVAL_API_TOKEN`；未配置时无法创建评测。评测消息/审批使用创建时返回的 episode token，仅访问内部路由。
-
-| 方法 | 路径 | 内容 |
-| --- | --- | --- |
-| POST | `/internal/eval/episodes` | 公开初始 DB、客户、variant、task/trial/seed |
-| POST | `/internal/eval/episodes/{id}/messages`、`/internal/eval/episodes/{id}/decisions` | episode Bearer token；SSE，共用 agent/工具执行器 |
-| POST | `/internal/eval/episodes/{id}/finish` | `{reason}`，冻结并导出状态 |
-| GET | `/internal/eval/episodes/{id}/snapshot` | 完整实际 RetailDB、会话与运行 manifest |
-
-`done` 只代表本轮结束；任务完成状态和最终 DB 评分由独立 evaluator 处理。接口不能接收 target DB。私有评测 metadata 不进入模型上下文。
-
-## 模式与运行
-
-`AGENT_MODE=demo` 使用确定性模型，仅供软件验证，不产生有效模型 benchmark 成绩。`live` 使用 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY` 配置的 OpenAI-compatible 工具调用服务，凭据只保留在后端。
-
-本机仅做轻量开发和小测试。完整服务、测试套件、目标重放及真实模型评测在 huoshan 运行，命令见部署文档。应用使用独立 Python 3.12 环境；不要更改共享环境。
+Python 3.12–3.13；模型服务须支持 OpenAI-compatible tool calling。
+默认从同级 `../tau2-bench` 加载官方数据与代码，源码固定到上述 pin；`TAU2_ROOT` 可覆盖路径。
 
 ```bash
 uv sync --frozen --python 3.12
-uv run --frozen python -m pytest tests/test_reference_eval.py -q
-cd frontend
-npm ci
-npm run build
+cp .env.example .env
+bash scripts/dev.sh
 ```
 
-完整验证：后端 pytest、Ruff、前端类型构建、Playwright 浏览器场景，以及经同一 HTTP 路径的 evaluator 闭环。执行位置、规模和结果记录在实验报告；可控模型测试不表示真实 Qwen 通过率。
+`AGENT_MODE=demo` 使用确定性演示模型；`live` 使用 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY`。
+首次使用 main 登录页的演示账号前，明确设置独立应用 `RETAIL_DB_PATH`，运行：
 
-## 评测口径
+```bash
+uv run python -m scripts.seed_demo --apply
+```
 
-参考 evaluator 入口是 `python -m benchmarks.run_http`，支持 `build-targets`、`run`、`compare`、`analyze` 和只读 `audit-reference`。预设已核验客户与其订单，比较该客户完整对象及其全部初始订单与目标状态。身份发现不计分，结果应称为 **适配后的 Retail HTTP DB 评测**。
+初始化脚本在应用 DB 同级保存备份及演示清单，不写入源码目录。
+注册新账号只创建空客户，不会继承 tau2 用户数据。
 
-开发54、验证20来自官方 train74；test40 全部保留。首轮 smoke8 各运行一次；正式对比 B1 与冻结候选，各执行 test40 × 3。目标和评分范围只存在于 evaluator，不能传给 agent 或用户模拟器。有效 DB 在预算/错误截止后仍按约定比较；缺快照则报告 suite 未完成。
+TACC 说明见 [deploy/README.md](deploy/README.md) 和 [部署步骤](deploy/tacc/README.md)。
+运行后端需要整个 `backend/`、应用依赖、已安装的 tau2 包以及 Retail db.json/policy.md。
+若使用 uv 的本地 editable 依赖，需要完整同级 tau2 源码；仅运行已安装包时可以只提供数据目录。
+本分支更新了应用依赖声明，但不代表新版本已在 TACC 完成部署验收。
 
-私有开发诊断可运行 `python -m benchmarks.run_http analyze --run RUN_DIR --output FRESH.json`，汇总主尝试的逐任务结果、终止原因、DB 不匹配类别、重复失败工具调用和用户拒绝次数。仅 development 输出标记为 guide feedback 可用；validation/test 输出不得用于学习或更新 guide。该命令不调用 LLM，不自动学习。
+## 最终 DB 评测
 
-固定 pin 的全114题只读审计确认两个无状态变化的参考 WRITE 异常（task64/action64_6、task105/action106_0）。构建器仅精确允许这两个已审计异常，随后继续参考动作；未知 WRITE 异常仍中止。task105 保留初始 DB 目标及私有 `reference_issue` 标签，任务不删除、分母不变；本适配指标只评 DB，不声称该题 NL assertion 通过。审计证据与异常冻结规则见协议。
+保留 `benchmarks/run_http.py` 与 `benchmarks/reference/` 供 evaluator 调用。
+主分比较冻结目标与实际最终 DB：完整客户对象及初始所属订单；列表顺序和重复项保留。
+字典键顺序忽略，不根据 agent 实际改动来缩小范围。模型回复“完成”不是评分依据。
 
-原有 `benchmarks/run_retail.py` 与 `tau2_agent.py` 保留作原生 tau2 适配兼容入口，其环境独立于网页 DB，不能用其分数代表新的 HTTP 后端链路。
+- 创建：POST `/internal/eval/episodes`，使用 `EVAL_API_TOKEN`，传 initial_db/customer_id/variant/task_id。
+- 交互：GET `/internal/eval/episodes/{id}`，POST `.../messages`、`.../decisions`，使用返回的 episode Bearer token。
+- 结束/快照：POST `.../finish`、GET `.../snapshot`，使用 EVAL_API_TOKEN；先冻结再做最终评分。
+- 每个 episode 的 DB 独立，目标 DB、参考动作和评分范围不能进入 agent 或模拟用户输入。
 
-## 数据与使用范围
+当前诊断只测试 B1 未通过的 task41、task47：
 
-全部客户、订单、支付数据均为公开合成沙盒数据。业务写入不会连接真实商户、支付或邮件服务。保留原始 tau2 数据，实验输出使用独立目录，并记录源码、数据、policy/guide 摘要及完成状态。
+```bash
+python -m benchmarks.run_http run \
+  --fixtures /path/to/frozen-fixtures --task-ids 41,47 \
+  --output /path/to/new-output --variant lg_sop --seeds 0 \
+  --model YOUR_MODEL --thinking off \
+  --base-url http://127.0.0.1:8000 --model-base-url http://127.0.0.1:8001/v1
+```
 
-真实 Qwen 服务可通过 `MODEL_THINKING=auto|on|off` 选择思考模式（默认 `auto`，沿用服务模板）。显式设置会发送 `chat_template_kwargs.enable_thinking`；服务需支持该参数。评测必须传相同的 `--thinking`，preflight 会检查 agent 与 simulator 一致，配对报告拒绝混用设置。huoshan 当前 9B 功能验证使用 `off`，原因是已复现当前 thinking/parser 组合在工具续跑时返回空 `tool_calls`；具体原始响应见验收记录。单次模型 HTTP 请求上限为 300 秒，episode 仍以 600 秒为预算。
-
-`lean` 是后续消融候选：保留原生工具循环、真实回执投影和审批，省去强制规划/检查调用；同一轮同一读取及结果重复三次后，限制为一次文本回答或澄清。它目前仅完成软件验证，不代表已获得模型成功率提升；正在运行的 development54 对照仍使用已冻结的 B1/advisory 版本。
-
-后端工具接口实验通过内部评测创建请求的 `variant` 字段选择：`tools_described`（16工具，改进描述）、`tools_structured`（16工具，统一只读结果格式）、`tools_extended`（18工具，增加当前客户订单商品筛选和产品款式筛选）。三个配置共用B1执行循环，写入仍使用官方工具与原审批层。前端无需新增页面；API契约、比较口径见 `docs/EVAL_PROTOCOL.md`。这些是独立工具实验，尚无成功率提升结论。
-
-## LangGraph 候选与实验
-
-新增 `lg_b1`、`lg_described`、`lg_structured`、`lg_extended`、`lg_context`、
-`lg_sop`、`lg_notes`、`lg_review`，分别测试框架迁移、工具接口、上下文、业务指引、
-轻量需求笔记和有界完成检查。B1 保持默认；选择 `lg_*` 才会进入 StateGraph。
-笔记与检查器不能直接修改 DB 或审批。SQLite 仍是唯一持久状态来源，不自动重放
-中断的写操作。main 前端及 cookie/auth/order API 不变。
-
-新浏览器会话可由服务端 `BROWSER_AGENT_VARIANT` 选择配置；内部评测继续使用
-variant 字段。9B 自动分阶段实验入口为 `python -m benchmarks.run_graph_experiments --help`，
-各阶段结果和限制见 [验收记录](docs/VERIFICATION.md)。软件测试通过不代表模型提分。
+只测失败题用于排错，不能当作整体成功率。冻结 fixture 和历史结果放在代码仓库之外。
+模型/工具预算默认为每题 80/80 次、600 秒；额外笔记及检查调用同样计入。

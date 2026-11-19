@@ -1,12 +1,11 @@
 [project]
 name = "retail-agent"
 version = "0.1.0"
-description = "Retail tool-use customer service with Vue, FastAPI and Deep Agents"
+description = "Retail tool-use customer service with Vue, FastAPI and LangGraph"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn[standard]>=0.34,<1",
-  "deepagents>=0.4,<1",
   "langchain-openai>=1,<2",
   "langgraph==1.2.17",
   "python-dotenv>=1,<2",

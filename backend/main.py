@@ -27,14 +27,6 @@ from backend.store import Store
 log = logging.getLogger(__name__)
 Variant = Literal[
     "b1",
-    "state",
-    "errors",
-    "guide",
-    "enhanced",
-    "c1",
-    "c2",
-    "advisory",
-    "lean",
     "tools_described",
     "tools_structured",
     "tools_extended",

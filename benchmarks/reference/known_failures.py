@@ -1,9 +1,8 @@
 """Exact no-op WRITE exceptions confirmed by the immutable all114 reference audit."""
 
 AUDIT_TAU2_SHA = "0c69df456a96aa76a1162591574dad9c427a34d7"
-AUDIT_REPORT_PATH = (
-    "/vePFS/han/retail-desk/runs/reference-audit-20261118T024107Z-a317337-579751/audit.json"
-)
+AUDIT_REPORT_PATH = "reference-audit.json"
+
 AUDIT_REPORT_SHA256 = "46024e9396dd7076e021e6b0cae2705fcbcad898080e2728958c5e91cc15b751"
 AUDITED_UNCHANGED_DB_HASH = "3ca5bd70e621602e23d909c87f26224a1a486e75955d8a6da53721ec224b23dc"
 

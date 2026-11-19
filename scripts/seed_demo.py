@@ -131,13 +131,13 @@ def main():
     if not args.apply:
         parser.error("Pass --apply to add synthetic data to the configured local database")
     store = Store()
-    backup = config.ROOT / "runtime/backups" / f"pre-demo-{datetime.now():%Y%m%d-%H%M%S}.sqlite3"
+    backup = config.DB_PATH.parent / "backups" / f"pre-demo-{datetime.now():%Y%m%d-%H%M%S}.sqlite3"
     backup.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(store.path) as source, sqlite3.connect(backup) as destination:
         source.backup(destination)
     result = seed(store)
     result["backup"] = str(backup)
-    output = config.ROOT / "docs/demo-customers.json"
+    output = config.DB_PATH.parent / "demo-customers.json"
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2))
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

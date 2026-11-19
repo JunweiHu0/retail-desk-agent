@@ -1,7 +1,7 @@
 # 在 TACC 上跑 Retail Desk Agent
 
 > 本目录脚本配置目标：CSIT6000V 平台、`tacc` 分区、课程 vLLM 环境及 `Qwen3.8-27B-AWQ-INT4`。原分支的部署记录不代表当前后端/agent/eval 已在 TACC 重新验收。
-> **先读 [后端与 Agent 说明](../../docs/BACKEND_AGENT.md)**：其中列出最小部署模块、tau2 包与数据的区别、无前端运行方式，以及本部署助手尚未接入的新评测交接项。当前 `up.sh` 仍强制准备前端 dist，且未打包 benchmarks/源码清单，不能直接视为新 DB-only 评测的一键部署。
+> **先读 [后端与 Agent 说明](../../README.md)**：其中列出最小部署模块、tau2 包与数据的区别、无前端运行方式，以及本部署助手尚未接入的新评测交接项。当前 `up.sh` 仍强制准备前端 dist，且未打包 benchmarks/源码清单，不能直接视为新 DB-only 评测的一键部署。
 > 项目入口见 [`../../README.md`](../../README.md)。
 
 ## 1. 一条命令

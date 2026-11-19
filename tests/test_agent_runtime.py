@@ -5,7 +5,7 @@ import json
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from backend.agent import GUIDE_PATH, AgentRunner
+from backend.agent import AgentRunner
 from tests.conftest import authenticate, dataset
 
 
@@ -153,59 +153,6 @@ def test_pending_stops_then_authoritative_receipt_continues(service, session, pe
     assert service.store.session(sid)["status"] == "ready"
 
 
-@pytest.mark.parametrize("approve", [True, False])
-def test_state_cannot_self_mark_done_and_only_receipt_settles(
-    service, session, pending_order, approve
-):
-    sid = session["id"]
-    authenticate(service, sid, pending_order["user_id"])
-    configure(service, sid, "state")
-    args = {"order_id": pending_order["order_id"], "reason": "no longer needed"}
-    envelope = json.dumps(
-        {
-            "reply": "",
-            "intents": [
-                {
-                    "id": "cancel",
-                    "request": "Cancel order",
-                    "tool": "cancel_pending_order",
-                    "args": args,
-                    "status": "done",
-                },
-                {"id": "later", "request": "Update account address", "status": "open"},
-            ],
-        }
-    )
-    runner = AgentRunner(service)
-    runner.run(
-        sid,
-        "Cancel then update address",
-        model=ScriptedModel(tool("cancel_pending_order", args, content=envelope)),
-    )
-    state = service.store.session(sid)["agent_state"]
-    assert state["intents"][0]["status"] == "open"
-    pending = service.store.session(sid)["pending"]
-    runner.decide(sid, pending["id"], approve, model=ScriptedModel(AIMessage(content="Continue")))
-    entries = service.store.session(sid)["agent_state"]["intents"]
-    assert entries[0]["status"] == ("done" if approve else "open")
-    assert entries[1]["status"] == "open"
-
-
-def test_error_variant_adds_known_context_without_editing_args(service, session, pending_order):
-    sid = session["id"]
-    authenticate(service, sid, pending_order["user_id"])
-    configure(service, sid, "errors")
-    original = {"order_id": "#does-not-exist"}
-    model = ScriptedModel(tool("get_order_details", original), AIMessage(content="Which order?"))
-    AgentRunner(service).run(sid, "Look up the order", model=model)
-    observation = next(m for m in model.requests[-1] if isinstance(m, ToolMessage))
-    result = json.loads(observation.content)
-    assert "error" in result
-    assert pending_order["order_id"] in result["already_observed_context"]["customer_order_ids"]
-    stored_call = next(m for m in model.requests[-1] if isinstance(m, AIMessage) and m.tool_calls)
-    assert stored_call.tool_calls[0]["args"] == original
-
-
 def test_model_failure_preserves_completed_tool_history(service, session):
     sid = session["id"]
     configure(service, sid)
@@ -249,25 +196,6 @@ def test_zero_model_budget_has_known_zero_usage(service, session, monkeypatch):
     assert not model.requests
 
 
-def test_custom_guide_records_hash_and_unverified_provenance(
-    service, session, tmp_path, monkeypatch
-):
-    sid = session["id"]
-    configure(service, sid, "guide")
-    guide = tmp_path / "development-guide-v2.md"
-    guide.write_text("Custom operational guidance: verify the customer's selection.")
-    monkeypatch.setenv("AGENT_GUIDE_PATH", str(guide))
-    model = ScriptedModel(AIMessage(content="How can I help?"))
-    AgentRunner(service).run(sid, "hello", model=model)
-    assert guide.read_text() in model.requests[0][0].content
-    recorded = service.store.session(sid)["manifest"]["guide"]
-    assert recorded["name"] == guide.name
-    assert recorded["source"] == "custom"
-    assert "unverified" in recorded["provenance"]
-    assert "no measured improvement claim" in recorded["provenance"]
-    assert len(recorded["sha256"]) == 64
-
-
 @pytest.mark.parametrize("response_kind", ["tool", "text"])
 def test_external_finish_during_model_call_preserves_reason_and_blocks_dispatch(
     service, session, pending_order, response_kind
@@ -307,43 +235,15 @@ def test_external_finish_during_model_call_preserves_reason_and_blocks_dispatch(
         assert "not executed" in json.loads(observations[-1]["content"])["error"]
 
 
-@pytest.mark.parametrize("variant", ["b1", "state", "errors", "guide", "enhanced"])
+@pytest.mark.parametrize("variant", ["b1", "lg_b1"])
 def test_variants_share_catalog_and_full_policy(service, session, variant, monkeypatch):
-    monkeypatch.delenv("AGENT_GUIDE_PATH", raising=False)
     sid = session["id"]
     configure(service, sid, variant)
     model = ScriptedModel(AIMessage(content="How can I help?"))
     AgentRunner(service).run(sid, "Hello", model=model)
     prompt = model.requests[0][0].content
     assert "APPLICATION CONTRACT" in prompt
-    assert ("OPTIONAL STRUCTURED INTENT LEDGER" in prompt) == (variant in {"state", "enhanced"})
-    assert (GUIDE_PATH.read_text() in prompt) == (variant in {"guide", "enhanced"})
     assert set(model.tool_names) == set(service.catalog)
-    assert bool(service.store.session(sid)["manifest"].get("guide")) == (
-        variant in {"guide", "enhanced"}
-    )
-
-
-def test_later_rejection_does_not_reopen_previously_executed_intent():
-    from backend.agent_state import reconcile_receipt
-
-    pending = {"id": "later-proposal", "tool": "modify_user_address", "args": {"user_id": "u"}}
-    state = {
-        "intents": [
-            {
-                "id": "old",
-                "status": "done",
-                "tool": pending["tool"],
-                "args": pending["args"],
-                "receipt_id": "original-receipt",
-            },
-            {"id": "new", "status": "open", "tool": pending["tool"], "args": pending["args"]},
-        ]
-    }
-    reconcile_receipt(state, {"status": "rejected"}, pending)
-    assert state["intents"][0]["status"] == "done"
-    assert state["intents"][0]["receipt_id"] == "original-receipt"
-    assert state["intents"][1]["status"] == "open"
 
 
 def test_handoff_seals_episode_and_returns_required_customer_message(service, session):
@@ -360,7 +260,7 @@ def test_handoff_seals_episode_and_returns_required_customer_message(service, se
     assert saved["transferred"] and len(model.requests) == 1
 
 
-@pytest.mark.parametrize("variant", ["state", "enhanced"])
+@pytest.mark.parametrize("variant", ["lg_context", "lg_sop"])
 @pytest.mark.parametrize("approve", [True, False])
 def test_state_projects_actual_receipt_without_changing_raw_history(
     service, session, pending_order, variant, approve

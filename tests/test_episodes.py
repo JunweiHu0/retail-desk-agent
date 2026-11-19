@@ -44,7 +44,7 @@ def test_same_order_is_isolated_and_seed_is_unchanged(service, pending_order):
 def test_episode_restarts_with_pending_history_usage_and_receipt(service, pending_order):
     sid = service.store.create_session(
         user_id=pending_order["user_id"],
-        variant="state",
+        variant="lg_context",
         task_id="4",
         trial_id=2,
         seed=17,
@@ -78,7 +78,7 @@ def test_episode_restarts_with_pending_history_usage_and_receipt(service, pendin
         key: state["manifest"][key]
         for key in ("variant", "task_id", "trial_id", "seed", "metadata")
     } == {
-        "variant": "state",
+        "variant": "lg_context",
         "task_id": "4",
         "trial_id": 2,
         "seed": 17,

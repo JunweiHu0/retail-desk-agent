@@ -16,5 +16,3 @@ deploy/tacc/.stage/
 
 .env.*
 !.env.example
-!.env.deepseek.example
-.deployment/
