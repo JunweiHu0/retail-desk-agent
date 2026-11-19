@@ -12,6 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
+from backend.graph_profiles import tool_variant
 from backend.observations import normalize_variant_changes, variant_change_error
 from backend.store import encode, now
 from backend.tool_profiles import (
@@ -85,6 +86,7 @@ class RetailService:
         }
 
     def tool_definitions(self, variant, *, account_bound=False):
+        variant = tool_variant(variant)
         definitions = []
         for name, upstream in self.catalog.items():
             if account_bound and name in AUTH_TOOLS:
@@ -120,6 +122,7 @@ class RetailService:
         return definitions
 
     def tool_manifest(self, variant, *, account_bound=False):
+        variant = tool_variant(variant)
         definitions = self.tool_definitions(variant, account_bound=account_bound)
         specifications = [
             {
@@ -176,7 +179,9 @@ class RetailService:
                     raise ValueError("会话已转人工，请新建会话继续。")
                 db = RetailDB.model_validate(self.store.dataset(cx, sid))
                 helper = (
-                    EXTRA_READ_TOOLS.get(name) if session["variant"] == "tools_extended" else None
+                    EXTRA_READ_TOOLS.get(name)
+                    if tool_variant(session["variant"]) == "tools_extended"
+                    else None
                 )
                 if helper is None and name not in self.catalog:
                     raise ValueError("Unknown retail tool")
@@ -244,7 +249,7 @@ class RetailService:
                         self.store.update(
                             cx, sid, transferred=1, status="finished", termination_reason="handoff"
                         )
-                if session["variant"] in STRUCTURED_VARIANTS:
+                if tool_variant(session["variant"]) in STRUCTURED_VARIANTS:
                     result = format_result(name, result, self.writes)
                 event = {
                     "type": "tool_end",
@@ -265,7 +270,7 @@ class RetailService:
                 "duration_ms": round((time.monotonic() - start) * 1000),
             }
             with self.store.tx() as cx:
-                if self.store.session(sid, cx)["variant"] in STRUCTURED_VARIANTS:
+                if tool_variant(self.store.session(sid, cx)["variant"]) in STRUCTURED_VARIANTS:
                     event["result"] = format_result(name, event["result"], self.writes)
                 self.store.event(cx, sid, "tool", event)
         emit(event)

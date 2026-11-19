@@ -96,7 +96,8 @@ def test_rejection_and_stale_confirmation(service, session, pending_order):
         ("return_delivered_order_items", "delivered"),
     ],
 )
-def test_retail_mutations_execute_through_official_tools(service, session, tool, status):
+@pytest.mark.parametrize("variant", ["b1", "lg_b1", "lg_extended"])
+def test_retail_mutations_execute_through_official_tools(service, session, tool, status, variant):
     sid = session["id"]
     data = dataset(service, sid)
     chosen = None
@@ -149,7 +150,20 @@ def test_retail_mutations_execute_through_official_tools(service, session, tool,
     assert chosen is not None, f"No valid fixture for {tool}"
     order, user, args = chosen
     authenticate(service, sid, user["user_id"])
-    preview = service.call(sid, tool, args)
+    with service.store.tx() as cx:
+        service.store.update(cx, sid, variant=variant)
+    if variant.startswith("lg_"):
+        from backend.agent import AgentRunner
+        from tests.test_agent_runtime import ScriptedModel
+        from tests.test_agent_runtime import tool as call_message
+
+        AgentRunner(service).run(
+            sid, "Apply my requested change", model=ScriptedModel(call_message(tool, args))
+        )
+        pending = service.store.session(sid)["pending"]
+        preview = {"status": "awaiting_confirmation", "action_id": pending["id"]}
+    else:
+        preview = service.call(sid, tool, args)
     assert preview.get("status") == "awaiting_confirmation", preview
     assert dataset(service, sid) == data
     expected = RetailDB.model_validate(data)

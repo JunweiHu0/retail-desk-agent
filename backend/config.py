@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
+from backend.graph_profiles import GRAPH_PROFILES
+
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 TAU_ROOT = Path(os.getenv("TAU2_ROOT", str(ROOT.parent / "tau2-bench")))
@@ -46,7 +48,11 @@ VARIANTS = (
     "tools_described",
     "tools_structured",
     "tools_extended",
+    *GRAPH_PROFILES,
 )
+BROWSER_AGENT_VARIANT = os.getenv("BROWSER_AGENT_VARIANT", "b1")
+if BROWSER_AGENT_VARIANT not in VARIANTS:
+    raise ValueError("Unknown BROWSER_AGENT_VARIANT")
 
 MODEL_REQUEST_TIMEOUT_SECONDS = 300
 MODEL_THINKING = os.getenv("MODEL_THINKING", "auto")

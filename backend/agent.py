@@ -383,6 +383,12 @@ class AgentRunner:
         return receipt
 
     def _loop(self, sid, emit, model, turn_text):
+        from backend.graph_profiles import GRAPH_PROFILES
+
+        if self.store.session(sid)["variant"] in GRAPH_PROFILES:
+            from backend.graph_agent import run_graph
+
+            return run_graph(self, sid, emit, model, turn_text)
         started = time.monotonic()
         session = self.store.session(sid)
         history = messages_from_dict(session["history"])

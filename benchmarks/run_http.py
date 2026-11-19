@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import httpx
 
+from backend.graph_profiles import GRAPH_PROFILES, tool_variant
 from backend.tool_profiles import EXTRA_READ_TOOLS, TOOL_PROFILES
 from benchmarks.reference import COMPARATOR_VERSION, PROTOCOL_VERSION, TAU2_SHA
 from benchmarks.reference.analysis import analyze_run
@@ -123,10 +124,14 @@ def run(args):
         response = preflight_client.get(base_url + "/api/health", timeout=30)
         response.raise_for_status()
         health = response.json()
+        if args.variant in GRAPH_PROFILES and args.variant not in health.get("variants", []):
+            raise ValueError("Backend does not advertise the requested graph runtime")
         tool_interface = health.get("tool_interfaces", {}).get(args.variant)
-        expected_profile = TOOL_PROFILES.get(args.variant, "official-v1")
-        expected_count = 16 + (len(EXTRA_READ_TOOLS) if args.variant == "tools_extended" else 0)
-        if args.variant in TOOL_PROFILES and (
+        expected_profile = TOOL_PROFILES.get(tool_variant(args.variant), "official-v1")
+        expected_count = 16 + (
+            len(EXTRA_READ_TOOLS) if tool_variant(args.variant) == "tools_extended" else 0
+        )
+        if tool_variant(args.variant) in TOOL_PROFILES and (
             not tool_interface
             or tool_interface.get("profile") != expected_profile
             or tool_interface.get("count") != expected_count

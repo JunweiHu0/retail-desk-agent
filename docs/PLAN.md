@@ -323,3 +323,62 @@ Main integration validation completed: huoshan final run
 `main-api-final-20261119T023030Z` passed 196 software tests, frontend build and all
 3 main browser scenarios. See VERIFICATION.md for source digest and initial
 failure corrections. No new model benchmark claim; deployment remains separate.
+
+## LangGraph independent candidate implementation (2026-11-19 UTC)
+
+User decisions: independent candidates before default replacement; use existing
+9B now and defer 27B; restore conversations/approvals without automatic in-flight
+node replay; prioritize DB success within unchanged per-episode budgets.
+
+The implementation adds a StateGraph runner selected only for `lg_*` variants.
+SQLite remains authoritative; no checkpointer, RAG, extra model service or
+multi-agent delegation. Existing B1/C1/C2/advisory remain intact. The graph runs
+load/budget → optional request notes → executor → tool observation → load, or
+preview/pause, or optional bounded review → one correction → final reply.
+Main's browser approval stays JSON without automatic model continuation;
+internal evaluator approval streams and resumes the same graph runner.
+
+| Candidate | Cumulative component |
+| --- | --- |
+| lg_b1 | B1-equivalent graph, official 16-tool base |
+| lg_described | Improved tool descriptions |
+| lg_structured | Observation envelopes |
+| lg_extended | Two precise read-only helpers, 18 tools |
+| lg_context | Real-receipt projection and identical-read compression |
+| lg_sop | Policy-derived cancellation/address/item/return/payment guidance |
+| lg_notes | Once per new user message, advisory request notes with source IDs |
+| lg_review | One evidence-linked completion review and at most one correction per invocation |
+
+Account-bound browser sessions hide the two identity tools. Request notes never
+supply executable parameters, block tools, or mark tasks done. Invalid notes
+clear stale advice and fall back to the executor; invalid reviews preserve the
+draft. Schemas validate only at the model-output boundary. Raw history remains
+available; identical read references retain the original complete observation.
+A new invocation closes interrupted, unmatched tool observations explicitly,
+without replaying the operation or inventing its execution outcome.
+
+References and implementation mapping:
+- Anthropic Building Effective Agents: single executor with deterministic control.
+- LangGraph customer support tutorial: separate reads and preview/approval paths.
+- Anthropic Writing Effective Tools: descriptions, observations and query helpers.
+- Anthropic Context Engineering: distinguish original requests, observations and receipts.
+- DBOS reliable customer service: durable business outcomes, no new DBOS service.
+- AWS AgentCore sample: frozen baseline, traces and independent comparisons, no AWS dependency.
+- Anthropic think-tool update: optional bounded reasoning; no dedicated think tool, main cohort thinking off.
+- Anthropic agent evals and False Success research: final DB primary; reviewers are advisory only.
+
+`benchmarks.run_graph_experiments` records its plan before running and sequentially
+executes smoke8, optional development54, then a single frozen candidate and B1 on
+validation20×3. Smoke admission requires a complete run, zero agent_error and no
+more than one fewer success than B1; a failing lg_b1 gate stops all enhancements.
+This is a predeclared screening heuristic, not a statistically valid uplift claim.
+Development selects highest DB success with simpler-profile tie break. Validation
+must have a positive paired 95% CI lower bound to recommend a default change.
+Costs and latency are reported without an additional cost-ratio gate. test40 is
+not read. Stages require fresh outputs; failures remain available for inspection.
+The script emits a promotion recommendation and never hot-switches serving.
+
+Public API bodies/events remain unchanged. `BROWSER_AGENT_VARIANT=b1` is the
+server-side default for newly created browser/order-action sessions. Old sessions
+retain their variant. Graph profiles and runtime/prompt/tool hashes are recorded
+in manifests. Main frontend remains unchanged.

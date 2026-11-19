@@ -2,6 +2,7 @@
 
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend import config
@@ -18,7 +19,8 @@ def sse(response):
     ]
 
 
-def test_eval_http_workflow_isolated_and_frozen(service, pending_order, monkeypatch):
+@pytest.mark.parametrize("variant", ["b1", "lg_b1", "lg_extended", "lg_review"])
+def test_eval_http_workflow_isolated_and_frozen(service, pending_order, monkeypatch, variant):
     monkeypatch.setattr(config, "EVAL_API_TOKEN", "local-test-token")
     eval_headers = {"Authorization": "Bearer local-test-token"}
     initial = dataset(service)
@@ -26,7 +28,7 @@ def test_eval_http_workflow_isolated_and_frozen(service, pending_order, monkeypa
     body = {
         "initial_db": initial,
         "customer_id": uid,
-        "variant": "b1",
+        "variant": variant,
         "task_id": "synthetic-cancel",
         "trial_id": 0,
         "seed": 42,

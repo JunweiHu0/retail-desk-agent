@@ -314,3 +314,30 @@ cd "$TACC_WORKDIR/app"
 `python -m scripts.seed_demo --apply`（先确认 RETAIL_DB_PATH 指向应用 DB；脚本会备份并更新演示清单）；AuthService 启动时
 按 `DEMO_ACCOUNTS=1` 创建这些合成账号。不要对冻结 benchmark fixtures
 执行 seed。生产式环境可设 `DEMO_ACCOUNTS=0` 并走注册或管理员开户流程。
+
+## 10. LangGraph 候选（独立于旧运行器）
+
+`backend/graph_agent.py` 使用 StateGraph 编排每轮；`graph_profiles.py` 声明八个
+累计消融配置；`graph_context.py` 提供上下文投影、SOP 与笔记/检查输出类型。
+现有 AgentRunner.run/decide 保持入口约定，仅 lg_* 会话进入新图。B1 不启用
+新笔记、投影或检查。依赖显式声明已锁定的 langgraph==1.2.17。
+
+查询继续循环，写工具只产生预览，真实提交仍由 RetailService.decide 完成。
+浏览器批准后直接返回 JSON；内部 eval 批准后继续图。SQLite 保存原始消息、
+工具观察、实际回执与 graph_v1 状态；未启用 checkpoint 或进程内任务自动重放。
+重新进入时，缺失的 tool response 明确标为 interrupted，不重试未知结果的写操作。
+
+配置顺序：lg_b1 → lg_described → lg_structured → lg_extended → lg_context →
+lg_sop → lg_notes → lg_review。内部 eval 基础16/扩展18工具，登录浏览器对应14/16。
+笔记每条新用户消息最多一次；不输出执行参数或完成状态；格式错误时清空旧笔记并
+继续。review 仅多需求、拒绝回执或本轮工具错误时触发；每次图调用最多一次检查及
+一次反馈修正。所有调用计入原80/80/600秒预算。跨用户消息可以重新检查。
+
+设置 `BROWSER_AGENT_VARIANT` 可为新浏览器会话选择候选，默认 b1；前端无需修改。
+内部 eval 的现有 variant 字段可选择 lg_*。候选成功率尚需真实9B对照验证。
+
+自动实验入口：`python -m benchmarks.run_graph_experiments --help`。
+要求明确指定 smoke/development/validation 三组冻结fixtures、独立输出目录与
+应用/model URL。默认只运行 smoke；`--through validation` 顺序执行完整开发及
+验证选择流程。失败门槛会停止或淘汰候选，最终 promotion.json 只给建议，不修改
+线上默认。EVAL_API_TOKEN 与 MODEL_API_KEY 从环境读取，不写入计划或报告。

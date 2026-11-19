@@ -3,15 +3,19 @@
 import json
 
 import httpx
+import pytest
 from langchain_openai import ChatOpenAI
 
 from backend.agent import AgentRunner
 from tests.conftest import dataset
 
 
+@pytest.mark.parametrize("variant", ["b1", "lg_b1"])
 def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
-    service, session, pending_order
+    service, session, pending_order, variant
 ):
+    with service.store.tx() as cx:
+        service.store.update(cx, session["id"], variant=variant)
     user = dataset(service)["users"][pending_order["user_id"]]
     calls = []
     steps = [

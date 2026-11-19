@@ -264,3 +264,15 @@ passed; unchanged main Playwright suite **3 passed** (11.3 seconds): login/profi
 order approval and agent context/account isolation; address rejection without
 mutation; empty-account registration. The temporary demo server was stopped by
 the run's cleanup trap. These are software/UI contract checks, not model scores.
+
+## LangGraph initial software implementation (2026-11-19 UTC)
+
+Initial source snapshot `20261119T030951Z-1ed6e37-2516673`, huoshan run
+`langgraph-software-20261119T031100Z`: **228 passed** (101.08s), frontend build
+passed, unchanged main browser suite **3 passed** (11.8s) with
+BROWSER_AGENT_VARIANT=lg_b1 and a new synthetic DB. Local graph-only cases and
+all six other write types plus cancellation were exercised through the new
+runner; model-input equivalence is verified with scripted B1/lg_b1 requests.
+Subsequent changes add interrupted-observation recovery, real SDK graph transport
+coverage and the staged experiment orchestrator; they require final validation.
+No LangGraph model-performance uplift is claimed from these software tests.

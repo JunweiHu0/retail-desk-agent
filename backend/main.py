@@ -38,6 +38,14 @@ Variant = Literal[
     "tools_described",
     "tools_structured",
     "tools_extended",
+    "lg_b1",
+    "lg_described",
+    "lg_structured",
+    "lg_extended",
+    "lg_context",
+    "lg_sop",
+    "lg_notes",
+    "lg_review",
 ]
 
 
@@ -189,7 +197,9 @@ def create_app(store=None, runner=None, artifact_dir=None):
         args: dict = Field(default_factory=dict)
 
     def stage(uid, tool, args):
-        sid = app.state.store.create_session(owner_user_id=uid)["id"]
+        sid = app.state.store.create_session(
+            owner_user_id=uid, variant=config.BROWSER_AGENT_VARIANT
+        )["id"]
         result = app.state.retail.call(sid, tool, args)
         if isinstance(result, dict) and "error" in result:
             raise HTTPException(422, result["error"])
@@ -349,7 +359,9 @@ def create_app(store=None, runner=None, artifact_dir=None):
 
     @app.post("/api/sessions", status_code=201)
     def create_session(uid=Depends(identity)):
-        value = app.state.store.create_session(owner_user_id=uid)
+        value = app.state.store.create_session(
+            owner_user_id=uid, variant=config.BROWSER_AGENT_VARIANT
+        )
         return {k: v for k, v in value.items() if k != "token"}
 
     @app.get("/api/sessions/{sid}")
