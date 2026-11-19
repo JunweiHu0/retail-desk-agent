@@ -11,6 +11,7 @@
 | 2026-11-17 | [tau2-bare-29443](experiments/2026-11-17-tau2-bare-29443/README.md) | 29443 | 补跑 4 个，全部失败（judge 模型） | 失败记录 |
 | 2026-11-17 | [tau2-bare-29450](experiments/2026-11-17-tau2-bare-29450/README.md) | 29450 | 补跑 6 个（5 有效），合计 13 有效任务 | 中间批次 |
 | 2026-11-17 | [tau2-test40](experiments/2026-11-17-tau2-test40/README.md) | test40 / test40-b | test split 全部 40 任务（34 有效），244 轮引擎指标 | **当前基线** |
+| 2026-11-18 | [interference-29487](experiments/2026-11-17-interference-29487/README.md) | 29487 | 长 prefill 对在途解码的干扰 | PD 分离决策依据 |
 
 ## 每组目录里有什么
 

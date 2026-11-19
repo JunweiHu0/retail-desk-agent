@@ -52,5 +52,6 @@ export AGENT_MODE=demo
 export BENCH_OUT="$OUT"
 
 cd "$TACC_WORKDIR"
-bash "$QWEN_PROJECT_ROOT/runtime.sh" "$VENV/bin/python" main.py
+SCRIPT=$(cat "$TACC_WORKDIR/script.txt" 2>/dev/null | tr -d '\r' | head -1)
+bash "$QWEN_PROJECT_ROOT/runtime.sh" "$VENV/bin/python" "${SCRIPT:-main.py}"
 printf 'BENCH_DONE\n'

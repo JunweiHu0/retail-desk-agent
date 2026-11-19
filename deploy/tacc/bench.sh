@@ -12,6 +12,8 @@ REPORT_ONLY=0
 BENCH_STAGE="$STAGE/bench"
 mkdir -p "$BENCH_STAGE"
 cp "$TACC_DIR/bench/job.sh" "$TACC_DIR/bench/main.py" "$TACC_DIR/bench/tuxiv.conf" "$BENCH_STAGE/"
+cp "$TACC_DIR/bench/interference.py" "$BENCH_STAGE/" 2>/dev/null || true
+printf '%s\n' "${BENCH_SCRIPT:-main.py}" > "$BENCH_STAGE/script.txt"
 # main.py imports backend.agent / backend.retail to use the app's real prompt.
 rm -rf "$BENCH_STAGE/backend"
 cp -a "$REPO_ROOT/backend" "$BENCH_STAGE/backend"
