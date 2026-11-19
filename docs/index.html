@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>实验索引</title>
+<style>
+:root{--bg:#fbfbf9;--surface:#fff;--ink:#16161a;--muted:#6b6b72;--line:#e4e3dd;--acc:#2a78d6}
+@media (prefers-color-scheme:dark){:root{--bg:#121211;--surface:#1a1a19;--ink:#f0efec;--muted:#a3a29a;--line:#2f2f2c;--acc:#3987e5}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:28px max(16px,env(safe-area-inset-left,0px)) 48px}
+main{max-width:960px;margin:0 auto}
+h1{font-size:26px;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 4px}
+.card .m{color:var(--muted);font-size:12.5px}
+.card a{color:var(--acc);text-decoration:none}
+.card a:hover{text-decoration:underline}
+.tag{display:inline-block;font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--line);color:var(--muted);margin-left:6px}
+</style></head><body><main>
+<h1>实验索引</h1>
+<p class="sub">一次提交 = 一组实验。每组一个目录，含配置、原始数据、ATIF 轨迹与视图。</p>
+
+<div class="card">
+  <h2>2026-11-17 · agent 29402 <span class="tag">当前基线</span></h2>
+  <div class="m">真实 prompt（7,820 字符）+ 16 工具 schema · 思考开/关 × 并发 1/2/4 · 144 次调用</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-agent-29402/view.html">视图</a>
+  · <a href="experiments/2026-11-17-agent-29402/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>2026-11-17 · serving 29378 <span class="tag">作废</span></h2>
+  <div class="m">合成 5k 前缀的并发扫描，前缀里没有真实政策和工具，不作为基线</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-serving-29378/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>2026-11-17 · tau2 test split 40 任务 <span class="tag">完整基线</span></h2>
+  <div class="m">34/40 有效 · Pass^1 0.05 · 244 轮逐轮 TTFT/TPOT/KV · 2 个任务无工具也能过</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-tau2-test40/view.html">对话视图</a>
+  · <a href="experiments/2026-11-17-tau2-test40/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>2026-11-17 · tau2 基线 补跑 5 任务 <span class="tag">judge 修复后</span></h2>
+  <div class="m">36/38/39/40/45 有效，49 超时 · TPOT p50 18.42 ms（节点 10-0-3-11）</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-tau2-bare-29450/view.html">对话视图</a>
+  · <a href="experiments/2026-11-17-tau2-bare-29450/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>2026-11-17 · tau2 基线 10 任务 <span class="tag">逐轮指标</span></h2>
+  <div class="m">10 个 test 任务（8 有效）· 零工具 · 每轮 TPOT / KV / 缓存命中来自引擎计数器</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-tau2-bare-29439/view.html">对话视图</a>
+  · <a href="experiments/2026-11-17-tau2-bare-29439/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>2026-11-17 · 无工具 tau2 冒烟（2 任务） <span class="tag">早期</span></h2>
+  <div class="m">2 个 tau2 任务、裸模型、pass^1 = 0 · 含 ATIF 轨迹与服务侧采样</div>
+  <div style="margin-top:8px"><a href="experiments/2026-11-17-tau2-bare-29388/view.html">对话视图</a>
+  · <a href="experiments/2026-11-17-tau2-bare-29388/README.md">说明</a></div>
+</div>
+
+<div class="card">
+  <h2>图表</h2>
+  <div class="m"><a href="figures/serving-baseline.html">serving baseline 图集</a> · <a href="EXPERIMENTS.md">完整索引（Markdown）</a></div>
+</div>
+</main></body></html>

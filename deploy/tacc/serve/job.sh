@@ -20,6 +20,18 @@ source "$QWEN_ACTIVATE"
 export CUDA_VISIBLE_DEVICES=0,1
 
 TOOL_PARSER="${TOOL_PARSER:-qwen3_xml}"
+# Optional A/B overrides written by up.sh next to the job.
+if [ -f "$TACC_WORKDIR/overrides.env" ]; then
+    # shellcheck disable=SC1091
+    . "$TACC_WORKDIR/overrides.env"
+fi
+TP_SIZE="${TP_SIZE:-2}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"
+MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
+EXTRA=()
+if [ -n "${SPEC_JSON:-}" ]; then
+    EXTRA+=(--speculative-config "$SPEC_JSON")
+fi
 PORT="${PORT:-8000}"
 ROOT="$TACC_USERDIR/retail-agent"
 URL_FILE="$ROOT/server-url.txt"
@@ -57,6 +69,21 @@ HOST="${IP:-$(hostname)}"
 printf '%s\n' "http://${HOST}:${PORT}/v1" > "$URL_FILE.tmp"
 mv -f "$URL_FILE.tmp" "$URL_FILE"
 cleanup() {
+    # vLLM spawns engine-core children and proot wraps the whole tree; killing
+    # only the launcher can leave them holding GPU memory after the job slot is
+    # gone. Take the whole process group down instead.
+    if [ -n "${VLLM_PID:-}" ] && kill -0 "$VLLM_PID" 2>/dev/null; then
+        kill -TERM -"$VLLM_PID" 2>/dev/null || kill -TERM "$VLLM_PID" 2>/dev/null || true
+        for _ in $(seq 1 100); do
+            kill -0 "$VLLM_PID" 2>/dev/null || break
+            sleep 0.1
+        done
+        kill -KILL -"$VLLM_PID" 2>/dev/null || true
+        printf 'VLLM_GROUP_STOPPED\n'
+    fi
+    if [ -n "${DMON_PID:-}" ]; then
+        kill "$DMON_PID" 2>/dev/null || true
+    fi
     rm -f "$URL_FILE"
     rm -rf -- "${QWEN_RUN_DIR:-}"
 }
@@ -69,7 +96,8 @@ mkdir -p -m 700 "$QWEN_CACHE_HOME"
 
 printf 'NODE=%s\n' "$(hostname)"
 printf 'SERVICE_BASE_URL=http://%s:%s/v1\n' "$HOST" "$PORT"
-printf 'SERVED_MODEL=qwen3.8-27b TOOL_PARSER=%s\n' "$TOOL_PARSER"
+printf 'SERVED_MODEL=qwen3.8-27b TOOL_PARSER=%s TP=%s MAX_LEN=%s SEQS=%s SPEC=%s\n' \
+    "$TOOL_PARSER" "$TP_SIZE" "$MAX_MODEL_LEN" "$MAX_NUM_SEQS" "${SPEC_JSON:-none}"
 
 printf 'PORT_CHECK_BEGIN\n'
 (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E ":${PORT}[[:space:]]" \
@@ -82,14 +110,28 @@ printf 'GPU_CHECK_BEGIN\n'
 nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader 2>&1 | head -4 || true
 printf 'GPU_CHECK_END\n'
 
-bash "$QWEN_PROJECT_ROOT/runtime.sh" "$QWEN_PROJECT_ROOT/vllm-env/bin/python" \
+# Read-only sampling for the whole service lifetime. dmon only reads the
+# driver: it allocates nothing and cannot disturb the model process. One line
+# per second per GPU is ~0.5 MB/hour.
+DMON_PID=""
+GPU_LOG="$ROOT/gpu-$SLURM_JOB_ID.csv"
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi dmon -s pum -d 1 -o DT > "$GPU_LOG" 2>&1 &
+    DMON_PID=$!
+    printf 'GPU_LOG=%s\n' "$GPU_LOG"
+fi
+
+# Own session => its own process group, so cleanup() can signal every child.
+setsid bash "$QWEN_PROJECT_ROOT/runtime.sh" "$QWEN_PROJECT_ROOT/vllm-env/bin/python" \
     -m vllm.entrypoints.openai.api_server \
     --model "$QWEN_PROJECT_ROOT/models/Qwen3.8-27B-AWQ-INT4" \
     --served-model-name qwen3.8-27b \
     --safetensors-load-strategy prefetch \
     --host 0.0.0.0 --port "$PORT" \
-    --tensor-parallel-size 2 --language-model-only --dtype bfloat16 \
-    --gpu-memory-utilization 0.90 --max-model-len 32768 \
-    --max-num-seqs 4 --max-num-batched-tokens 4096 \
+    --tensor-parallel-size "$TP_SIZE" --language-model-only --dtype bfloat16 \
+    --gpu-memory-utilization 0.90 --max-model-len "$MAX_MODEL_LEN" \
+    --max-num-seqs "$MAX_NUM_SEQS" --max-num-batched-tokens 4096 \
     --reasoning-parser qwen3 --enable-prefix-caching \
-    --enable-auto-tool-choice --tool-call-parser "$TOOL_PARSER"
+    --enable-auto-tool-choice --tool-call-parser "$TOOL_PARSER" "${EXTRA[@]}" &
+VLLM_PID=$!
+wait "$VLLM_PID"

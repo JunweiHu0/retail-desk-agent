@@ -88,7 +88,7 @@ submit_job() {
         fi
         # Laptop-side DNS/network hiccups ("Failed to dial ... lookup
         # gw.turing.ust.hk") abort before any job exists; retry those.
-        if printf '%s' "$out" | grep -qE 'Failed to dial|Failed to create remote session'; then
+        if printf '%s' "$out" | grep -qE 'Failed to dial|Failed to create remote session|Could not resolve hostname|Failed to upload|connection unexpectedly closed'; then
             if [ "$attempt" -lt 3 ]; then
                 printf 'submit: transient network error, retrying (%s/3)\n' "$attempt" >&2
                 attempt=$((attempt + 1))

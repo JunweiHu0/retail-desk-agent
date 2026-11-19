@@ -10,11 +10,14 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 TUNNEL=0
 SKIP_SETUP=0
 FORCE_SETUP=0
+SERVE_ONLY=0
 for arg in "$@"; do
     case "$arg" in
         --tunnel)      TUNNEL=1 ;;
         --skip-setup)  SKIP_SETUP=1 ;;
         --force-setup) FORCE_SETUP=1 ;;
+        # Leave the second QOS slot free for a benchmark job.
+        --serve-only)  SERVE_ONLY=1 ;;
         -h|--help)
             sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
@@ -138,10 +141,13 @@ stage_app() {
             "$REPO_ROOT/backend/" "$dest/backend/"
         rsync -a "$REPO_ROOT/frontend/dist/" "$dest/frontend/dist/"
         rsync -a "$REPO_ROOT/web/" "$dest/web/"
+        rsync -a --exclude __pycache__ --exclude '*.pyc' \
+            "$REPO_ROOT/benchmarks/" "$dest/benchmarks/"
     else
         cp -a "$REPO_ROOT/backend" "$dest/backend"
         cp -a "$REPO_ROOT/frontend/dist" "$dest/frontend/dist"
         cp -a "$REPO_ROOT/web" "$dest/web"
+        cp -a "$REPO_ROOT/benchmarks" "$dest/benchmarks"
         find "$dest" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
     fi
 }
@@ -165,6 +171,13 @@ stage_job agent "$TACC_DIR/agent" >/dev/null
 render_setup_conf
 render_serve_conf
 render_agent_conf
+# A/B knobs travel as a file: the local environment does not reach the job.
+{
+    printf 'TP_SIZE=%q\n' "${TP_SIZE:-}"
+    printf 'MAX_MODEL_LEN=%q\n' "${MAX_MODEL_LEN:-}"
+    printf 'MAX_NUM_SEQS=%q\n' "${MAX_NUM_SEQS:-}"
+    printf 'SPEC_JSON=%q\n' "${SPEC_JSON:-}"
+} > "$STAGE/serve/overrides.env"
 ensure_frontend_dist
 stage_app
 log "staged under $STAGE"
@@ -284,6 +297,14 @@ while :; do
     fi
     die "vLLM failed; see $serve_log"
 done
+
+if [ "$SERVE_ONLY" = "1" ]; then
+    log "== serve only: leaving the second job slot for a benchmark =="
+    log "  serve : $serve_url (job $serve_id)"
+    log "  bench : ./deploy/run.sh tacc bench"
+    log "  stop  : ./deploy/run.sh tacc down"
+    exit 0
+fi
 
 # --------------------------------------------------------------- 3/3 agent
 log "== 3/3 agent =="
