@@ -28,18 +28,25 @@ fetch_data() {
     qwen-python - "$TAU2_COMMIT" <<'PY'
 import os, ssl, sys, urllib.request, certifi
 commit = sys.argv[1]
-base = f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{commit}/data/tau2/domains/retail/"
-out = os.path.join(os.environ["TACC_USERDIR"], "retail-agent", "tau2-bench",
-                   "data", "tau2", "domains", "retail")
-os.makedirs(out, exist_ok=True)
+root = f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{commit}/data/tau2/"
+base = os.path.join(os.environ["TACC_USERDIR"], "retail-agent", "tau2-bench", "data", "tau2")
 ctx = ssl.create_default_context(cafile=certifi.where())
-for name in ("db.json", "policy.md", "tasks.json", "split_tasks.json"):
-    path = os.path.join(out, name)
-    with urllib.request.urlopen(base + name, timeout=60, context=ctx) as r:
-        data = r.read()
-    with open(path, "wb") as f:
-        f.write(data)
-    print("DATA", name, len(data))
+# domains/retail: the sandbox dataset and policy.
+# multilingual/en: tau2's runner refuses to start without a language pack header.
+wanted = {
+    "domains/retail": ("db.json", "policy.md", "tasks.json", "split_tasks.json"),
+    "multilingual/en": ("pack.yaml", "retail_tasks_en.json", "retail_metadata_en.json"),
+}
+for rel, names in wanted.items():
+    out = os.path.join(base, rel)
+    os.makedirs(out, exist_ok=True)
+    for name in names:
+        path = os.path.join(out, name)
+        with urllib.request.urlopen(root + rel + "/" + name, timeout=60, context=ctx) as r:
+            data = r.read()
+        with open(path, "wb") as f:
+            f.write(data)
+        print("DATA", rel + "/" + name, len(data))
 PY
 }
 
@@ -47,7 +54,7 @@ PY
 # data check lives here too: skipping the build must not skip a missing dataset.
 STAMP=$(sha256sum "$REQ" | cut -c1-16)
 if [ -f "$ROOT/venv.tgz" ] && [ "$(cat "$ROOT/venv.stamp" 2>/dev/null || true)" = "$STAMP" ]; then
-    if [ ! -f "$DATA_DIR/db.json" ]; then
+    if [ ! -f "$DATA_DIR/db.json" ] || [ ! -f "$ROOT/tau2-bench/data/tau2/multilingual/en/pack.yaml" ]; then
         printf 'DATA_BEGIN\n'
         fetch_data
     fi

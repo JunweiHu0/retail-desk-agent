@@ -69,6 +69,8 @@ fi
 
 # SQLite on NFS is slow and WAL-unfriendly; the session DB is disposable.
 export TAU2_ROOT="$ROOT/tau2-bench"
+# tau2 resolves its data (including the en language pack) from this root.
+export TAU2_DATA_DIR="$ROOT/tau2-bench/data"
 export RETAIL_DB_PATH="${RETAIL_DB_PATH:-/tmp/retail-agent-$SLURM_JOB_ID.sqlite3}"
 # Per-run telemetry survives the job (small JSONL), so the /infra page can show
 # this run after the fact. The model endpoint is read server-side, no key leaks.

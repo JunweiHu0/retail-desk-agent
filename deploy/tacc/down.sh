@@ -39,7 +39,7 @@ if [ "${#ids[@]}" -gt 0 ]; then
         cancel_one "$id" || true
     done
 else
-    for name in agent serve bench; do
+    for name in agent serve bench eval; do
         [ -f "$STATE/$name.job" ] && cancel_one "$(cat "$STATE/$name.job")" || true
     done
     if [ "$ALL" = "1" ] && [ -f "$STATE/setup.job" ]; then

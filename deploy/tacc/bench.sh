@@ -12,6 +12,10 @@ REPORT_ONLY=0
 BENCH_STAGE="$STAGE/bench"
 mkdir -p "$BENCH_STAGE"
 cp "$TACC_DIR/bench/job.sh" "$TACC_DIR/bench/main.py" "$TACC_DIR/bench/tuxiv.conf" "$BENCH_STAGE/"
+# main.py imports backend.agent / backend.retail to use the app's real prompt.
+rm -rf "$BENCH_STAGE/backend"
+cp -a "$REPO_ROOT/backend" "$BENCH_STAGE/backend"
+find "$BENCH_STAGE/backend" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 if [ "$REPORT_ONLY" = "0" ]; then
     [ -f "$STATE/serve.url" ] || die "no serve address recorded; run './deploy/run.sh tacc up --serve-only' first"
