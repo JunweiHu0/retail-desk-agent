@@ -10,7 +10,7 @@ from backend.agent import AgentRunner
 from tests.conftest import dataset
 
 
-@pytest.mark.parametrize("variant", ["b1", "lg_b1"])
+@pytest.mark.parametrize("variant", ["b1", "lg_b1", "lg_guided"])
 def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
     service, session, pending_order, variant
 ):
@@ -33,11 +33,13 @@ def test_openai_compatible_transport_keeps_business_tools_and_approval_boundary(
         assert body["messages"][0]["role"] == "system"
         assert all(m["role"] != "system" for m in body["messages"][1:])
         names = {t["function"]["name"] for t in body["tools"]}
-        assert names == set(service.catalog)
+        assert names == {t.name for t in service.tool_definitions(variant)}
         assert "task" not in names and "write_file" not in names
         assert body["parallel_tool_calls"] is False
         if len(calls) <= len(steps):
             name, args = steps[len(calls) - 1]
+            if variant == "lg_guided" and name in service.writes:
+                name = "preview_" + name
             message = {
                 "role": "assistant",
                 "content": None,

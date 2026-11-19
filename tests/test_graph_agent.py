@@ -341,3 +341,69 @@ def test_guided_demo_repeated_reads_keep_multi_turn_dialogue(service, pending_or
     for _ in range(2):
         reply = runner.run(ref["id"], "查询订单 " + pending_order["order_id"])
         assert pending_order["order_id"] in reply
+
+
+def test_guided_payment_facts_use_order_history_not_saved_method_order(service, pending_order):
+    from copy import deepcopy
+
+    initial = deepcopy(dataset(service))
+    uid = pending_order["user_id"]
+    methods = list(initial["users"][uid]["payment_methods"])
+    original = methods[-1]
+    initial["orders"][pending_order["order_id"]]["payment_history"][0]["payment_method_id"] = (
+        original
+    )
+    ref = service.store.create_session(
+        user_id=uid,
+        variant="lg_guided",
+        initial_db=initial,
+        metadata={"target_db": "PRIVATE_TARGET"},
+    )
+    model = ScriptedModel(AIMessage(content="Which change do you need?"))
+    AgentRunner(service).run(ref["id"], "Use the other saved method if I select it", model=model)
+    prompt = model.requests[0][0].content
+    facts = json.loads(
+        prompt.split("OBSERVED ORDER PAYMENT FACTS (not a customer choice):\n")[1]
+        .split("\nNEXT-ACTION CHECKLIST")[0]
+        .strip()
+    )
+    fact = next(o for o in facts if o["order_id"] == pending_order["order_id"])
+    assert fact["original_payment_method_id"] == original
+    assert "PRIVATE_TARGET" not in prompt
+    assert model.requests[0][-1].content == "Use the other saved method if I select it"
+
+
+def test_preview_alias_keeps_canonical_api_receipt_and_never_bypasses_approval(
+    service, pending_order
+):
+    ref = service.store.create_session(user_id=pending_order["user_id"], variant="lg_guided")
+    args = {"order_id": pending_order["order_id"], "reason": "no longer needed"}
+    initial = dataset(service, ref["id"])
+    manifest = service.tool_manifest("lg_guided")
+    assert manifest["count"] == 18 and manifest["profile"] == "retail-preview-names-v1"
+    assert "preview_cancel_pending_order" in manifest["names"]
+    assert "cancel_pending_order" not in manifest["names"]
+    events = []
+    proposal = service.call(ref["id"], "preview_cancel_pending_order", args, events.append)
+    assert proposal["tool"] == "cancel_pending_order"
+    assert dataset(service, ref["id"]) == initial
+    assert all(e["name"] == "cancel_pending_order" for e in events)
+    receipt = service.decide(ref["id"], proposal["action_id"], True)
+    assert receipt["tool"] == "cancel_pending_order"
+    assert dataset(service, ref["id"])["orders"][pending_order["order_id"]]["status"] == "cancelled"
+    baseline = service.store.create_session(user_id=pending_order["user_id"])
+    assert "error" in service.call(baseline["id"], "preview_cancel_pending_order", args)
+
+
+def test_demo_uses_the_advertised_preview_name(service, pending_order):
+    ref = service.store.create_session(user_id=pending_order["user_id"], variant="lg_guided")
+    AgentRunner(service).run(ref["id"], f"取消订单 {pending_order['order_id']}，原因是不再需要")
+    saved = service.store.session(ref["id"])
+    calls = [
+        call
+        for m in saved["history"]
+        if m["type"] == "ai"
+        for call in m["data"].get("tool_calls", [])
+    ]
+    assert calls[-1]["name"] == "preview_cancel_pending_order"
+    assert saved["pending"]["tool"] == "cancel_pending_order"

@@ -18,7 +18,9 @@ NEXT-ACTION CHECKLIST (apply to the customer's actual request, not to inferred w
    card last-four digits; use the actual last_four field when displaying a card.
 3. Once the requested operation, items and method are clear, call the write tool to create
    the approval card. Do not merely say 'I will stage it' or ask for another chat 'yes'.
-   Explain actual refund timing honestly; do not promise expediting. If the customer makes
+   Explain actual refund timing honestly; do not promise expediting. Do not borrow a
+   cancellation/payment-change refund timeline for a return. A return request is not a
+   completed payout. If the customer makes
    an unsupported deadline a condition or withdraws the request, clarify or stop that action.
 4. An executed receipt means that exact action ALREADY happened; do not request approval
    again. A rejected receipt means no change. Continue other explicitly requested actions.
@@ -41,6 +43,12 @@ def approval_message(pending, events, chinese=False):
     }
     language = 0 if chinese else 1
     current = labels[pending["tool"]][language]
+    if pending["tool"] == "return_delivered_order_items":
+        current += (
+            "（仅申请退货，不等于退款到账，也不保证到账日期）"
+            if chinese
+            else " (request only, not a completed refund or guaranteed payout date)"
+        )
     target = pending["args"].get("order_id", pending["args"].get("user_id", ""))
     executed = [
         e["data"]

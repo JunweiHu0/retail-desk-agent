@@ -14,7 +14,7 @@ from uuid import uuid4
 import httpx
 
 from backend.graph_profiles import GRAPH_PROFILES, tool_variant
-from backend.tool_profiles import EXTRA_READ_TOOLS, TOOL_PROFILES
+from backend.tool_profiles import EXTRA_READ_TOOLS, TOOL_PROFILES, tool_profile_name
 from benchmarks.reference import COMPARATOR_VERSION, PROTOCOL_VERSION, TAU2_SHA
 from benchmarks.reference.analysis import analyze_run
 from benchmarks.reference.fixtures import (
@@ -135,7 +135,7 @@ def run(args):
         if args.variant in GRAPH_PROFILES and args.variant not in health.get("variants", []):
             raise ValueError("Backend does not advertise the requested graph runtime")
         tool_interface = health.get("tool_interfaces", {}).get(args.variant)
-        expected_profile = TOOL_PROFILES.get(tool_variant(args.variant), "official-v1")
+        expected_profile = tool_profile_name(args.variant)
         expected_count = 16 + (
             len(EXTRA_READ_TOOLS) if tool_variant(args.variant) == "tools_extended" else 0
         )

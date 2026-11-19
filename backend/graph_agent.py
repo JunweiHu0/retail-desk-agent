@@ -382,6 +382,25 @@ def run_graph(self, sid, emit, model, turn_text):
                 "\nADVISORY CHECK (verify against original messages and receipts):\n" + feedback
             )
         if profile.guided:
+            payment_facts = [
+                {
+                    "order_id": order["order_id"],
+                    "status": order["status"],
+                    "original_payment_method_id": next(
+                        (
+                            entry["payment_method_id"]
+                            for entry in order["payment_history"]
+                            if entry["transaction_type"] == "payment"
+                        ),
+                        None,
+                    ),
+                }
+                for order in current_context["orders"]
+            ]
+            system_content += (
+                "\nOBSERVED ORDER PAYMENT FACTS (not a customer choice):\n"
+                + json.dumps(payment_facts, ensure_ascii=False)
+            )
             system_content += "\n" + EXECUTION_GUIDANCE
         message = invoke_stage(
             bound,

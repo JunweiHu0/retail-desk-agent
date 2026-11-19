@@ -6,12 +6,21 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from tau2.domains.retail.data_model import RetailDB
 
+from backend.graph_profiles import tool_variant, uses_preview_names
+
 TOOL_PROFILES = {
     "tools_described": "retail-described-v1",
     "tools_structured": "retail-structured-v1",
     "tools_extended": "retail-extended-v1",
 }
 STRUCTURED_VARIANTS = {"tools_structured", "tools_extended"}
+
+
+def tool_profile_name(variant):
+    if uses_preview_names(variant):
+        return "retail-preview-names-v1"
+    return TOOL_PROFILES.get(tool_variant(variant), "official-v1")
+
 
 # These describe the current HTTP execution contract, not native immediate writes.
 PREVIEW_DESCRIPTION = (

@@ -36,13 +36,16 @@ class DemoRetailModel(BaseChatModel):
         return "retail-offline-demo"
 
     def bind_tools(self, tools, **kwargs):
-        return self
+        return self.bind(retail_tool_names=[tool.name for tool in tools], **kwargs)
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         def answer(text):
             return ChatResult(generations=[ChatGeneration(message=AIMessage(content=text))])
 
         def call(name, args):
+            available = kwargs.get("retail_tool_names", [])
+            if name not in available and "preview_" + name in available:
+                name = "preview_" + name
             return ChatResult(
                 generations=[
                     ChatGeneration(

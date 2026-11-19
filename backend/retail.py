@@ -12,7 +12,7 @@ from tau2.domains.retail.data_model import RetailDB
 from tau2.domains.retail.tools import RetailTools
 from tau2.environment.toolkit import ToolType
 
-from backend.graph_profiles import tool_variant
+from backend.graph_profiles import tool_variant, uses_preview_names
 from backend.observations import normalize_variant_changes, variant_change_error
 from backend.store import encode, now
 from backend.tool_profiles import (
@@ -24,6 +24,7 @@ from backend.tool_profiles import (
     ToolDefinition,
     format_result,
     read_helper,
+    tool_profile_name,
 )
 
 AUTH_TOOLS = {"find_user_id_by_email", "find_user_id_by_name_zip"}
@@ -86,6 +87,7 @@ class RetailService:
         }
 
     def tool_definitions(self, variant, *, account_bound=False):
+        preview_names = uses_preview_names(variant)
         variant = tool_variant(variant)
         definitions = []
         for name, upstream in self.catalog.items():
@@ -108,7 +110,8 @@ class RetailService:
                 and name != "transfer_to_human_agents"
             ):
                 description += " Successful reads return {status: observed, tool, read_only: true, data: original result}. Errors retain a top-level error. Product reads also report total_variant_count and available_variant_count in summary."
-            definitions.append(ToolDefinition(name, description, upstream.params))
+            visible_name = f"preview_{name}" if preview_names and name in self.writes else name
+            definitions.append(ToolDefinition(visible_name, description, upstream.params))
         if variant == "tools_extended":
             definitions.extend(
                 ToolDefinition(
@@ -122,8 +125,9 @@ class RetailService:
         return definitions
 
     def tool_manifest(self, variant, *, account_bound=False):
-        variant = tool_variant(variant)
+        profile_name = tool_profile_name(variant)
         definitions = self.tool_definitions(variant, account_bound=account_bound)
+        variant = tool_variant(variant)
         specifications = [
             {
                 "name": t.name,
@@ -133,7 +137,7 @@ class RetailService:
             for t in definitions
         ]
         return {
-            "profile": TOOL_PROFILES.get(variant, "official-v1"),
+            "profile": profile_name,
             "count": len(definitions),
             "names": [t.name for t in definitions],
             "spec_sha256": fingerprint(specifications),
@@ -169,10 +173,16 @@ class RetailService:
     def call(self, sid, name, args, emit=lambda event: None):
         """Read tools execute; write tools validate on a copy and create a pending action."""
         start = time.monotonic()
-        emit({"type": "tool_start", "name": name, "args": args})
         try:
             with self.store.tx() as cx:
                 session = self.store.session(sid, cx)
+                if (
+                    uses_preview_names(session["variant"])
+                    and name.startswith("preview_")
+                    and name.removeprefix("preview_") in self.writes
+                ):
+                    name = name.removeprefix("preview_")
+                emit({"type": "tool_start", "name": name, "args": args})
                 if session["status"] == "finished":
                     raise ValueError("会话已结束，请新建会话继续。")
                 if session["transferred"]:
