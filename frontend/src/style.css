@@ -148,6 +148,36 @@ textarea:disabled { color: #746c66; }
 .assistant .bubble { border-radius: 3px 15px 15px 15px; background: #f5f3f0; }
 .user { justify-content: flex-end; }
 .user .bubble { border-radius: 15px 3px 15px 15px; background: #fce9dc; color: #503324; }
+.bubble.markdown { white-space: normal; }
+.bubble.markdown > :first-child { margin-top: 0; }
+.bubble.markdown > :last-child { margin-bottom: 0; }
+.bubble.markdown p { margin: 0 0 .65em; }
+.bubble.markdown ul, .bubble.markdown ol { margin: .2em 0 .7em; padding-left: 1.35em; }
+.bubble.markdown li { margin: .18em 0; }
+.bubble.markdown li::marker { color: #b08a68; }
+.bubble.markdown strong { font-weight: 650; color: #33291f; }
+.bubble.markdown del { opacity: .65; }
+.bubble.markdown code {
+  padding: .08em .34em; border-radius: 5px; font-size: .9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: rgba(64, 42, 24, .08);
+}
+.bubble.markdown pre {
+  margin: .55em 0; padding: 11px 13px; border-radius: 9px; overflow-x: auto;
+  background: #28221d; color: #f6efe7; font-size: 13px; line-height: 1.6;
+}
+.bubble.markdown pre code { padding: 0; background: none; color: inherit; font-size: inherit; }
+.bubble.markdown a { color: #a34a1c; text-decoration: underline; text-underline-offset: 2px; }
+.bubble.markdown h1, .bubble.markdown h2, .bubble.markdown h3,
+.bubble.markdown h4, .bubble.markdown h5, .bubble.markdown h6 {
+  margin: .7em 0 .3em; line-height: 1.35; font-size: 1.02em;
+}
+.bubble.markdown h1 { font-size: 1.12em; }
+.bubble.markdown blockquote {
+  margin: .5em 0; padding: .15em 0 .15em .8em;
+  border-left: 3px solid #dcc9b7; color: #6f6155;
+}
+.bubble.markdown hr { border: 0; border-top: 1px solid #e4d8cb; margin: .8em 0; }
 .working, .locked-note, .notice { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.6; }
 .working { color: #766454; padding: 5px 1px; }
 .spin { animation: spin 1s linear infinite; }

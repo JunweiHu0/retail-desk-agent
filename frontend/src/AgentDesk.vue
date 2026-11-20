@@ -6,6 +6,7 @@ import {
 } from 'lucide-vue-next'
 import ChangeCard from './components/ChangeCard.vue'
 import ServiceDialog from './components/ServiceDialog.vue'
+import { renderMarkdown } from './markdown'
 import { messageText, receiptsByMessage, services } from './retail'
 import { useDesk } from './useDesk'
 import type { ChatTarget, Order, Service, SessionRef } from './types'
@@ -109,7 +110,8 @@ async function onDecision(approve: boolean) {
             </div>
             <article v-else :class="['message', message.role]" :aria-label="message.role === 'user' ? '你' : '客服助手'">
               <span v-if="message.role === 'assistant'" class="message-avatar"><Headset :size="16" /></span>
-              <p class="bubble">{{ messageText(message) }}</p>
+              <p v-if="message.role === 'user'" class="bubble">{{ messageText(message) }}</p>
+              <div v-else class="bubble markdown" v-html="renderMarkdown(messageText(message))"></div>
             </article>
           </template>
           <div v-if="progress || waitingForReply" class="working" role="status"><LoaderCircle class="spin" :size="16" />{{ progress || '正在准备回复' }}</div>
