@@ -1002,6 +1002,105 @@ def test_simulator_thinking_setting_reaches_http():
                 assert requests[-1]["chat_template_kwargs"] == {"enable_thinking": mode == "on"}
 
 
+def test_simulator_uses_responses_schema_when_chat_schema_is_rejected():
+    from benchmarks.reference.simulator import Simulator
+
+    requests = []
+
+    def transport(request):
+        body = json.loads(request.content)
+        requests.append((request.url.path, body))
+        if (
+            request.url.path.endswith("/chat/completions")
+            and body.get("response_format", {}).get("type") == "json_schema"
+        ):
+            return httpx.Response(
+                400,
+                json={"error": {"message": "This response_format type is unavailable now"}},
+            )
+        if request.url.path.endswith("/responses"):
+            assert body["text"]["format"]["type"] == "json_schema"
+            return httpx.Response(
+                200,
+                json={
+                    "model": "deepseek-test",
+                    "status": "completed",
+                    "output": [
+                        {
+                            "type": "message",
+                            "content": [
+                                {
+                                    "type": "output_text",
+                                    "text": (
+                                        '{"action":"finish","message":"",'
+                                        '"action_id":"","approve":false,"reason":"done"}'
+                                    ),
+                                }
+                            ],
+                        }
+                    ],
+                    "usage": {"input_tokens": 11, "output_tokens": 7},
+                },
+            )
+        raise AssertionError(request.url)
+
+    with httpx.Client(transport=httpx.MockTransport(transport)) as client:
+        simulator = Simulator(client, "http://model/v1", "deepseek-test", "test-only")
+        action, trace = simulator.step({}, {}, 0, 10)
+        assert action == {"action": "finish", "reason": "done"}
+        assert trace["response_format_mode"] == "responses_json_schema"
+        assert [attempt["status"] for attempt in trace["response_format_attempts"]] == [400, 200]
+        assert trace["usage"] == {"prompt_tokens": 11, "completion_tokens": 7}
+        # The downgrade is cached for later turns.
+        simulator.step({}, {}, 0, 10)
+
+    assert [path for path, _ in requests] == [
+        "/v1/chat/completions",
+        "/v1/responses",
+        "/v1/responses",
+    ]
+
+
+def test_simulator_falls_back_to_json_object_when_responses_schema_is_rejected():
+    from benchmarks.reference.simulator import Simulator
+
+    requests = []
+
+    def transport(request):
+        body = json.loads(request.content)
+        requests.append(request.url.path)
+        if request.url.path.endswith("/responses"):
+            return httpx.Response(
+                400,
+                json={"error": {"message": "The top level of the json schema must be an object."}},
+            )
+        if body.get("response_format", {}).get("type") == "json_schema":
+            return httpx.Response(
+                400,
+                json={"error": {"message": "This response_format type is unavailable now"}},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"action":"finish","reason":"done"}'}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2},
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(transport)) as client:
+        simulator = Simulator(client, "http://model/v1", "deepseek-test", "test-only")
+        action, trace = simulator.step({}, {}, 0, 10)
+        assert action == {"action": "finish", "reason": "done"}
+        assert trace["response_format_mode"] == "json_object"
+        assert [attempt["status"] for attempt in trace["response_format_attempts"]] == [
+            400,
+            400,
+            200,
+        ]
+
+    assert requests == ["/v1/chat/completions", "/v1/responses", "/v1/chat/completions"]
+
+
 @pytest.mark.parametrize("pending", [False, True])
 def test_simulator_schema_exposes_only_visible_actions(pending):
     from jsonschema import Draft202012Validator

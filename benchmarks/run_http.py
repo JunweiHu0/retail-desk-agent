@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -164,6 +165,8 @@ def run(args):
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     output = args.output / run_id
     output.mkdir(parents=True, exist_ok=False)
+    # Older callers construct a Namespace without the parser's new flag.
+    concurrency = max(1, getattr(args, "concurrency", 1))
     manifest = {
         **version_manifest(),
         "run_id": run_id,
@@ -182,51 +185,73 @@ def run(args):
         "max_tokens": 4096,
         "max_user_actions": 30,
         "max_seconds": 600,
-        "concurrency": 1,
+        "concurrency": concurrency,
         "infrastructure_retries": 1,
         "fixture_hashes": {task: completion["fixture_hashes"][task] for task in task_ids},
         "source_hashes": fixture_manifest["source_hashes"],
         "preflight": health,
     }
     write_json(output / "manifest.json", manifest)
+
+    def run_one(fixture, trial_id, seed):
+        # Each episode gets its own HTTP client and simulator so the format-mode
+        # cache cannot race between concurrent episodes.
+        with httpx.Client() as client:
+            simulator = Simulator(
+                client, model_url, args.model, api_key, args.temperature, thinking=args.thinking
+            )
+            attempts = []
+            for attempt in range(2):
+                attempt_path = (
+                    output / f"task-{fixture['task_id']}" / f"seed-{seed}" / f"attempt-{attempt}"
+                )
+                api = EpisodeHTTP(client, base_url, eval_token)
+                result = run_attempt(
+                    fixture, args.variant, trial_id, seed, attempt_path, api, simulator
+                )
+                attempts.append({"path": str(attempt_path.relative_to(output)), **result})
+                if not result["infrastructure_error"] or result["snapshot_available"]:
+                    break
+            primary = {**attempts[-1], "attempts": len(attempts), "attempt_records": attempts}
+            write_json(
+                output / f"task-{fixture['task_id']}" / f"seed-{seed}" / "primary.json", primary
+            )
+            return primary
+
+    jobs = [
+        (fixture, trial_id, seed)
+        for fixture in fixtures
+        for trial_id, seed in enumerate(seeds)
+    ]
     records = []
-    with httpx.Client() as client:
-        simulator = Simulator(
-            client, model_url, args.model, api_key, args.temperature, thinking=args.thinking
+
+    def report(primary):
+        records.append(primary)
+        print(
+            json.dumps(
+                {
+                    "task_id": primary["task_id"],
+                    "seed": primary["seed"],
+                    "success": primary["success"],
+                    "termination": primary["termination"],
+                }
+            ),
+            flush=True,
         )
-        for fixture in fixtures:
-            for trial_id, seed in enumerate(seeds):
-                attempts = []
-                for attempt in range(2):
-                    attempt_path = (
-                        output
-                        / f"task-{fixture['task_id']}"
-                        / f"seed-{seed}"
-                        / f"attempt-{attempt}"
-                    )
-                    api = EpisodeHTTP(client, base_url, eval_token)
-                    result = run_attempt(
-                        fixture, args.variant, trial_id, seed, attempt_path, api, simulator
-                    )
-                    attempts.append({"path": str(attempt_path.relative_to(output)), **result})
-                    if not result["infrastructure_error"] or result["snapshot_available"]:
-                        break
-                primary = {**attempts[-1], "attempts": len(attempts), "attempt_records": attempts}
-                records.append(primary)
-                write_json(
-                    output / f"task-{fixture['task_id']}" / f"seed-{seed}" / "primary.json", primary
-                )
-                print(
-                    json.dumps(
-                        {
-                            "task_id": fixture["task_id"],
-                            "seed": seed,
-                            "success": primary["success"],
-                            "termination": primary["termination"],
-                        }
-                    ),
-                    flush=True,
-                )
+
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = {
+            pool.submit(run_one, fixture, trial_id, seed): fixture["task_id"]
+            for fixture, trial_id, seed in jobs
+        }
+        for future in as_completed(futures):
+            report(future.result())
+    records.sort(
+        key=lambda record: (
+            int(record["task_id"]) if str(record["task_id"]).isdigit() else str(record["task_id"]),
+            record["seed"],
+        )
+    )
     write_json(output / "results.json", records)
     report = summarize(records, task_ids, seeds)
     write_json(output / "summary.json", report)
@@ -406,7 +431,9 @@ def main():
     build_parser.add_argument("--task-ids", help="Optional small subset of the selected split")
     build_parser.add_argument("--output", type=Path, required=True)
     build_parser.set_defaults(func=build)
-    run_parser = sub.add_parser("run", help="Run live HTTP episodes, concurrency one")
+    run_parser = sub.add_parser(
+        "run", help="Run live HTTP episodes (concurrency 1 by default)"
+    )
     run_parser.add_argument("--fixtures", type=Path, required=True)
     run_parser.add_argument("--output", type=Path, required=True)
     run_parser.add_argument("--base-url", default="http://127.0.0.1:18881")
@@ -424,6 +451,9 @@ def main():
         "--task-ids", help="Explicit comma-separated diagnostic subset, e.g. 41,47"
     )
     run_parser.add_argument("--variant", default="b1")
+    run_parser.add_argument(
+        "--concurrency", type=int, default=1, help="Episodes in flight (default 1)"
+    )
     run_parser.add_argument("--seeds", default="0,1,2")
     run_parser.add_argument("--temperature", type=float, default=0.0)
     run_parser.add_argument("--thinking", choices=["auto", "on", "off"], default="auto")

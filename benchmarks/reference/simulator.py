@@ -1,7 +1,7 @@
 """User simulator with an explicit gold-free request boundary."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -140,6 +140,103 @@ def action_response_format(proposal: dict | None) -> dict:
     }
 
 
+def responses_action_format() -> dict:
+    """Structured-output schema for DeepSeek's Responses API.
+
+    That endpoint requires a top-level object whose ``required`` list covers
+    every property and rejects top-level ``anyOf``. The three actions therefore
+    share one flat object; ``validate_action`` still enforces the exact shape
+    after the unused placeholders are dropped.
+    """
+    return {
+        "type": "json_schema",
+        "name": "visible_customer_action",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["message", "decision", "finish"]},
+                "message": {"type": "string"},
+                "action_id": {"type": "string"},
+                "approve": {"type": "boolean"},
+                "reason": {"type": "string"},
+            },
+            "required": ["action", "message", "action_id", "approve", "reason"],
+            "additionalProperties": False,
+        },
+    }
+
+
+def _responses_text(payload: dict) -> str:
+    parts = []
+    for item in payload.get("output", []):
+        if item.get("type") != "message":
+            continue
+        for content in item.get("content", []):
+            if content.get("type") == "output_text" and isinstance(content.get("text"), str):
+                parts.append(content["text"])
+    return "".join(parts)
+
+
+def _normalised_responses_action(value: dict) -> dict:
+    """Drop the placeholders the flat Responses schema requires."""
+    if not isinstance(value, dict):
+        return value
+    action = value.get("action")
+    if action == "message":
+        return {"action": "message", "message": value.get("message", "")}
+    if action == "decision":
+        return {
+            "action": "decision",
+            "action_id": value.get("action_id", ""),
+            "approve": value.get("approve"),
+        }
+    if action == "finish":
+        return {"action": "finish", "reason": value.get("reason", "")}
+    return value
+
+
+def _usage(payload: dict) -> dict:
+    usage = payload.get("usage") or {}
+    if "prompt_tokens" in usage or "completion_tokens" in usage:
+        return usage
+    return {
+        "prompt_tokens": usage.get("input_tokens"),
+        "completion_tokens": usage.get("output_tokens"),
+    }
+
+
+def _next_format_mode(mode: str) -> str | None:
+    order = ("json_schema", "responses_json_schema", "json_object", "none")
+    index = order.index(mode)
+    return order[index + 1] if index + 1 < len(order) else None
+
+
+def _response_format_rejected(response: httpx.Response, mode: str) -> bool:
+    """True when the endpoint specifically refuses the structured-output mode.
+
+    vLLM supports chat ``json_schema``; DeepSeek supports it only through its
+    Responses API, and some providers only support ``json_object``. Those are
+    capability limits, not conversation errors, so the simulator downgrades
+    instead of ending the episode.
+    """
+    if mode == "responses_json_schema" and response.status_code == 404:
+        return True
+    if response.status_code not in {400, 404}:
+        return False
+    body = response.text.lower()
+    return any(
+        term in body
+        for term in (
+            "response_format",
+            "json_schema",
+            "json schema",
+            "text.format",
+            "text format",
+        )
+    )
+
+
 @dataclass
 class Simulator:
     client: httpx.Client
@@ -149,45 +246,93 @@ class Simulator:
     temperature: float = 0.0
     max_tokens: int = 4096
     thinking: str = "auto"
+    format_mode: str = field(default="json_schema", init=False, repr=False)
+
+    def _chat_payload(self, messages: list[dict], proposal: dict | None, seed: int) -> dict:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "seed": seed,
+        }
+        if self.format_mode == "json_schema":
+            payload["response_format"] = action_response_format(proposal)
+        elif self.format_mode == "json_object":
+            # The simulator prompt already asks for a JSON object; providers
+            # that require the word "json" in the prompt are satisfied.
+            payload["response_format"] = {"type": "json_object"}
+        if self.thinking != "auto":
+            payload["chat_template_kwargs"] = {"enable_thinking": self.thinking == "on"}
+        return payload
+
+    def _responses_payload(self, messages: list[dict], seed: int) -> dict:
+        system = "\n".join(m["content"] for m in messages if m["role"] == "system")
+        user = "\n".join(m["content"] for m in messages if m["role"] != "system")
+        system += (
+            "\nThe JSON schema requires every field: fill unused fields with an empty "
+            "string (or false for approve). Only the fields for the chosen action matter."
+        )
+        return {
+            "model": self.model,
+            "instructions": system,
+            "input": user,
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_tokens,
+            "seed": seed,
+            "text": {"format": responses_action_format()},
+        }
 
     def step(
         self, user_scenario: dict, session: dict, seed: int, timeout: float
     ) -> tuple[dict, dict]:
         messages = simulator_messages(user_scenario, session)
         proposal = visible_view(session)["current_proposal"]
-        response_format = action_response_format(proposal)
-        response = self.client.post(
-            self.base_url.rstrip("/") + "/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "seed": seed,
-                "response_format": response_format,
-                **(
-                    {"chat_template_kwargs": {"enable_thinking": self.thinking == "on"}}
-                    if self.thinking != "auto"
-                    else {}
-                ),
-            },
-            timeout=timeout,
-        )
-        response.raise_for_status()
+        attempts = []
+        request_format = None
+        while True:
+            if self.format_mode == "responses_json_schema":
+                request_payload = self._responses_payload(messages, seed)
+                request_format = request_payload["text"]["format"]
+                url = self.base_url.rstrip("/") + "/responses"
+            else:
+                request_payload = self._chat_payload(messages, proposal, seed)
+                request_format = request_payload.get("response_format")
+                url = self.base_url.rstrip("/") + "/chat/completions"
+            response = self.client.post(
+                url,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json=request_payload,
+                timeout=timeout,
+            )
+            attempts.append({"mode": self.format_mode, "status": response.status_code})
+            next_mode = _next_format_mode(self.format_mode)
+            if next_mode and _response_format_rejected(response, self.format_mode):
+                self.format_mode = next_mode
+                continue
+            response.raise_for_status()
+            break
         payload = response.json()
         trace = {
             "request_messages": messages,
-            "response_format": response_format,
+            "response_format": request_format,
+            "response_format_mode": self.format_mode,
+            "response_format_attempts": attempts,
             "response_payload": payload,
-            "usage": payload.get("usage") or {},
+            "usage": _usage(payload),
             "model": payload.get("model", self.model),
             "simulator_version": SIMULATOR_VERSION,
         }
         try:
-            content = payload["choices"][0]["message"]["content"]
+            if self.format_mode == "responses_json_schema":
+                content = _responses_text(payload)
+                value = validate_action(
+                    _normalised_responses_action(json.loads(content)), proposal
+                )
+            else:
+                content = payload["choices"][0]["message"]["content"]
+                value = validate_action(json.loads(content), proposal)
             trace["response_content"] = content
-            value = validate_action(json.loads(content), proposal)
         except (ValueError, KeyError, TypeError, IndexError) as exc:
             trace["validation_error"] = str(exc)
             raise SimulatorResponseError(trace) from exc
