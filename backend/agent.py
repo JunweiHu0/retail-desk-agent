@@ -422,7 +422,13 @@ class AgentRunner:
 
         def recording_emit(event):
             if event.get("type") == "tool_end":
-                rec.tool(event.get("name"), event.get("duration_ms"), event.get("ok", True))
+                rec.tool(
+                    event.get("name"),
+                    event.get("duration_ms"),
+                    event.get("ok", True),
+                    event.get("args"),
+                    event.get("result"),
+                )
             emit(event)
 
         max_calls = int(os.getenv("AGENT_MAX_MODEL_CALLS", "80"))

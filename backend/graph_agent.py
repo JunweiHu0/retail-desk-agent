@@ -178,7 +178,13 @@ def run_graph(self, sid, emit, model, turn_text):
 
     def recording_emit(event):
         if event.get("type") == "tool_end":
-            rec.tool(event.get("name"), event.get("duration_ms"), event.get("ok", True))
+            rec.tool(
+                event.get("name"),
+                event.get("duration_ms"),
+                event.get("ok", True),
+                event.get("args"),
+                event.get("result"),
+            )
         emit(event)
 
     def invoke_stage(bound_model, messages, phase):
