@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One-off dependency job: build the app venv on node-local disk, ship it to the
-# shared NFS as a single tarball, and cache the tau2 retail data next to it.
+# shared NFS as a single tarball, and unpack the pinned tau2 source + data next
+# to it (the HTTP evaluator verifies that source inventory by hash).
 #
 # Why not pip into $TACC_USERDIR directly: that is NFS, and thousands of small
 # writes did not finish inside the 30-minute job limit. One tarball does.
@@ -17,47 +18,75 @@ ROOT="$TACC_USERDIR/retail-agent"
 # /tmp is shared across users on the node, so never build into a fixed path:
 # another job may already own /tmp/retail-venv and tar would refuse to write.
 VENV="/tmp/retail-venv-${SLURM_JOB_ID}"
-DATA_DIR="$ROOT/tau2-bench/data/tau2/domains/retail"
+TAU2_DIR="$ROOT/tau2-bench"
+TAU2_MANIFEST="$ROOT/source-manifest.json"
 TAU2_COMMIT=0c69df456a96aa76a1162591574dad9c427a34d7
 TAU2_URL="https://github.com/sierra-research/tau2-bench/archive/${TAU2_COMMIT}.tar.gz"
 REQ="$TACC_WORKDIR/requirements.txt"
 
 mkdir -p "$ROOT"
 
-fetch_data() {
-    qwen-python - "$TAU2_COMMIT" <<'PY'
-import os, ssl, sys, urllib.request, certifi
-commit = sys.argv[1]
-root = f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{commit}/data/tau2/"
-base = os.path.join(os.environ["TACC_USERDIR"], "retail-agent", "tau2-bench", "data", "tau2")
+# The HTTP evaluator (benchmarks/run_http.py) needs the pinned tau2 source tree,
+# not just the retail data: it inventories every src/**/*.py plus pyproject and
+# the four retail assets against source-manifest.json before replaying tasks.
+ensure_tau2_source() {
+    if [ -d "$TAU2_DIR/src" ] && [ -f "$TAU2_MANIFEST" ]; then
+        return 0
+    fi
+    local archive="/tmp/tau2-${TAU2_COMMIT}.tar.gz"
+    local unpack="/tmp/tau2-src-${SLURM_JOB_ID}"
+    printf 'TAU2_SOURCE_BEGIN %s\n' "$TAU2_COMMIT"
+    qwen-python - "$TAU2_URL" "$archive" <<'PY'
+import ssl
+import sys
+import urllib.request
+
+import certifi
+
+url, out = sys.argv[1], sys.argv[2]
 ctx = ssl.create_default_context(cafile=certifi.where())
-# domains/retail: the sandbox dataset and policy.
-# multilingual/en: tau2's runner refuses to start without a language pack header.
-wanted = {
-    "domains/retail": ("db.json", "policy.md", "tasks.json", "split_tasks.json"),
-    "multilingual/en": ("pack.yaml", "retail_tasks_en.json", "retail_metadata_en.json"),
-}
-for rel, names in wanted.items():
-    out = os.path.join(base, rel)
-    os.makedirs(out, exist_ok=True)
-    for name in names:
-        path = os.path.join(out, name)
-        with urllib.request.urlopen(root + rel + "/" + name, timeout=60, context=ctx) as r:
-            data = r.read()
-        with open(path, "wb") as f:
-            f.write(data)
-        print("DATA", rel + "/" + name, len(data))
+with urllib.request.urlopen(url, timeout=180, context=ctx) as response, open(out, "wb") as fh:
+    fh.write(response.read())
+print("TAU2_ARCHIVE", out)
 PY
+    rm -rf "$unpack" "$TAU2_DIR"
+    mkdir -p "$unpack" "$TAU2_DIR"
+    tar -xzf "$archive" -C "$unpack" --strip-components=1
+    cp -a "$unpack/." "$TAU2_DIR/"
+    rm -rf "$unpack" "$archive"
+    qwen-python - "$TAU2_COMMIT" "$TAU2_DIR" "$TAU2_MANIFEST" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+commit, root, out = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
+files = [path.relative_to(root) for path in (root / "src").rglob("*.py")]
+files.append(Path("pyproject.toml"))
+files += [
+    Path("data/tau2/domains/retail") / name
+    for name in ("db.json", "tasks.json", "split_tasks.json", "policy.md")
+]
+inventory = {
+    str(relative): hashlib.sha256((root / relative).read_bytes()).hexdigest()
+    for relative in files
+}
+out.write_text(json.dumps({"tau2_sha": commit, "tau2_file_sha256": inventory}))
+print("TAU2_MANIFEST", out, len(inventory))
+PY
+    test -f "$TAU2_DIR/data/tau2/multilingual/en/pack.yaml" || {
+        printf 'TAU2_SOURCE_MISSING_LANGUAGE_PACK\n' >&2
+        exit 1
+    }
+    printf 'TAU2_SOURCE_DONE\n'
 }
 
+ensure_tau2_source
+
 # Reuse an existing venv when the pinned requirements have not changed. The
-# data check lives here too: skipping the build must not skip a missing dataset.
+# source/data check above runs first, so skipping the build cannot skip them.
 STAMP=$(sha256sum "$REQ" | cut -c1-16)
 if [ -f "$ROOT/venv.tgz" ] && [ "$(cat "$ROOT/venv.stamp" 2>/dev/null || true)" = "$STAMP" ]; then
-    if [ ! -f "$DATA_DIR/db.json" ] || [ ! -f "$ROOT/tau2-bench/data/tau2/multilingual/en/pack.yaml" ]; then
-        printf 'DATA_BEGIN\n'
-        fetch_data
-    fi
     printf 'SETUP_SKIP %s\n' "$STAMP"
     printf 'SETUP_DONE\n'
     exit 0
@@ -113,8 +142,5 @@ mv -f "$ROOT/venv.tgz.tmp" "$ROOT/venv.tgz"
 printf '%s\n' "$STAMP" > "$ROOT/venv.stamp"
 ls -lh "$ROOT/venv.tgz"
 printf 'TAR_DONE\n'
-
-printf 'DATA_BEGIN\n'
-fetch_data
 
 printf 'SETUP_DONE\n'

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-command TACC deployment: deps -> vLLM -> agent, then optionally a tunnel.
 #
-#   ./deploy/tacc/up.sh [--tunnel] [--skip-setup] [--force-setup]
+#   ./deploy/tacc/up.sh [--tunnel] [--serve-only | --agent-only] [--skip-setup] [--force-setup]
 #
 # Never touches anyone else's jobs: it only cancels ids it submitted itself.
 set -euo pipefail
@@ -11,6 +11,7 @@ TUNNEL=0
 SKIP_SETUP=0
 FORCE_SETUP=0
 SERVE_ONLY=0
+AGENT_ONLY=0
 for arg in "$@"; do
     case "$arg" in
         --tunnel)      TUNNEL=1 ;;
@@ -18,6 +19,8 @@ for arg in "$@"; do
         --force-setup) FORCE_SETUP=1 ;;
         # Leave the second QOS slot free for a benchmark job.
         --serve-only)  SERVE_ONLY=1 ;;
+        # Reuse the running serve job; start only the app (+ tunnel).
+        --agent-only)  AGENT_ONLY=1 ;;
         -h|--help)
             sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
@@ -39,6 +42,14 @@ running=$(my_running_count)
 if [ "$running" -ge 2 ]; then
     ps_table | awk -v u="$(me)" 'NR==1 || $4==u'
     die "you already have $running running jobs (QOS max 2). Stop one with ./deploy/run.sh tacc down"
+fi
+if [ "$AGENT_ONLY" = "1" ]; then
+    [ "$SERVE_ONLY" = "0" ] || die "--agent-only and --serve-only are mutually exclusive"
+    [ -s "$STATE/serve.url" ] || die "no serve address recorded; run './deploy/run.sh tacc up --serve-only' first"
+    serve_id=$(cat "$STATE/serve.job" 2>/dev/null || true)
+    if [ -n "$serve_id" ] && ! job_running "$serve_id"; then
+        die "serve job $serve_id is not running; run './deploy/run.sh tacc up --serve-only' again"
+    fi
 fi
 
 # ------------------------------------------------------------------ staging
@@ -176,6 +187,7 @@ render_agent_conf
     printf 'TP_SIZE=%q\n' "${TP_SIZE:-}"
     printf 'MAX_MODEL_LEN=%q\n' "${MAX_MODEL_LEN:-}"
     printf 'MAX_NUM_SEQS=%q\n' "${MAX_NUM_SEQS:-}"
+    printf 'MAX_NUM_BATCHED_TOKENS=%q\n' "${MAX_NUM_BATCHED_TOKENS:-}"
     printf 'SPEC_JSON=%q\n' "${SPEC_JSON:-}"
 } > "$STAGE/serve/overrides.env"
 ensure_frontend_dist
@@ -183,6 +195,8 @@ stage_app
 log "staged under $STAGE"
 
 # ---------------------------------------------------------------- 1/3 deps
+# --agent-only reuses the running serve job, so setup and vLLM are skipped.
+if [ "$AGENT_ONLY" = "0" ]; then
 if [ "$SKIP_SETUP" = "1" ]; then
     log "== 1/3 setup: skipped (--skip-setup) =="
 else
@@ -304,6 +318,11 @@ if [ "$SERVE_ONLY" = "1" ]; then
     log "  bench : ./deploy/run.sh tacc bench"
     log "  stop  : ./deploy/run.sh tacc down"
     exit 0
+fi
+else
+    serve_url=$(cat "$STATE/serve.url")
+    serve_id=$(cat "$STATE/serve.job" 2>/dev/null || true)
+    log "== agent only: reusing serve $serve_url (job ${serve_id:-unknown}) =="
 fi
 
 # --------------------------------------------------------------- 3/3 agent

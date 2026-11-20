@@ -19,7 +19,7 @@ Usage: ./deploy/run.sh <mode> [args]
   tacc down        cancel OUR jobs and stop the tunnel (never anyone else's)
   tacc tunnel      (re)open the tunnel to the address recorded by `up`
   tacc bench       fixed-workload benchmark against the running serve job
-  tacc eval        tau2 quality evaluation (args go to benchmarks/run_retail.py)
+  tacc eval        tau2 quality evaluation through the HTTP app (benchmarks/run_http.py)
   docs             serve docs/ on http://127.0.0.1:8090
 
 See deploy/README.md and deploy/tacc/README.md.
