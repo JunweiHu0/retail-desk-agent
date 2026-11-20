@@ -85,38 +85,46 @@ sequenceDiagram
 
 ## 运行与 TACC
 
-以下命令从仓库根目录执行。前后端联调需要 Node.js、npm 和 uv。Python 3.12–3.13；模型服务须支持 OpenAI-compatible tool calling。
-默认从同级 `../tau2-bench` 加载官方数据与代码，源码固定到提交 `0c69df456a96aa76a1162591574dad9c427a34d7`；`TAU2_ROOT` 可覆盖路径。
+### 1. 准备对应版本
+
+本文对应 `feat/retail-agent-eval` 的应用代码（`d4f1464`）。截至本次核对，GitHub 的公开分支列表中没有这个分支，`main` 使用较早的 Deep Agents 实现。复现两种执行器需要团队提供此版本的检出或源码包。从应用根目录执行 `git rev-parse --short HEAD` 可核对 Git 检出版本。
+
+本地需要 Git、uv、Python 3.12；运行前端还需要 Node.js 22.23.4 和 npm。首次在新目录准备依赖时，从应用仓库根目录执行：
 
 ```bash
+git clone https://github.com/sierra-research/tau2-bench.git ../tau2-bench
+git -C ../tau2-bench checkout --detach 0c69df456a96aa76a1162591574dad9c427a34d7
 uv sync --frozen --python 3.12
 test -f .env || cp .env.example .env
+```
+
+如果已有同级 tau2 检出，先用 `git -C ../tau2-bench rev-parse HEAD` 核对版本。uv 安装时按 [pyproject.toml](../pyproject.toml) 从这个同级目录读取源码；`TAU2_ROOT` 控制应用运行时查找 Retail 数据和策略的路径。
+
+### 2. 跑通本地演示
+
+在根目录 `.env` 中设置 `AGENT_MODE=demo` 和 `BROWSER_AGENT_VARIANT=b1`。首次演示使用独立的数据库路径，如 `RETAIL_DB_PATH=../retail-desk-demo/retail.sqlite3`。先生成演示订单，再启动服务，后端会在启动时为这些客户准备登录账号。
+
+```bash
+uv run --frozen python -m scripts.seed_demo --apply
 (cd frontend && npm ci)
 bash scripts/dev.sh
 ```
 
-启动后在浏览器打开 `http://127.0.0.1:5173`。只运行后端时，用下面的命令代替 `bash scripts/dev.sh`，然后访问 `http://127.0.0.1:8000/docs`。
+打开 `http://127.0.0.1:5173`，在登录页选择李明的演示账号，进入聊天并发送“查询订单 #W9000001”。订单号来自初始化脚本，第一次初始化时状态为 `pending`。要验证审批链路，可在订单页对这笔订单发起取消，查看预览后选择拒绝，再刷新确认状态仍为 `pending`。自己注册的新账号最初没有订单。
+
+只运行 API 时，可跳过 npm 安装，用以下命令替代 `scripts/dev.sh`。接口文档位于 `http://127.0.0.1:8000/docs`。
 
 ```bash
-uv run uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uv run --frozen uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-要切换到 LangGraph，在根目录 `.env` 设置 `BROWSER_AGENT_VARIANT=lg_b1`，重启后端并新建会话。已有会话保留创建时的配置。
+切换 LangGraph 时，把 `.env` 中的 `BROWSER_AGENT_VARIANT` 改为 `lg_b1`，重启后端并**新建会话**。旧会话继续使用原执行器。要连接已启动的真实模型，另设 `AGENT_MODE=live`，并填写后端可达的 `MODEL_BASE_URL`（含 `/v1`）、服务公布的 `MODEL_NAME` 和 `MODEL_API_KEY`。模型端须支持工具调用。
 
-`AGENT_MODE=demo` 使用确定性演示模型；`live` 使用 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY`。
-首次使用 main 登录页的演示账号前，明确设置独立应用 `RETAIL_DB_PATH`，运行：
+### 3. 在 TACC 验证真实模型
 
-```bash
-uv run python -m scripts.seed_demo --apply
-```
+按 [TACC 部署步骤](../deploy/tacc/README.md) 配置课程 tcloud、SSH 账号与密钥，再运行 `./deploy/run.sh tacc up --tunnel`。脚本准备前端构建产物，分别启动 vLLM 和 FastAPI 作业。默认隧道地址为 `http://localhost:8080`。
 
-初始化脚本在应用 DB 同级保存备份及演示清单，不写入源码目录。
-注册新账号只创建空客户，不会继承 tau2 用户数据。
-
-TACC 说明见 [部署概览](../deploy/README.md) 和 [TACC 部署步骤](../deploy/tacc/README.md)。
-运行后端需要整个 `backend/`、应用依赖、已安装的 tau2 包以及 Retail db.json/policy.md。
-若使用 uv 的本地 editable 依赖，需要完整同级 tau2 源码；仅运行已安装包时可以只提供数据目录。
-本分支更新了应用依赖声明，但不代表新版本已在 TACC 完成部署验收。
+先访问 `/api/health` 检查 `mode=live` 和模型名，再用已登录账号完成一次查询，核对 SSE 中的工具调用和返回结果。模型探活失败时作业可回退到 demo，页面能打开只说明应用可达。TACC 应用作业默认用作业专属的临时 SQLite，部署包未包含本地 seed 脚本和 benchmarks；有订单的演示账号需要预先准备相应业务库。现有部署脚本与本分支的完整联调仍待实机验证。
 
 ## 最终 DB 评测
 
