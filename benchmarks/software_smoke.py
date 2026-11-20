@@ -260,7 +260,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://127.0.0.1:18881")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--tau-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--eval-token-env", default="EVAL_API_TOKEN")

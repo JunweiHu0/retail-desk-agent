@@ -436,9 +436,12 @@ def main():
     )
     run_parser.add_argument("--fixtures", type=Path, required=True)
     run_parser.add_argument("--output", type=Path, required=True)
-    run_parser.add_argument("--base-url", default="http://127.0.0.1:18881")
+    run_parser.add_argument("--base-url", default="http://127.0.0.1:8000")
+    # The simulated user needs its own endpoint; require it rather than assuming a host port.
     run_parser.add_argument(
-        "--model-base-url", default=os.environ.get("MODEL_BASE_URL", "http://127.0.0.1:18880/v1")
+        "--model-base-url",
+        default=os.environ.get("MODEL_BASE_URL"),
+        required=not bool(os.environ.get("MODEL_BASE_URL")),
     )
     run_parser.add_argument(
         "--model",
