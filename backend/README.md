@@ -87,7 +87,7 @@ sequenceDiagram
 
 ### 1. 准备对应版本
 
-本文对应 `feat/retail-agent-eval` 的应用代码（`d4f1464`）。截至本次核对，GitHub 的公开分支列表中没有这个分支，`main` 使用较早的 Deep Agents 实现。复现两种执行器需要团队提供此版本的检出或源码包。从应用根目录执行 `git rev-parse --short HEAD` 可核对 Git 检出版本。
+本文对应公开分支 `v1`（`integration/langgraph` 的集成线）。`v1` 同时包含原生 `b1` 与 LangGraph `lg_b1` 两种执行器、TACC 部署脚本和 HTTP 评测；`main` 仍是较早的 Deep Agents 实现。以 `git rev-parse --short HEAD` 核对检出提交；`v1` 会随文档更新前进，以分支 tip 为准。
 
 本地需要 Git、uv、Python 3.12；运行前端还需要 Node.js 22.23.4 和 npm。首次在新目录准备依赖时，从应用仓库根目录执行：
 
@@ -124,7 +124,8 @@ uv run --frozen uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 按 [TACC 部署步骤](../deploy/tacc/README.md) 配置课程 tcloud、SSH 账号与密钥，再运行 `./deploy/run.sh tacc up --tunnel`。脚本准备前端构建产物，分别启动 vLLM 和 FastAPI 作业。默认隧道地址为 `http://localhost:8080`。
 
-先访问 `/api/health` 检查 `mode=live` 和模型名，再用已登录账号完成一次查询，核对 SSE 中的工具调用和返回结果。模型探活失败时作业可回退到 demo，页面能打开只说明应用可达。TACC 应用作业默认用作业专属的临时 SQLite，部署包未包含本地 seed 脚本和 benchmarks；有订单的演示账号需要预先准备相应业务库。现有部署脚本与本分支的完整联调仍待实机验证。
+先访问 `/api/health` 检查 `mode=live` 和模型名，再用已登录账号完成一次查询，核对 SSE 中的工具调用和返回结果。模型探活失败时作业可回退到 demo，页面能打开只说明应用可达。TACC 应用作业默认用作业专属的临时 SQLite，部署包未包含本地 seed 脚本；UI 演示账号需要预先准备业务库。
+评测链路已在 TACC 验证（2026-11-20）：`up --serve-only` 后提交 `eval --split test --seeds 0 --variant lg_b1 --concurrency 10`，Qwen3.8-27B、thinking auto、10 并发，31/40（`db_success_rate` 0.775），KV 峰值 37.4%、无抢占。20 并发为 23/40（0.575），12 个 600 秒超时，不作为正式配置。
 
 ## 最终 DB 评测
 
@@ -137,6 +138,8 @@ uv run --frozen uvicorn backend.main:app --host 127.0.0.1 --port 8000
 - 结束/快照：POST `.../finish`、GET `.../snapshot`，使用 EVAL_API_TOKEN；先冻结再做最终评分。
 - 每个 episode 的 DB 独立，目标 DB、参考动作和评分范围不能进入 agent 或模拟用户输入。
 
+正式评测在 TACC 上使用 10 并发（`--concurrency 10`）。记录：test 40 × seed 0、Qwen3.8-27B、thinking auto → 31/40，`db_success_rate` 0.775；6 个 `wall_time_budget`、1 个 `simulator_or_protocol_error`、3 个 `agent_transferred`；KV 峰值 37.4%，max running 10，preempt 0。20 并发记录为 23/40（0.575），12 个 `wall_time_budget` 和 5 个 `agent_error`，KV 峰值 60.4%，不作为正式配置。
+
 当前诊断只测试 default 未通过的 task41、task47：
 
 ```bash
@@ -147,5 +150,5 @@ python -m benchmarks.run_http run \
   --base-url http://127.0.0.1:8000 --model-base-url http://127.0.0.1:8001/v1
 ```
 
-只测失败题用于排错，不能当作整体成功率。冻结 fixture 和历史结果放在代码仓库之外。
+只测失败题用于排错，不能当作整体成功率。冻结 fixture 和历史结果建议归档到 `docs/experiments/<date>-<name>/`；TACC 结果位于 `$TACC_USERDIR/retail-agent/tau2-results/<EVAL_NAME>/`。
 模型/工具预算默认为每题 80/80 次、600 秒；额外笔记及检查调用同样计入。
