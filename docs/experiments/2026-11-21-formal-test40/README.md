@@ -31,3 +31,7 @@ sessions were also imported into the local replay database
 (`/tmp/retail-eval-local.sqlite3`, owner `replay_viewer`) from their
 `snapshot.json`; the merged matrix cells link directly to them. Open index.html
 through `./deploy/run.sh docs`.
+
+The portable replay export (`replay/`) and step-by-step instructions for
+importing it and viewing the sessions in the frontend are in
+[`REPLAY.md`](REPLAY.md).
