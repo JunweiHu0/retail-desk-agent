@@ -154,11 +154,15 @@ stage_app() {
         rsync -a "$REPO_ROOT/web/" "$dest/web/"
         rsync -a --exclude __pycache__ --exclude '*.pyc' \
             "$REPO_ROOT/benchmarks/" "$dest/benchmarks/"
+        mkdir -p "$dest/scripts"
+        rsync -a "$REPO_ROOT/scripts/seed_demo.py" "$dest/scripts/seed_demo.py"
     else
         cp -a "$REPO_ROOT/backend" "$dest/backend"
         cp -a "$REPO_ROOT/frontend/dist" "$dest/frontend/dist"
         cp -a "$REPO_ROOT/web" "$dest/web"
         cp -a "$REPO_ROOT/benchmarks" "$dest/benchmarks"
+        mkdir -p "$dest/scripts"
+        cp -a "$REPO_ROOT/scripts/seed_demo.py" "$dest/scripts/seed_demo.py"
         find "$dest" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
     fi
 }

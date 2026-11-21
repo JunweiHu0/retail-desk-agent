@@ -82,6 +82,18 @@ export HOST=0.0.0.0 PORT
 
 cd "$TACC_WORKDIR/app"
 
+# The browser app starts from a fresh /tmp DB containing only the raw tau2
+# customers, so the frontend's demo buttons have no accounts. Seed the
+# synthetic demo customers/orders before uvicorn; AuthService then provisions
+# their Demo@Retail2026! accounts at startup. Evaluations use their own app.
+if [ "${SEED_DEMO_USERS:-1}" = 1 ]; then
+    printf 'SEED_DEMO_BEGIN\n'
+    if ! "${RUN[@]}" -m scripts.seed_demo --apply; then
+        printf 'WARN: demo seeding failed; continuing without demo accounts\n' >&2
+    fi
+    printf 'SEED_DEMO_DONE\n'
+fi
+
 if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -qE ":${PORT}[[:space:]]"; then
     printf 'PORT_BUSY %s on %s\n' "$PORT" "$(hostname)" >&2
     (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E ":${PORT}[[:space:]]" >&2 || true
