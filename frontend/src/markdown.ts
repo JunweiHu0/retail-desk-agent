@@ -41,6 +41,48 @@ function renderInline(source: string): string {
 
 type ListState = { ordered: boolean; items: string[] }
 
+type Alignment = 'left' | 'center' | 'right'
+
+function splitTableRow(line: string): string[] {
+  let text = line.trim()
+  if (text.startsWith('|')) text = text.slice(1)
+  if (text.endsWith('|')) text = text.slice(0, -1)
+  return text
+    .replace(/\\\|/g, '\u0001')
+    .split('|')
+    .map(cell => cell.replace(/\u0001/g, '|').trim())
+}
+
+function tableAlignments(line: string): Alignment[] | null {
+  const cells = splitTableRow(line)
+  if (!cells.length) return null
+  const alignments: Alignment[] = []
+  for (const cell of cells) {
+    if (!/^:?-{1,}:?$/.test(cell)) return null
+    const left = cell.startsWith(':')
+    const right = cell.endsWith(':')
+    alignments.push(left && right ? 'center' : right ? 'right' : 'left')
+  }
+  return alignments
+}
+
+function renderTable(header: string[], alignments: Alignment[], rows: string[]): string {
+  const cell = (tag: 'th' | 'td', value: string, index: number) => {
+    const style = alignments[index] !== 'left' ? ` style="text-align:${alignments[index]}"` : ''
+    return `<${tag}${style}>${renderInline(value)}</${tag}>`
+  }
+  const head = header.map((value, index) => cell('th', value, index)).join('')
+  const body = rows
+    .map(row => {
+      const cells = splitTableRow(row)
+      return `<tr>${header
+        .map((_, index) => cell('td', cells[index] ?? '', index))
+        .join('')}</tr>`
+    })
+    .join('')
+  return `<div class="md-table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
+}
+
 export function renderMarkdown(source: string): string {
   if (!source) return ''
 
@@ -75,7 +117,8 @@ export function renderMarkdown(source: string): string {
     flushFence()
   }
 
-  for (const raw of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index] ?? ''
     const line = raw.trimEnd()
     const fenceMarker = line.match(/^\s*```([\w+-]*)\s*$/)
 
@@ -93,6 +136,27 @@ export function renderMarkdown(source: string): string {
     if (!line.trim()) {
       flush()
       continue
+    }
+
+    if (line.includes('|') && index + 1 < lines.length) {
+      const header = splitTableRow(line)
+      const alignments = tableAlignments(lines[index + 1] ?? '')
+      if (alignments && alignments.length === header.length) {
+        flush()
+        const rows: string[] = []
+        let cursor = index + 2
+        while (
+          cursor < lines.length &&
+          (lines[cursor] ?? '').includes('|') &&
+          (lines[cursor] ?? '').trim() !== ''
+        ) {
+          rows.push(lines[cursor] ?? '')
+          cursor += 1
+        }
+        blocks.push(renderTable(header, alignments, rows))
+        index = cursor - 1
+        continue
+      }
     }
 
     const heading = line.match(/^(#{1,6})\s+(.+)$/)

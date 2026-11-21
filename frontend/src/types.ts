@@ -1,4 +1,6 @@
 export type Message = { id: string; role: 'user' | 'assistant'; content: string }
+export type ToolCall = { name: string; args?: unknown; ok?: boolean; duration_ms?: number; result?: string }
+export type ToolTurn = { assistant: string; tools: ToolCall[]; seconds?: number | null }
 export type Address = { address1: string; address2: string; city: string; state: string; country: string; zip: string }
 export type Item = { name: string; product_id: string; item_id: string; price: number; options: Record<string, string> }
 export type PaymentMethod = { source: string; last_four?: string; brand?: string; balance?: number }
@@ -45,6 +47,7 @@ export type Session = {
   transferred: boolean
   context: { user: Customer | null; orders: Order[]; pending: Pending | null }
   events: AuditEvent[]
+  manifest?: { tool_turns?: ToolTurn[] } & Record<string, unknown>
 }
 export type SessionRef = { id: string; title: string; updated_at?: string }
 export type Health = { mode: 'demo' | 'live'; model_ready: boolean }

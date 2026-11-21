@@ -9,7 +9,7 @@ import ServiceDialog from './components/ServiceDialog.vue'
 import { renderMarkdown } from './markdown'
 import { messageText, receiptsByMessage, services } from './retail'
 import { useDesk } from './useDesk'
-import type { ChatTarget, Order, Service, SessionRef } from './types'
+import type { ChatTarget, Message, Order, Service, SessionRef, ToolCall, ToolTurn } from './types'
 
 const props = defineProps<{ userId: string; target?: ChatTarget; orders: Order[]; ordersLoading: boolean }>()
 const emit = defineEmits<{ authExpired: []; busy: [busy: boolean]; openOrders: []; ordersChanged: [] }>()
@@ -17,6 +17,59 @@ const {
   history, active, session, draft, phase, error, pending, transferred, locked, availability,
   messages, progress, waitingForReply, mustRefresh, staleAction, newChat, open, refresh, send, decide,
 } = useDesk(props.userId, props.target, () => emit('authExpired'))
+
+// An evaluation replay link opens a finished session by id: /?session=<id>.
+const replayTarget = new URLSearchParams(window.location.search).get('session')
+let replayOpened = false
+watch([history, phase], async ([items, current]) => {
+  if (!replayTarget || replayOpened || current) return
+  const item = items.find(entry => entry.id === replayTarget)
+  if (!item) return
+  replayOpened = true
+  await open(item)
+}, { immediate: true })
+
+const toolEvents = computed(() =>
+  (session.value?.events ?? [])
+    .filter(event => event.kind === 'tool')
+    .map(event => event.data as { name?: string; args?: unknown; ok?: boolean; duration_ms?: number })
+    .filter(tool => typeof tool?.name === 'string'),
+)
+
+const toolTurns = computed(() => (session.value?.manifest?.tool_turns ?? []) as ToolTurn[])
+
+function normalizedText(value: string) {
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function messageTurn(message: Message): ToolTurn | undefined {
+  if (message.role !== 'assistant') return undefined
+  const key = normalizedText(message.content)
+  return toolTurns.value.find(turn => normalizedText(turn.assistant) === key)
+}
+
+function messageTools(message: Message): ToolCall[] {
+  return messageTurn(message)?.tools ?? []
+}
+
+function messageSummary(message: Message): string {
+  const turn = messageTurn(message)
+  if (!turn) return ''
+  const count = turn.tools.length
+  const noun = count === 1 ? 'tool' : 'tools'
+  if (turn.seconds && turn.seconds >= 1) {
+    return `Thought for ${Math.round(turn.seconds)}s, ran ${count} ${noun}`
+  }
+  return `Ran ${count} ${noun}`
+}
+
+function toolArgs(value: unknown) {
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
 
 watch(phase, phase => emit('busy', phase === 'send' || phase === 'decide'))
 const chosen = ref<Service | null>(null)
@@ -111,11 +164,39 @@ async function onDecision(approve: boolean) {
             <article v-else :class="['message', message.role]" :aria-label="message.role === 'user' ? '你' : '客服助手'">
               <span v-if="message.role === 'assistant'" class="message-avatar"><Headset :size="16" /></span>
               <p v-if="message.role === 'user'" class="bubble">{{ messageText(message) }}</p>
-              <div v-else class="bubble markdown" v-html="renderMarkdown(messageText(message))"></div>
+              <div v-else class="message-body">
+                <details v-if="messageTools(message).length" class="tool-drawer">
+                  <summary>{{ messageSummary(message) }}</summary>
+                  <ol class="tool-chain">
+                    <li v-for="(tool, toolIndex) in messageTools(message)" :key="toolIndex">
+                      <span class="tool-step">{{ toolIndex + 1 }}</span>
+                      <div class="tool-line">
+                        <span class="tool-name">{{ tool.name }}</span>
+                        <span :class="['tool-status', { failed: tool.ok === false }]">{{ tool.ok === false ? '失败' : 'ok' }}</span>
+                        <span v-if="tool.duration_ms" class="tool-ms">{{ tool.duration_ms }} ms</span>
+                      </div>
+                      <code class="tool-args">{{ toolArgs(tool.args) }}</code>
+                      <div v-if="tool.result" class="tool-result">{{ tool.result }}</div>
+                    </li>
+                  </ol>
+                </details>
+                <div class="bubble markdown" v-html="renderMarkdown(messageText(message))"></div>
+              </div>
             </article>
           </template>
           <div v-if="progress || waitingForReply" class="working" role="status"><LoaderCircle class="spin" :size="16" />{{ progress || '正在准备回复' }}</div>
           <div v-if="pending" ref="approval" class="approval-wrap"><ChangeCard :change="pending" :stale="staleAction === pending.id" /></div>
+          <details v-if="!toolTurns.length && toolEvents.length" class="tool-trace">
+            <summary>工具调用 · {{ toolEvents.length }} 次</summary>
+            <ol>
+              <li v-for="(tool, index) in toolEvents" :key="index">
+                <span class="tool-name">{{ tool.name }}</span>
+                <span :class="['tool-status', { failed: tool.ok === false }]">{{ tool.ok === false ? '失败' : 'ok' }}</span>
+                <span v-if="tool.duration_ms" class="tool-ms">{{ tool.duration_ms }} ms</span>
+                <code>{{ toolArgs(tool.args) }}</code>
+              </li>
+            </ol>
+          </details>
         </div>
 
         <div class="composer-area">

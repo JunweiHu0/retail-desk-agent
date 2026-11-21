@@ -14,14 +14,15 @@ const demoAccounts = [
   { name: '李明', id: 'li.ming' },
   { name: '王芳', id: 'wang.fang' },
   { name: '张伟', id: 'zhang.wei' },
+  { name: '回放', id: 'replay', password: 'Replay@2026!' },
 ]
 const demoPassword = 'Demo@Retail2026!'
 
-function useDemo(id: string) {
+function useDemo(sample: { id: string; password?: string }) {
   signup.value = false
   error.value = ''
-  form.email = id + '@retail-demo.example.com'
-  form.password = demoPassword
+  form.email = sample.id + '@retail-demo.example.com'
+  form.password = sample.password ?? demoPassword
 }
 
 function toggleSignup() {
@@ -97,7 +98,7 @@ async function submit() {
           </div>
           <div class="demo-buttons">
             <button v-for="sample in demoAccounts" :key="sample.id" type="button" :disabled="busy"
-              :aria-label="'填入演示账户 ' + sample.name" @click="useDemo(sample.id)">{{ sample.name }}</button>
+              :aria-label="'填入演示账户 ' + sample.name" @click="useDemo(sample)">{{ sample.name }}</button>
           </div>
         </section>
       </section>
