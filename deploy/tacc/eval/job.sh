@@ -63,8 +63,10 @@ set +a
 : "${REBUILD:=0}"
 : "${EVAL_PORT:=8790}"
 : "${CONCURRENCY:=10}"
+: "${MAX_SECONDS:=600}"
 
 export MODEL_THINKING="$THINKING"
+export AGENT_MAX_ACTIVE_SECONDS="$MAX_SECONDS"
 APP_PORT="$EVAL_PORT"
 SAVE="$ROOT/tau2-results/$NAME"
 mkdir -p "$SAVE"
@@ -113,8 +115,8 @@ fi
 
 printf 'EVAL_NODE=%s\n' "$(hostname)"
 printf 'EVAL_MODEL_URL=%s\n' "$MODEL_BASE_URL"
-printf 'EVAL_MODE=%s MODEL=%s THINKING=%s VARIANT=%s CONCURRENCY=%s\n' \
-    "$AGENT_MODE" "$MODEL_NAME" "$THINKING" "$VARIANT" "$CONCURRENCY"
+printf 'EVAL_MODE=%s MODEL=%s THINKING=%s VARIANT=%s CONCURRENCY=%s MAX_SECONDS=%s\n' \
+    "$AGENT_MODE" "$MODEL_NAME" "$THINKING" "$VARIANT" "$CONCURRENCY" "$MAX_SECONDS"
 printf 'EVAL_RESULTS=%s\n' "$SAVE"
 printf 'SAMPLER=%s\n' "$SAVE/metrics.jsonl"
 
@@ -154,7 +156,7 @@ ARGS=(--fixtures "$FIXTURES" --output "$SAVE/runs"
       --model-base-url "$MODEL_BASE_URL" --model "$MODEL_NAME"
       --api-key-env MODEL_API_KEY --eval-token-env EVAL_API_TOKEN
       --variant "$VARIANT" --seeds "$SEEDS" --thinking "$THINKING"
-      --concurrency "$CONCURRENCY")
+      --concurrency "$CONCURRENCY" --max-seconds "$MAX_SECONDS" --progress)
 if [ -n "$TASK_IDS" ]; then
     ARGS+=(--task-ids "$TASK_IDS")
 fi

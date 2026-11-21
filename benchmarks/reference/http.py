@@ -141,10 +141,28 @@ def run_attempt(
     simulator,
     max_actions: int = 30,
     max_seconds: float = 600,
+    progress=None,
 ) -> dict:
-    """Score every valid snapshot independently of completion/budget termination."""
+    """Score every valid snapshot independently of completion/budget termination.
+
+    ``progress`` is an optional callable receiving one dict per milestone; the
+    evaluator uses it to stream per-turn status into the job log.
+    """
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
+
+    def note(kind, **fields):
+        if progress is not None:
+            progress(
+                {
+                    "kind": kind,
+                    "task_id": fixture["task_id"],
+                    "seed": seed,
+                    "attempt": output.name,
+                    "elapsed_s": round(time.monotonic() - started, 1),
+                    **fields,
+                }
+            )
     initial = public_episode_input(fixture, variant, trial_id, seed)
     write_json(output / "input.json", initial)
     trace, simulator_usage, snapshot = [], [], None
@@ -159,6 +177,7 @@ def run_attempt(
         created = api.create(initial, timeout=max_seconds)
         session_id = api.sid
         session = created["session"]
+        note("episode_start", session_id=session_id)
         write_json(output / "initial_response.json", without_credentials(created))
         # Evaluation requires the live agent; demo traces cannot be reported as benchmark results.
         manifest = created.get("manifest", session.get("manifest", {}))
@@ -186,6 +205,12 @@ def run_attempt(
             action, sim_trace = simulator.step(fixture["user_scenario"], session, seed, remaining)
             simulator_usage.append(sim_trace.get("usage", {}))
             trace.append({"index": index, "simulator": sim_trace, "action": action})
+            note(
+                "user_action",
+                turn=index,
+                action=action["action"],
+                message=(action.get("message") or "")[:120],
+            )
             if action["action"] == "finish":
                 reason = "simulator_finish"
                 break
@@ -201,6 +226,16 @@ def run_attempt(
                 turn_latencies.append(turn_seconds)
                 trace[-1]["agent_turn_seconds"] = turn_seconds
             trace[-1]["events"] = without_credentials(events)
+            note(
+                "agent_turn",
+                turn=index,
+                seconds=round(turn_seconds, 1),
+                tools=[
+                    event["data"].get("name")
+                    for event in events
+                    if event.get("data", {}).get("type") == "tool_start"
+                ],
+            )
             if any(
                 event["event"] == "error" or event["data"].get("type") == "error"
                 for event in events
@@ -259,6 +294,13 @@ def run_attempt(
     elif reason != "http_protocol_error":
         infrastructure_error = True
     score = compare_db(fixture["target_db"], snapshot["db"], fixture["scope"]) if snapshot else None
+    note(
+        "episode_end",
+        termination=reason,
+        success=score["success"] if score else None,
+        conversation_seconds=round(conversation_seconds, 1),
+        turns=len(turn_latencies),
+    )
     result = {
         "task_id": fixture["task_id"],
         "trial_id": trial_id,

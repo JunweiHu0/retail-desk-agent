@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -165,8 +166,11 @@ def run(args):
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     output = args.output / run_id
     output.mkdir(parents=True, exist_ok=False)
-    # Older callers construct a Namespace without the parser's new flag.
+    # Older callers construct a Namespace without the parser's new flags.
     concurrency = max(1, getattr(args, "concurrency", 1))
+    max_seconds = float(getattr(args, "max_seconds", 600))
+    verbose = bool(getattr(args, "progress", False))
+    print_lock = threading.Lock()
     manifest = {
         **version_manifest(),
         "run_id": run_id,
@@ -184,7 +188,7 @@ def run(args):
         "thinking": args.thinking,
         "max_tokens": 4096,
         "max_user_actions": 30,
-        "max_seconds": 600,
+        "max_seconds": max_seconds,
         "concurrency": concurrency,
         "infrastructure_retries": 1,
         "fixture_hashes": {task: completion["fixture_hashes"][task] for task in task_ids},
@@ -196,6 +200,13 @@ def run(args):
     def run_one(fixture, trial_id, seed):
         # Each episode gets its own HTTP client and simulator so the format-mode
         # cache cannot race between concurrent episodes.
+        progress = None
+        if verbose:
+
+            def progress(event):
+                with print_lock:
+                    print(json.dumps({"progress": event}, ensure_ascii=False), flush=True)
+
         with httpx.Client() as client:
             simulator = Simulator(
                 client, model_url, args.model, api_key, args.temperature, thinking=args.thinking
@@ -206,8 +217,18 @@ def run(args):
                     output / f"task-{fixture['task_id']}" / f"seed-{seed}" / f"attempt-{attempt}"
                 )
                 api = EpisodeHTTP(client, base_url, eval_token)
+                attempt_kwargs = {"max_seconds": max_seconds}
+                if progress is not None:
+                    attempt_kwargs["progress"] = progress
                 result = run_attempt(
-                    fixture, args.variant, trial_id, seed, attempt_path, api, simulator
+                    fixture,
+                    args.variant,
+                    trial_id,
+                    seed,
+                    attempt_path,
+                    api,
+                    simulator,
+                    **attempt_kwargs,
                 )
                 attempts.append({"path": str(attempt_path.relative_to(output)), **result})
                 if not result["infrastructure_error"] or result["snapshot_available"]:
@@ -456,6 +477,14 @@ def main():
     run_parser.add_argument("--variant", default="b1")
     run_parser.add_argument(
         "--concurrency", type=int, default=1, help="Episodes in flight (default 1)"
+    )
+    run_parser.add_argument(
+        "--max-seconds", type=float, default=600, help="Per-episode wall clock budget"
+    )
+    run_parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Stream per-turn/tool progress as JSON lines",
     )
     run_parser.add_argument("--seeds", default="0,1,2")
     run_parser.add_argument("--temperature", type=float, default=0.0)

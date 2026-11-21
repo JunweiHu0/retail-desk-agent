@@ -60,7 +60,7 @@ def test_subset_uses_only_requested_fixtures(tmp_path, monkeypatch, selected):
         loaded.append(task)
         return {"task_id": task, "fixture_hash": task}
 
-    def attempt(fixture, variant, trial_id, seed, path, api, simulator):
+    def attempt(fixture, variant, trial_id, seed, path, api, simulator, max_seconds=600):
         executed.append(fixture["task_id"])
         path.mkdir(parents=True)
         return {

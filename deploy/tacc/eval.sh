@@ -21,6 +21,7 @@ NAME=${EVAL_NAME:-$(date +%Y%m%d-%H%M%S)}
 REBUILD=${EVAL_REBUILD:-0}
 EVAL_PORT=${EVAL_PORT:-8790}
 CONCURRENCY=${EVAL_CONCURRENCY:-10}
+MAX_SECONDS=${EVAL_MAX_SECONDS:-600}
 
 usage() {
     sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
@@ -36,6 +37,7 @@ while [ $# -gt 0 ]; do
         --name)     NAME=$2; shift 2 ;;
         --port)     EVAL_PORT=$2; shift 2 ;;
         --concurrency) CONCURRENCY=$2; shift 2 ;;
+        --max-seconds) MAX_SECONDS=$2; shift 2 ;;
         --rebuild)  REBUILD=1; shift ;;
         -h|--help)  usage; exit 0 ;;
         *) die "unknown argument: $1" ;;
@@ -50,6 +52,8 @@ case "$THINKING" in auto|on|off) ;; *) die "bad --thinking: $THINKING" ;; esac
 [[ "$EVAL_PORT" =~ ^[0-9]+$ ]] || die "bad --port: $EVAL_PORT"
 [[ "$CONCURRENCY" =~ ^[0-9]+$ ]] || die "bad --concurrency: $CONCURRENCY"
 [ "$CONCURRENCY" -ge 1 ] || die "--concurrency must be at least 1"
+[[ "$MAX_SECONDS" =~ ^[0-9]+$ ]] || die "bad --max-seconds: $MAX_SECONDS"
+[ "$MAX_SECONDS" -ge 1 ] || die "--max-seconds must be at least 1"
 
 [ -f "$STATE/serve.url" ] || die "no serve address recorded; run './deploy/run.sh tacc up --serve-only' first"
 running=$(my_running_count)
@@ -71,6 +75,7 @@ cp "$TACC_DIR/bench/sampler.py" "$EVAL_STAGE/"
     printf 'REBUILD=%q\n' "$REBUILD"
     printf 'EVAL_PORT=%q\n' "$EVAL_PORT"
     printf 'CONCURRENCY=%q\n' "$CONCURRENCY"
+    printf 'MAX_SECONDS=%q\n' "$MAX_SECONDS"
 } > "$EVAL_STAGE/eval.env"
 
 # The job starts the app itself; stage the code it imports.
@@ -94,7 +99,7 @@ printf '{"application_sha": "%s", "application_dirty": %s}\n' "$app_sha" "$app_d
 
 id=$(submit_job "$EVAL_STAGE") || die "eval submit failed"
 printf '%s\n' "$id" > "$STATE/eval.job"
-log "eval job $id: split=$SPLIT variant=$VARIANT seeds=$SEEDS thinking=$THINKING concurrency=$CONCURRENCY (results: $NAME)"
+log "eval job $id: split=$SPLIT variant=$VARIANT seeds=$SEEDS thinking=$THINKING concurrency=$CONCURRENCY max_seconds=$MAX_SECONDS (results: $NAME)"
 logfile="slurm_log/retail-eval-${id}.log"
 wait_log "$EVAL_STAGE" "$logfile" "${EVAL_TIMEOUT:-3300}" \
     'EVAL_DONE|Traceback|Exited with exit code' "eval" \
