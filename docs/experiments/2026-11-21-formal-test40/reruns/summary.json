@@ -1,0 +1,140 @@
+{
+ "note": "wall_time_budget episodes rerun at max_seconds=1800; all other settings unchanged",
+ "max_seconds": 1800,
+ "original": {
+  "seed0": "31/40",
+  "seed1": "30/40",
+  "seed2": "30/40",
+  "all": "91/120",
+  "pass_3": "25/40"
+ },
+ "adjusted": {
+  "seed0": "34/40",
+  "seed1": "33/40",
+  "seed2": "34/40",
+  "all": "101/120",
+  "pass_3": "31/40"
+ },
+ "episodes": [
+  {
+   "task_id": "36",
+   "seed": 0,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": false
+  },
+  {
+   "task_id": "42",
+   "seed": 0,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "79",
+   "seed": 0,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "97",
+   "seed": 0,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "100",
+   "seed": 0,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "agent_transferred",
+   "rerun_success": false
+  },
+  {
+   "task_id": "27",
+   "seed": 1,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "agent_transferred",
+   "rerun_success": true
+  },
+  {
+   "task_id": "49",
+   "seed": 1,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "97",
+   "seed": 1,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "100",
+   "seed": 1,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_or_protocol_error",
+   "rerun_success": false
+  },
+  {
+   "task_id": "27",
+   "seed": 2,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "agent_transferred",
+   "rerun_success": true
+  },
+  {
+   "task_id": "79",
+   "seed": 2,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "97",
+   "seed": 2,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  },
+  {
+   "task_id": "100",
+   "seed": 2,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "agent_transferred",
+   "rerun_success": false
+  },
+  {
+   "task_id": "111",
+   "seed": 2,
+   "original_termination": "wall_time_budget",
+   "original_success": false,
+   "rerun_termination": "simulator_finish",
+   "rerun_success": true
+  }
+ ],
+ "newly_pass_3": [
+  "27",
+  "42",
+  "49",
+  "79",
+  "97",
+  "111"
+ ]
+}

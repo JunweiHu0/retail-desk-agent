@@ -140,6 +140,8 @@ uv run --frozen uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 正式评测在 TACC 上使用 10 并发（`--concurrency 10`）。记录：test 40 × seed 0、Qwen3.8-27B、thinking auto → 31/40，`db_success_rate` 0.775；6 个 `wall_time_budget`、1 个 `simulator_or_protocol_error`、3 个 `agent_transferred`；KV 峰值 37.4%，max running 10，preempt 0。20 并发记录为 23/40（0.575），12 个 `wall_time_budget` 和 5 个 `agent_error`，KV 峰值 60.4%，不作为正式配置。
 
+三 seed 正式结果（600 秒预算）：seed 0/1/2 = 31/30/30 /40，all 91/120（0.758），pass_3 25/40（0.625）。14 个 `wall_time_budget` episode 只把 `max_seconds` 提到 1800 重跑后，10 个变为成功；mixed-budget 诊断值 seed 0/1/2 = 34/33/34 /40，all 101/120（0.842），pass_3 31/40（0.775）。剩余 4 个失败为 task 36 的 variant/审批问题、task 100 的 action-card `after` 预览歧义和 simulator 4096-token 上限，不是超时。详见 `docs/experiments/2026-11-21-formal-test40/EVAL-VALIDITY.md`。
+
 当前诊断只测试 default 未通过的 task41、task47：
 
 ```bash

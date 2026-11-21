@@ -299,6 +299,8 @@ The recorded formal configuration is `test`, seed 0, `lg_b1`, thinking `auto`, c
 
 A 20-concurrency run of the same split is included as the concurrency comparison: 23/40 (`db_success_rate` 0.575), 12 `wall_time_budget`, 5 `agent_error`, peak KV 60.4%, no preemptions. It was not chosen as the formal configuration because the per-episode 600 s budget is exceeded under the higher latency. The `smoke` split at concurrency 10 gives 7/8; the failed task is a complex exchange that left the order in `delivered`.
 
+**Wall-time rerun (diagnostic).** The three-seed formal cohort gives seed 0/1/2 = 31/30/30 of 40, all 91/120 (0.758), `pass_3` 25/40 (0.625). The 14 episodes that hit the 600 s `wall_time_budget` were rerun with `max_seconds=1800`, all other settings unchanged; 10 of 14 then matched the target DB. The mixed-budget diagnostic numbers are seed 0/1/2 = 34/33/34 of 40, all 101/120 (0.842), `pass_3` 31/40 (0.775). The four remaining failures are not timeouts: task 36 seed 0 (cheapest-variant selection plus an approval loop), task 100 seed 0/2 (the action-card `after` preview makes the simulated user reject, then transfer), and task 100 seed 1 (the simulator exhausts its 4096-token reasoning budget). These reruns are archived under `docs/experiments/2026-11-21-formal-test40/reruns/` and should not be presented as the formal 600 s protocol.
+
 Raw JSON for these runs is archived under `docs/experiments/2026-11-21-formal-test40/` [TODO: copy the TACC run artifacts into the repository before submission]. The TACC paths are listed above. The older `docs/experiments/2026-11-17-*` recordings belong to the earlier deployment line and should not be presented as the `v1` formal result.
 
 ## Known limitations and expected variation
