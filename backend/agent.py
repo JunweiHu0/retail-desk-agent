@@ -212,6 +212,8 @@ def get_model():
         max_retries=0,
         max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
         model_kwargs={"parallel_tool_calls": False},
+        streaming=True,
+        stream_usage=True,
         use_responses_api=False,
         extra_body=(
             {"thinking": {"type": "disabled"}}
@@ -221,6 +223,20 @@ def get_model():
             else None
         ),
     )
+
+
+def collect_stream(model, messages):
+    """Consume a streaming chat model and return one aggregated AIMessage.
+
+    Streaming keeps the HTTP read timeout alive while tokens are arriving; the
+    aggregated message preserves content, tool calls and usage metadata.
+    """
+    reply = None
+    for chunk in model.stream(messages):
+        reply = chunk if reply is None else reply + chunk
+    if reply is None:
+        raise ValueError("model returned an empty stream")
+    return reply
 
 
 WEB_CONTRACT = """
@@ -469,7 +485,7 @@ class AgentRunner:
             save()
             call_started = time.monotonic()
             try:
-                reply = bound_model.invoke(messages)
+                reply = collect_stream(bound_model, messages)
             except Exception as exc:
                 completion = exc.completion if isinstance(exc, LengthFinishReasonError) else None
                 raw_usage = completion.usage if completion is not None else None

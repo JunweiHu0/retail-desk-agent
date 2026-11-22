@@ -29,7 +29,7 @@ if [ ! -x "$VENV/bin/python" ]; then
     rmdir "$UNPACK"
 fi
 
-for _ in $(seq 1 60); do
+for _ in $(seq 1 180); do
     [ -s "$URL_FILE" ] && break
     printf 'waiting for %s\n' "$URL_FILE"
     sleep 5
@@ -150,6 +150,27 @@ if [ "$REBUILD" = 1 ] || [ ! -f "$FIXTURES/complete.json" ]; then
         --tau-root "$TAU2_ROOT" --split "$SPLIT" --output "$FIXTURES"
     printf 'FIXTURES_DONE\n'
 fi
+
+printf 'WAITING_MODEL_READY %s\n' "$MODEL_BASE_URL"
+model_ready=0
+for _ in $(seq 1 180); do
+    if "${RUN[@]}" -c "
+import sys, urllib.request
+req = urllib.request.Request(
+    sys.argv[1].rstrip('/') + '/models',
+    headers={'Authorization': 'Bearer ' + sys.argv[2]},
+)
+urllib.request.urlopen(req, timeout=5)" "$MODEL_BASE_URL" "$MODEL_API_KEY" 2>/dev/null; then
+        model_ready=1
+        break
+    fi
+    sleep 5
+done
+if [ "$model_ready" != 1 ]; then
+    printf 'MODEL_NOT_READY %s\n' "$MODEL_BASE_URL" >&2
+    exit 1
+fi
+printf 'MODEL_READY %s\n' "$MODEL_BASE_URL"
 
 ARGS=(--fixtures "$FIXTURES" --output "$SAVE/runs"
       --base-url "http://127.0.0.1:$APP_PORT"

@@ -25,6 +25,7 @@ from backend.agent import (
     WEB_CONTRACT,
     AgentBudgetExceeded,
     build_agent,
+    collect_stream,
     get_model,
 )
 from backend.graph_context import (
@@ -204,7 +205,7 @@ def run_graph(self, sid, emit, model, turn_text):
         save()
         call_started = time.monotonic()
         try:
-            reply = bound_model.invoke(messages)
+            reply = collect_stream(bound_model, messages)
         except Exception as exc:
             completion = exc.completion if isinstance(exc, LengthFinishReasonError) else None
             raw_usage = completion.usage if completion is not None else None
