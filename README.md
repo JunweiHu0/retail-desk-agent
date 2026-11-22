@@ -1,227 +1,346 @@
-# Retail Desk — Tool-use 智能零售客服
+# Retail Desk — Artifact README
 
-前后端分离的客服框架，范围限定为 **tau2-bench Retail**。客服通过工具查询客户、订单和商品，并能在客户确认后真正改变本地零售数据。
+**Repository:** <https://github.com/JunweiHu0/retail-desk-agent>  
+**Submitted revision:** branch `v1` (tip; verify the exact commit with `git rev-parse --short HEAD`)  
+**Upstream benchmark:** [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench), commit `0c69df456a96aa76a1162591574dad9c427a34d7`, MIT.  
+**Artifact type:** source code, deployment/evaluation scripts, and recorded measurements. No VM image is required for the offline checks.
 
-## 技术选型
+## Group contributions
 
-| 部分 | 选择 | 原因 |
-| --- | --- | --- |
-| 前端 | Vue 3 / TypeScript / Vite | 组件化聊天、订单上下文、操作确认与工具轨迹 |
-| API | Python 3.12 / FastAPI | 与 deepagents、tau2 原生共用 Python 类型和工具，无需 Go/Rust 跨进程桥接；支持 SSE 和 OpenAPI |
-| Agent | deepagents / LangChain ChatOpenAI | 使用真实 Deep Agents 执行图；支持 OpenAI 兼容模型服务 |
-| 存储 | SQLite / WAL | 本地零配置，持久化业务数据、会话、工具轨迹与审计；写入采用事务 |
-| 业务 | 官方 RetailDB + RetailTools + policy.md | 复用 benchmark 状态转换、退款和商品校验，不另造一套业务规则 |
+| Member | Contribution |
+| --- | --- |
+| Yun Zhu | Frontend design: Vue 3 chat and order workspace, streaming message rendering, Markdown/tool-call presentation, replay viewer. |
+| Shuhan Xu | Agent and backend design: LangGraph StateGraph runtime, Retail tool bridge, preview/approval/commit flow, SSE transport, SQLite session store. |
+| Junwei Hu | Experiment design and benchmark setup/modification: tau2 HTTP evaluator, frozen fixtures, DB comparator, simulator protocol, TACC evaluation protocol, failure analysis. |
+| Zechuan Huang | Deployment and experiments: TACC setup/serve/eval jobs, concurrency and wall-time measurements, result collection and reporting. |
 
-开发时前端 `5173`、API `8000`，通过 Vite 代理请求。构建后可由 FastAPI 在 `8000` 同源提供静态页面，仍保留独立 Vue 源码与 HTTP API。
+Retail Desk is a runnable after-sales customer-service artifact for a single retail store. A customer asks in free text to cancel an order, return or exchange an item, or change an order's items, address, or payment method. The agent authenticates the customer through the store's tools, reads the real order state, and stages every write as a field-level before/after proposal. Nothing changes until the customer approves that proposal; approval executes the operation transactionally and returns a receipt.
 
-## 在你的 WSL 中运行
+The system is Vue 3 + FastAPI + LangGraph. It reuses the official `tau2-bench` Retail database, tools, and policy, and runs the LangGraph `StateGraph` runtime (`lg_b1`) against a TACC-served `Qwen3.8-27B` model for the measurements below.
 
-项目位于 `/home/mnyh/projects/retail-agent`，依赖的原始仓库位于同级 `/home/mnyh/projects/tau2-bench`。
+## Artifact claims
 
-```bash
-cd /home/mnyh/projects/retail-agent
-bash scripts/start.sh
-```
+| # | Claim | Evidence | Review cost |
+| --- | --- | --- | --- |
+| C1 | The complete offline flow runs through the real LangGraph graph and all 16 official Retail tools, with preview → explicit approval → transactional commit. | Offline demo below; 190 backend tests | ~10 min, no API key |
+| C2 | The evaluation compares business state, not tool calls: the final database is compared with a target database produced by replaying the official reference actions. | `benchmarks/reference/`; formal test below | ~30 min, model access |
+| C3 | Ten concurrent episodes are the formal configuration: test 40 gives 31/40 on seed 0 and 91/120 over seeds 0/1/2, with 37.4% peak KV and zero preemptions. Raising to 20 concurrency reduces wall time from ~33 min to ~22 min but drops seed-0 success to 24/40, because 4 episodes hit the 300 s model-request timeout and 8 hit the 600 s episode budget. | `docs/experiments/2026-11-21-formal-test40/`; `results-seed-*.json`; `test40-c20` TACC run | inspect: 2 min; rerun: TACC access |
+| C4 | Every tool call, decision and turn is persisted and exposed; per-turn ATIF-v1.8 trajectories are written for the running app. | `/infra`; `infra/<run_id>/atif.jsonl`; `docs/experiments/2026-11-21-formal-test40/replay/` | ~5 min |
 
-打开 **http://localhost:8000**。接口文档：**http://localhost:8000/docs**。
+The project report contains the full claims and measurements. The archived JSON under `docs/experiments/2026-11-21-formal-test40/` is the artifact-side source of truth for the numbers below.
 
-登录页提供演示客户快捷填入。示例账号 `li.ming@retail-demo.example.com`，演示密码 `Demo@Retail2026!`。顶部可切换客服助手、订单管理、个人信息；支持注册独立新账号。详见 [登录与订单管理](docs/accounts-and-orders.md)。
-
-团队线上演示：**https://junweihu.site/retail/**，需额外的团队访问凭据（单独交付，不存仓库）。部署、运行路径与回退方式见 [VPS 部署说明](deploy/README.md)。
-
-```bash
-# 查看或停止本项目后台服务
-uv run --frozen python -m backend.server status
-uv run --frozen python -m backend.server stop
-
-# 前后端分别热更新（先停止后台服务，避免 8000 端口冲突）
-bash scripts/dev.sh
-# 浏览器打开 http://localhost:5173
-```
-
-WSL 用户目录中已安装 Node.js 22.23.4，脚本自动将它加入 PATH。Python 固定 3.12，因为当前 tau2 导入链使用已在 3.13 删除的 audioop。依赖版本由 `uv.lock`、`frontend/package-lock.json` 固定。
-
-## 两种模式
-
-### 免 Key 演示模式（默认）
-
-`AGENT_MODE=demo` 使用确定性的 `DemoRetailModel`，依然在真实 deepagents 图中调用官方工具。支持身份核验、订单查询、取消 pending 订单、全部商品按原支付方式退货。
-
-登录后场景仅展示当前客户自己的订单，可一键体验。也可以输入：
+## Repository layout
 
 ```text
-我的邮箱是 <页面中场景所使用的邮箱>，请查询订单 #Wxxxxxxx。
-取消订单 #Wxxxxxxx，原因是不再需要。
-订单 #Wxxxxxxx 的全部商品退货，退回原支付方式。
+backend/          FastAPI app, LangGraph StateGraph runtime, Retail tool bridge, SQLite store
+frontend/         Vue 3 + TypeScript chat and order workspace
+benchmarks/       tau2 Retail HTTP evaluator, fixtures, DB comparator, simulator
+tests/            backend integration tests; no paid model calls
+deploy/           local/TACC deployment, setup, serve, eval and benchmark jobs
+docs/             experiment records, raw measurements, figures, screenshots
+scripts/          start / dev / demo-seeding helpers
+runtime/          generated data and logs (git-ignored)
 ```
 
-演示模型不是通用 LLM，不代表 benchmark 通过率，不支持任意自然语言推理或全部修改工具。页面会明确标识。
+---
 
-### 真实 Agent 模式
+# Getting Started Instructions
 
-`main` 与标签 `v0.1.0-stable` 保存最初稳定演示版本；后续开发在 `dev`，当前优先桌面 Web，手机端功能开发暂停。见 [开发规划](docs/ROADMAP.md)。
+## Prerequisites
 
-DeepSeek 配置模板为 `.env.deepseek.example`。本机已把用户提供的密钥保存到 **WSL 本地 `.env`**，没有上传 GitHub。使用 `MODEL_PROVIDER=deepseek`、`MODEL_NAME=deepseek-flash`、`DEEPSEEK_API_KEY` 和官方地址 `https://api.deepseek.com`；接入层显式关闭思考模式，使用 Chat Completions 完成多轮工具调用。
+- Linux or WSL2, Python 3.12 (the project requires `>=3.12,<3.14`)
+- [`uv`](https://docs.astral.sh/uv/) for the Python environment
+- Node.js 22 and npm for the frontend build
+- `git`
+- No model credential is needed for the offline demo or the test suite. A live OpenAI-compatible endpoint is needed only for live evaluation. TACC access (`tcloud` + the course gateway) is needed only to reproduce the recorded cluster numbers.
 
-如需重新配置，可把 `.env.deepseek.example` 的内容复制到 `.env` 后填写密钥。不要覆盖已有本地密钥配置。模型名称应以账户 `/models` 返回值为准。
+## 1. Clone the artifact and pin the benchmark
 
-可在独立临时数据库做真实 DeepSeek 联调（会产生少量模型费用，不改变网页数据库）：
+`tau2` is intentionally not vendored. The project expects a sibling checkout at the exact pinned commit:
 
 ```bash
-uv run --frozen python -m scripts.smoke_deepseek --run-live
+git clone https://github.com/JunweiHu0/retail-desk-agent.git
+cd retail-desk-agent
+git checkout v1
+
+git clone https://github.com/sierra-research/tau2-bench.git ../tau2-bench
+git -C ../tau2-bench checkout 0c69df456a96aa76a1162591574dad9c427a34d7
 ```
 
-常规 `pytest` 强制使用离线模式，不会因本地 `.env` 切换到 live 而消耗模型 API。
+The evaluator verifies both the commit and the clean `src/`, `data/tau2/domains/retail`, and `pyproject.toml` paths before building fixtures. A different checkout is rejected with `tau2 HEAD must equal 0c69df4...`.
 
-首次配置可执行 `cp .env.example .env`（若已有 `.env`，直接编辑）。
-
-```dotenv
-AGENT_MODE=live
-MODEL_NAME=你的模型名
-MODEL_API_KEY=你的API密钥
-# 可选：OpenAI 兼容服务地址，例如 https://your-gateway.example/v1
-MODEL_BASE_URL=
-```
-
-修改后停止并重新启动后端。模型必须支持 **tool calling**；API Key 仅在后端读取，前端不保存也不接收密钥。真实模型调用会产生服务商费用。
-
-服务实现全部 16 个 Retail 工具；登录网页客户已通过密码核验，Agent 隐藏两个身份查找工具并锁定当前账户。包括：
-
-- 邮箱 / 姓名和邮编核验，客户、订单、商品和规格查询；
-- 取消待处理订单，修改订单地址、商品、支付方式；
-- 修改客户默认地址，已送达订单退货、换货；
-- 金额计算、人工转接记录。
-
-工具数量以 `/api/health` 为准。deepagents 自带的文件与委派工具不会暴露给客服模型，避免偏离零售场景。
-
-## 业务链路
-
-```mermaid
-sequenceDiagram
-  participant U as 用户 / Vue
-  participant A as FastAPI + Deep Agents
-  participant T as 官方 RetailTools
-  participant D as SQLite
-  U->>A: 查询或售后请求
-  A->>T: 核验身份、查询自己的订单
-  T-->>A: 真实客户与订单上下文
-  A-->>U: SSE 工具执行轨迹
-  A->>T: 在数据副本校验拟执行的写操作
-  A->>D: 保存待确认操作与前后快照
-  A-->>U: 变更确认卡片（尚未提交）
-  U->>A: 确认指定 action_id
-  A->>D: 事务内复核快照、执行、保存数据与审计
-  A-->>U: 执行回执及最新订单
-```
-
-- 网页必须登录，后端绑定当前账户；独立 benchmark / 匿名内部会话仍需邮箱或姓名 + 邮编查找，提供 user_id 不视为核验。
-- 单一会话锁定一个客户，订单工具强制检查订单归属。
-- 所有七种写工具先在副本上验证。原始数据、支付记录和礼品卡余额在确认前均不变。
-- 确认接口消费一次性 action_id，不接受前端重传或替换工具参数；重复提交不重复退款。
-- 确认时比较客户和订单快照。若已被其他会话修改，拒绝执行，要求取消后重新请求。
-- SQLite 事务内一起保存业务数据、操作审计和待处理状态；不修改原始 tau2-bench 数据文件。
-- 每次工具调用和用户确认都进入持久化事件表；刷新、重启后可恢复。
-- 同会话请求互斥；启动脚本只运行单个 API worker。
-
-## API
-
-| 方法 | 路径 | 功能 |
-| --- | --- | --- |
-| GET | `/api/health` | 模式、模型准备状态与工具数量，不返回密钥 |
-| POST | `/api/auth/register` | 注册新客户（不能接管已有邮箱） |
-| POST | `/api/auth/login`、`/api/auth/logout` | 登录、退出，撤销登录凭证 |
-| GET | `/api/me`、`/api/orders` | 当前用户资料、所属订单 |
-| POST | `/api/me/address` | 预览默认地址修改 |
-| POST | `/api/orders/{id}/actions` | 通过 Retail 工具生成订单变更预览 |
-| GET | `/api/samples` | 当前登录客户的订单场景 |
-| GET | `/api/sessions` | 当前账户历史咨询 |
-| POST | `/api/sessions` | 新建归属于当前账户的会话，不返回敏感 token |
-| GET | `/api/sessions/{id}` | 消息、客户、订单、待确认操作和审计事件 |
-| POST | `/api/sessions/{id}/messages` | `{ "message": "..." }`，返回 SSE |
-| POST | `/api/sessions/{id}/decisions` | `{ "action_id": "...", "approve": true/false }` |
-
-网页接口使用 HttpOnly 登录 cookie，服务端按账号检查会话和订单归属，前端不保存密码或登录 token。SSE 事件为 `status`、`tool_start`、`tool_end`、`done`、`error`，另有 keepalive。当前实时展示工具进度，助手文本在本轮完成后展示。
-
-## 运行官方 Retail 评测
-
-`benchmarks/tau2_agent.py` 提供 `HalfDuplexAgent` 适配器。它每次从 deepagents 获取一个模型动作，交给官方 tau2 orchestrator 执行；不会使用网页数据库或自动点击确认。benchmark 中的修改确认遵循原始用户对话协议。
+## 2. Install the Python and frontend dependencies
 
 ```bash
-# 先在 .env 配置真实模型；需要 Agent 和用户模拟器的模型服务可用
-uv run --frozen python -m benchmarks.run_retail --num-tasks 2 \
-  --user-model openai/gpt-4.1-mini --save-to deep-retail
+uv sync --frozen
+(cd frontend && npm ci && npm run build)
 ```
 
-`--user-model` 是 tau2 / LiteLLM 使用的模型名，和 Agent 的 `MODEL_NAME` 分开配置。若使用不同供应商，为用户模拟器设置对应供应商环境变量；当前脚本会将配置的兼容服务 Key 和地址用于其 OpenAI 用户模拟器默认配置。结果写入 tau2 的 simulations 路径，可用官方 `tau2 view` 查看。
-
-该入口为当前检出版本的 Retail domain 评测，**不是官方 frozen text-v1 leaderboard 提交工作流**。真实模型评测需要 API Key；未配置时脚本会明确停止，不产生虚构分数。
-
-## 测试
-
-最新完整 Retail 评测覆盖 114 条任务、每条 1 次：基线 96/114（84.2%），修正版 98/114（86.0%），净提升 1.75 个百分点。13 条修复、11 条回退，数据库状态匹配均为 101/114；收益有限，保留为 dev 实验版本，没有合入稳定 main。
-
-[完整前后对比、全部失败与原始轨迹](docs/reports/retail-full-20261027.md)。确定性统计、政策校验、无变化项归一化等共 34 项测试通过。
+## 3. Verify the build without a model
 
 ```bash
-uv run --frozen python -m benchmarks.run_retail --all --concurrency 3 \
-  --max-steps 100 --timeout 600 --seed 42 --save-to /absolute/path/to/new-run
+uv run pytest -q
 ```
 
-2026-10-27 已新增 6 个客户和 18 笔订单，写入网页 SQLite，并完成首轮 5 个官方 Retail 任务：3/5 通过，数据库状态 5/5 匹配。两个失败项为可用商品规格计数错误；这是 DeepSeek 用户模拟器 / 评分器配置下的小样本基线。
-
-- [客户与订单清单](docs/demo-customers.json)
-- [逐任务评测与失败分析](docs/reports/retail-baseline-20261027.md)
-- 示例邮箱：`li.ming@retail-demo.example.com`，订单：`#W9000001`、`#W9000002`、`#W9000003`。
-- `uv run --frozen python -m scripts.seed_demo --apply` 可重复追加演示数据，不会覆盖已有订单变更。
-
-```bash
-uv run --frozen pytest -q
-uv run --frozen ruff check backend benchmarks tests
-uv run --frozen ruff format --check backend benchmarks tests
-
-export PATH="$HOME/.local/opt/node-v22.23.4-linux-x64/bin:$PATH"
-cd frontend
-npm ci
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
-
-Python 测试均用临时数据库，覆盖身份与越权、七类修改、预览无副作用、确认/拒绝、重复提交、并发修改失效、重启恢复、SSE、真实 ChatOpenAI 兼容接口协议（本地 MockTransport，不产生费用）和 benchmark 适配器。
-
-**浏览器测试使用运行中的本地服务，会确认一笔模拟取消订单，并拒绝一笔退货。** 若希望保持演示库全新，请单独以临时数据库启动测试服务：
-
-```bash
-RETAIL_DB_PATH=runtime/e2e.sqlite3 uv run --frozen uvicorn backend.main:app \
-  --host 127.0.0.1 --port 8001
-# 另一个终端
-cd frontend
-BASE_URL=http://127.0.0.1:8001 npm run test:e2e
-```
-
-## 目录
+Expected result:
 
 ```text
-backend/
-  main.py       HTTP / SSE / 会话权限
-  agent.py      Deep Agents、真实模型与离线演示模型
-  retail.py     官方业务工具桥接、预览和确认提交
-  store.py      SQLite 会话、数据与审计
-  config.py     环境配置
-  server.py     本地后台服务管理
-frontend/       Vue 3 聊天与订单工作台
-benchmarks/     tau2 Retail 评测适配器和入口
-tests/          无真实模型费用的后端集成测试
-scripts/        启动及热更新脚本
-runtime/        自动生成的数据与日志，不进入 Git
+190 passed
 ```
 
-## 使用边界
+These tests use the deterministic offline model and scripted models; they make no paid model calls.
 
-这是可运行、可继续开发的 **本地 benchmark 沙盒框架**。客户、订单和支付记录来自公开合成数据；确认会真实改变本地 SQLite 数据，但不会连接商家、支付或邮件系统。人工转接仅创建本地记录，未接外部工单渠道。
+## 4. Run the offline demo
 
-邮箱 / 姓名邮编核验遵循 benchmark 策略，不是生产级账户认证。对公网部署前需要增加正式登录、权限、限流、密钥管理，并将 SQLite 与单 worker 会话互斥改为适合多实例的数据库和任务协调。当前默认仅监听 localhost。
+Seed the synthetic demo customers once (this creates three users with three orders each in the configured SQLite database):
 
-当前使用官方仓库提交 `0c69df4`、tau2 2.0.0；升级上游后应重新运行测试。原始项目采用 MIT 许可，许可证保留在同级原始仓库中。
+```bash
+uv run python scripts/seed_demo.py --apply
+```
 
-参考：[tau2-bench](https://github.com/sierra-research/tau2-bench)、[Deep Agents 文档](https://docs.langchain.com/oss/python/deepagents/overview)。
+Start the app on `http://127.0.0.1:8000` with the LangGraph runtime:
+
+```bash
+BROWSER_AGENT_VARIANT=lg_b1 ./scripts/start.sh
+```
+
+`scripts/start.sh` runs `uv sync --frozen`, builds `frontend/dist` if it is missing, and starts the API. The offline model is deterministic and is not a benchmark-capable LLM, but it executes the real tools through the real LangGraph state graph.
+
+Check the health endpoint:
+
+```bash
+curl -s http://127.0.0.1:8000/api/health | jq '{mode, model, model_ready, tools}'
+```
+
+Expected:
+
+```json
+{"mode": "demo", "model": "offline-demo", "model_ready": true, "tools": 16}
+```
+
+Open <http://127.0.0.1:8000> and use one of the one-click demo accounts:
+
+| Name | Email | Password |
+| --- | --- | --- |
+| 李明 | `li.ming@retail-demo.example.com` | `Demo@Retail2026!` |
+| 王芳 | `wang.fang@retail-demo.example.com` | `Demo@Retail2026!` |
+| 张伟 | `zhang.wei@retail-demo.example.com` | `Demo@Retail2026!` |
+
+Ask `我的订单到哪了？` (or “Where is my order?”). The expected behavior is:
+
+1. `get_user_details` and one `get_order_details` call per order in the SSE tool trace;
+2. an answer listing the three demo orders with status and totals;
+3. the right-hand order panel showing the same orders.
+
+The offline model supports identity verification, order lookup, cancellation of pending orders, and whole-order returns with the original payment method. It does not implement every modification; use live mode for the full tool surface.
+
+To stop the API:
+
+```bash
+uv run python -m backend.server stop
+```
+
+## 5. Optional: live mode
+
+Use any OpenAI-compatible tool-calling endpoint:
+
+```bash
+export AGENT_MODE=live
+export MODEL_BASE_URL=https://api.deepseek.com
+export MODEL_NAME=deepseek-flash
+export MODEL_API_KEY=...
+export MODEL_THINKING=auto
+uv run python -m backend.server start
+```
+
+The same UI is available at `http://127.0.0.1:8000`. Live mode is required for benchmark episodes; demo mode is explicitly rejected by the evaluator.
+
+---
+
+# Detailed Instructions
+
+## Evaluation principle
+
+The evaluator is in `benchmarks/reference/`. It does **not** score the agent's tool-call sequence. For each task:
+
+1. `build-targets` loads the pinned tau2 Retail tasks and replay the official reference actions on a copy of the initial database (`fixtures.py`).
+2. The fixture freezes the comparison scope: the task customer's user object and all of that customer's orders.
+3. The evaluator creates an isolated episode through the app's `/internal/eval` endpoints and lets the simulated customer and the agent converse.
+4. It finishes and snapshots the episode, then calls `compare_db(target_db, snapshot.db, scope)` (`comparator.py`).
+5. Success is exact equality over the scoped objects, including status, items, addresses, payment history, refunds, cancellations and returns. Different tool paths that reach the same final DB succeed.
+
+Tool calls and events are recorded for diagnostics in `trace.json`; they are not the score.
+
+### Evaluation HTTP protocol, scope and budgets
+
+The evaluator drives the app through the same internal endpoints used by the recorded runs:
+
+- `POST /internal/eval/episodes` with `EVAL_API_TOKEN` creates an isolated episode from `initial_db`, `customer_id`, `variant`, `task_id` and `seed`.
+- `GET /internal/eval/episodes/{id}`, `POST .../messages` and `POST .../decisions` use that episode's Bearer token.
+- `POST .../finish` and `GET .../snapshot` use `EVAL_API_TOKEN`; the episode is frozen before the final database is scored.
+
+The comparison scope is the complete task-customer object plus the orders that customer owned in the initial database. List order and duplicate entries are preserved; dictionary key order is ignored. The scope is never narrowed to the agent's actual edits, and the model saying "done" is not evidence. The target database and reference actions never enter the agent or simulator input.
+
+Per-episode budgets are 80 model calls, 80 tool calls and 600 seconds; note and review calls count toward them. Running only known failures (for example tasks 41 and 47) is a diagnostic, not an overall success rate.
+
+## Test cases and data
+
+| Split | Tasks | Use |
+| --- | --- | --- |
+| `smoke` | 8 | quick end-to-end check |
+| `test` | 40 | main evaluation |
+| `development` | 54 | development tasks |
+| `validation` | 20 | held-out validation tasks |
+
+The formal result below uses the official **`test` split** with seeds 0, 1 and 2. `pass_3` in this artifact is the strict definition: a task passes only if **all three seeds** match the target database (this is stricter than the usual “any of three” pass@3). `development` and `validation` are the 74 non-test tasks; together with `test` they form the 114-task Retail pool.
+
+### Baseline reference
+
+The repository also contains a no-tool lower bound recorded with the official tau2 runner on the same model and test split: `bare_llm`, 40 test tasks, **pass^1 = 0.050 (2/40)**; the full record is `docs/experiments/2026-11-17-tau2-test40/`. It uses tau2's own runner/simulator rather than the HTTP evaluator here, so it is a reference floor, not a per-episode paired baseline. A corrected, explicitly non-official benchmark variant (`retail_ours`: fixed multi-item tool + six patched tasks) and general-agent baselines (`deep_generic`, `llm_agent`) are provided in the `feature/retail-ours-reviewer-fallback` branch; their scores must never be mixed with official tau2 scores.
+
+## Rerun the main results on TACC
+
+The recorded numbers use the course TACC environment: vLLM 0.26.0, `Qwen3.8-27B-AWQ-INT4`, tensor parallel 2, thinking `auto`.
+
+1. Copy the TACC configuration template and set the account/key:
+
+   ```bash
+   cp deploy/tacc/env.example deploy/tacc/env
+   # edit: SSH_USER, SSH_KEY
+   # add for the recorded run:
+   #   MAX_NUM_SEQS=40
+   #   MAX_NUM_BATCHED_TOKENS=8192
+   ```
+
+2. Start the model only, leaving the second QOS slot for the evaluator:
+
+   ```bash
+   ./deploy/run.sh tacc up --serve-only
+   ```
+
+   The setup job downloads the pinned tau2 archive and writes `source-manifest.json`; the serve job starts vLLM and writes `server-url.txt`.
+
+3. Submit the HTTP evaluator. The job starts a private app instance, builds fixtures if needed, runs the episodes, and prints a summary:
+
+   ```bash
+   EVAL_NAME=formal-test40-20261120 \
+     ./deploy/run.sh tacc eval \
+     --split test --seeds 0 --variant lg_b1 --concurrency 10
+   ```
+
+   The first run of a name builds `fixtures/test`; later runs with the same `EVAL_NAME` reuse them.
+
+4. Results are written under the TACC user directory:
+
+   ```text
+   $TACC_USERDIR/retail-agent/tau2-results/<EVAL_NAME>/
+     fixtures/test/
+     runs/<run_id>/summary.json
+     runs/<run_id>/results.json
+     runs/<run_id>/task-<id>/seed-<s>/attempt-0/{score.json,final_db.json,mismatches.json,trace.json}
+   ```
+
+5. To stop the jobs:
+
+   ```bash
+   ./deploy/run.sh tacc down
+   ```
+
+For `pass_3`, rerun seeds 1 and 2 with the same `EVAL_NAME` and configuration, then merge the three `results.json` files. The evaluator's `summarize(records, task_ids, [0,1,2])` computes `pass_3`; a task passes only if all three seeds match the target database. In the recorded environment, seeds 1 and 2 are run as separate jobs because the TACC serve job has a one-hour limit.
+
+## Rerun locally with an OpenAI-compatible endpoint
+
+If a TACC allocation is unavailable, the same evaluator can run against a local live app. The model endpoint must support the app's tool calls; the simulator automatically falls back from chat `json_schema` to the Responses API and then to `json_object` when a provider lacks one of those modes.
+
+```bash
+export AGENT_MODE=live
+export MODEL_BASE_URL=https://api.deepseek.com
+export MODEL_NAME=deepseek-flash
+export MODEL_API_KEY=...
+export MODEL_THINKING=auto
+export EVAL_API_TOKEN=local-eval-token
+uv run python -m backend.server start
+
+# Build fixtures from the pinned sibling checkout.
+uv run python -m benchmarks.run_http build-targets \
+  --tau-root ../tau2-bench --split smoke --output eval/fixtures/smoke
+
+# Run one episode.
+uv run python -m benchmarks.run_http run \
+  --fixtures eval/fixtures/smoke --output eval/runs \
+  --base-url http://127.0.0.1:8000 \
+  --model-base-url "$MODEL_BASE_URL" --model "$MODEL_NAME" \
+  --api-key-env MODEL_API_KEY --eval-token-env EVAL_API_TOKEN \
+  --variant lg_b1 --seeds 0 --thinking auto --concurrency 1 --task-ids 0
+```
+
+The local live run requires the same model and thinking value on the app and the simulator; the preflight rejects a mismatch.
+
+## View the recorded replay sessions
+
+The portable replay export contains 134 sessions (120 formal episodes plus 14 wall-time reruns), 966 events, and no account passwords or bearer tokens. Import it into a fresh app database:
+
+```bash
+export RETAIL_DB_PATH="$PWD/runtime/replay.sqlite3"
+uv run python scripts/import_replay.py \
+  --data docs/experiments/2026-11-21-formal-test40/replay \
+  --db "$RETAIL_DB_PATH"
+RETAIL_DB_PATH="$RETAIL_DB_PATH" ./deploy/run.sh local --prod
+```
+
+Open <http://127.0.0.1:8000>, log in as `replay@retail-demo.example.com` / `Replay@2026!`, and open a session. The per-task matrix links use `http://127.0.0.1:8000/?session=<id>`; `replay-map.json` maps `task:seed` to the session id. Full instructions are in `docs/experiments/2026-11-21-formal-test40/REPLAY.md`.
+
+## Metrics and how they map to the report
+
+`summary.json` reports:
+
+- `db_success_rate`: successful episodes / expected episodes;
+- `pass_3`: tasks that pass on seeds 0, 1 and 2 (only when all three seeds are in one summary);
+- `complete`: all expected episodes have a valid snapshot and no protocol errors;
+- `terminations`: `simulator_finish`, `agent_transferred`, `wall_time_budget`, `agent_error`, etc.;
+- `protocol_invalid_episodes`: missing/rejected tau2 pin, policy hash, model or protocol.
+
+Each episode's `score.json` contains the scope and exact mismatches; `trace.json` contains the conversation and events for diagnostics. The app also records per-turn model calls, tool calls, tokens and latencies in `infra/`, and an ATIF-v1.8 trajectory per completed turn.
+
+Where each claim is evidenced:
+
+- C1 / correctness → `tests/`, the offline demo in Getting Started, and the per-task matrix in `docs/experiments/2026-11-21-formal-test40/index.html`;
+- C2 / DB evaluation and formal test → `benchmarks/reference/`, `results-seed-*.json`, `summary.json`;
+- C3 / concurrency, KV and latency → `docs/experiments/2026-11-21-formal-test40/` and the TACC concurrency run;
+- C4 / persistence and ATIF → `infra/<run_id>/atif.jsonl`, `turns.jsonl`, `requests.jsonl`, and the replay export.
+
+## Recorded results to reproduce
+
+The recorded formal configuration is `test`, `lg_b1`, thinking `auto`, concurrency 10, Qwen3.8-27B on vLLM 0.26; seeds 0, 1 and 2 are separate TACC jobs:
+
+| Run | DB matches | `db_success_rate` |
+| --- | ---: | ---: |
+| seed 0 | 31/40 | 0.775 |
+| seed 1 | 30/40 | 0.750 |
+| seed 2 | 30/40 | 0.750 |
+| **all seeds** | **91/120** | **0.758** |
+| **pass_3 (all three seeds)** | **25/40** | **0.625** |
+
+The `complete` flag is true for each run; all terminations and protocol fields are in `summary.json`. Peak KV on seed 0 was 37.4%, max running 10, preemptions 0.
+
+**Concurrency trade-off.** A 20-concurrency run of test seed 0 completed in ~22 min instead of ~33 min, but only 24/40 episodes succeeded (0.600): 8 `wall_time_budget`, 4 `agent_error` (all `OpenAITimeoutError` at the 300 s model-request timeout), 1 simulator/protocol error, 2 `agent_transferred`, 25 `simulator_finish`. Ten concurrent episodes remain the formal configuration; 20 concurrency is reported only as a throughput/quality trade-off. The `smoke` split at concurrency 10 gives 7/8; the failed task is a complex exchange that left the order in `delivered`.
+
+**Wall-time rerun (diagnostic).** The 14 episodes that hit the 600 s `wall_time_budget` were rerun with `max_seconds=1800`, all other settings unchanged; 10 of 14 then matched the target DB. The mixed-budget diagnostic numbers are seed 0/1/2 = 34/33/34 of 40, all 101/120 (0.842), `pass_3` 31/40 (0.775). The four remaining failures are not timeouts: task 36 seed 0 (cheapest-variant selection plus an approval loop), task 100 seed 0/2 (the action-card `after` preview makes the simulated user reject, then transfer), and task 100 seed 1 (the simulator exhausts its 4096-token reasoning budget). These reruns are archived under `docs/experiments/2026-11-21-formal-test40/reruns/` and must not be presented as the formal 600 s protocol.
+
+**No-tool reference.** The official tau2 runner on the same model and test split gives `bare_llm` pass^1 = 0.050 (2/40), archived under `docs/experiments/2026-11-17-tau2-test40/`. It uses tau2's own harness and simulator, so it is a lower-bound reference, not a paired run.
+
+Raw results for these runs are archived under `docs/experiments/2026-11-21-formal-test40/` (per-seed `results-*.json`, manifests, `reruns/`, and the portable replay export). Full per-episode `trace.json`/`snapshot.json` files remain under the TACC run directory described above. The older `docs/experiments/2026-11-17-*` serving recordings belong to the earlier deployment line and are not the `v1` formal result.
+
+## Known limitations and expected variation
+
+- **TACC/Qwen is required for the exact numbers.** The local demo and tests verify the implementation, but the recorded quality and serving numbers use the course `Qwen3.8-27B` endpoint. Without TACC access, reviewers can inspect the archived JSON and rerun the local demo/tests.
+- **The tau2 pin is strict.** The evaluator rejects any checkout other than `0c69df4...`; the TACC setup downloads that exact archive and builds a source inventory. This is intentional for reproducibility.
+- **Per-episode budget and concurrency.** The evaluator allows 600 s per episode. At 10 concurrency, 6 of 40 test episodes hit this budget; at 20 concurrency, 8 hit it and 4 more hit the 300 s model-request timeout. The 10-concurrency configuration is the formal one. The 1800 s rerun is a diagnostic mixed-budget number, not the formal protocol.
+- **Target is a single reference path.** Success is exact equality with one target DB produced by replaying the official reference actions. Conditional scenarios can have valid alternative paths (for example task 5), and the simulated user can choose a different branch or reason text; the report and `EVAL-VALIDITY.md` classify these separately from agent errors.
+- **Upstream tau2 multi-item bug.** The pinned tau2 `modify_pending_order_items` reuses the last variant when applying multi-item modifications. This affects test tasks 36 and 100 (and 20/21/37 in train); the strict target contains the same corrupted values. The `retail_ours` branch fixes this and six ambiguous tasks, but is explicitly a non-official benchmark variant.
+- **Simulator budget.** The simulated customer has a 4096-token output limit. Verbose personas can exhaust it while reasoning and return `content=null`, recorded as `simulator_or_protocol_error`; this is an evaluation-side failure, not an agent-tool failure.
+- **Thinking mode.** The recorded app uses `MODEL_THINKING=auto`. Qwen may spend the entire 4096-token output budget on reasoning and return an empty answer; this is visible in the per-turn telemetry and contributes to some failures. The evaluation does not hide these failures.
+- **The offline demo is deliberately small.** It supports identity verification, order lookup, cancellation and whole-order returns. It does not implement every live-mode modification, and its answers are deterministic rather than model-generated.
+- **Evaluation scope.** Only the task customer's user object and that customer's orders are compared. Products, other customers and unrelated database fields are outside the scope.
+- **Concurrency results vary with node occupancy.** TACC shared nodes can have other users' GPU memory resident; `up.sh` detects this and retries on another node. The recorded runs were on nodes with free GPUs.
+- **Frontend Markdown.** The UI renders a safe Markdown subset (bold/italic, lists, inline/fenced code, headings, links, blockquotes, and GFM tables). User messages are always plain text. Recorded replay sessions can be imported with `scripts/import_replay.py` and viewed through the same UI; see `docs/experiments/2026-11-21-formal-test40/REPLAY.md`.
