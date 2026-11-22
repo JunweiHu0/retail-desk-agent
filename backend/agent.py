@@ -212,8 +212,7 @@ def get_model():
         max_retries=0,
         max_tokens=int(os.getenv("AGENT_MAX_OUTPUT_TOKENS", "4096")),
         model_kwargs={"parallel_tool_calls": False},
-        streaming=True,
-        stream_usage=True,
+        **({"streaming": True, "stream_usage": True} if config.STREAM_MODEL else {}),
         use_responses_api=False,
         extra_body=(
             {"thinking": {"type": "disabled"}}
@@ -231,9 +230,15 @@ def collect_stream(model, messages):
     Streaming keeps the HTTP read timeout alive while tokens are arriving; the
     aggregated message preserves content, tool calls and usage metadata.
     """
+    if not config.STREAM_MODEL or not hasattr(model, "stream"):
+        # Tests, scripted models and the default local run stay on invoke().
+        return model.invoke(messages)
     reply = None
-    for chunk in model.stream(messages):
-        reply = chunk if reply is None else reply + chunk
+    try:
+        for chunk in model.stream(messages):
+            reply = chunk if reply is None else reply + chunk
+    except NotImplementedError:
+        return model.invoke(messages)
     if reply is None:
         raise ValueError("model returned an empty stream")
     return reply

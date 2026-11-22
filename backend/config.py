@@ -47,6 +47,7 @@ if BROWSER_AGENT_VARIANT not in VARIANTS:
     raise ValueError("Unknown BROWSER_AGENT_VARIANT")
 
 MODEL_REQUEST_TIMEOUT_SECONDS = 300
+STREAM_MODEL = os.getenv("AGENT_STREAM", "0") == "1"
 MODEL_THINKING = os.getenv("MODEL_THINKING", "auto")
 if MODEL_THINKING not in {"auto", "on", "off"}:
     raise ValueError("MODEL_THINKING must be auto, on or off")
