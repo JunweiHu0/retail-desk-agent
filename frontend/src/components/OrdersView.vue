@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ArrowRight, ChevronDown, Package, PackageSearch, RefreshCw, Search, ShoppingBag } from 'lucide-vue-next'
-import { money, orderTotal, statuses, statusLabel } from '../retail'
+import { money, orderTotal, statusLabel, statusValues } from '../retail'
+import { t } from '../i18n'
 import type { ChatTarget, Customer, Order } from '../types'
 import OrderDialog from './OrderDialog.vue'
 
@@ -17,37 +18,37 @@ const visibleOrders = computed(() => {
 })
 
 function consult(order: Order) {
-  emit('openChat', { draft: '请查询订单 ' + order.order_id + ' 的状态和商品明细。' })
+  emit('openChat', { draft: t('请查询订单 ' + order.order_id + ' 的状态和商品明细。', 'Please check the status and items for order ' + order.order_id + '.') })
 }
 </script>
 
 <template>
   <main class="frame portal-page">
     <header class="page-intro">
-      <div><h1>我的订单</h1><p>查看当前账户的所有订单、物流及售后信息。</p></div>
+      <div><h1>{{ t('我的订单', 'My orders') }}</h1><p>{{ t('查看当前账户的所有订单、物流及售后信息。', 'View every order, delivery, and after-sales record for this account.') }}</p></div>
       <button class="button secondary" :disabled="loading" @click="emit('refresh')">
-        <RefreshCw :size="16" :class="{ spin: loading }" />刷新订单
+        <RefreshCw :size="16" :class="{ spin: loading }" />{{ t('刷新订单', 'Refresh orders') }}
       </button>
     </header>
 
-    <section class="surface orders-toolbar" aria-label="筛选订单">
+    <section class="surface orders-toolbar" :aria-label="t('筛选订单', 'Filter orders')">
       <label class="orders-search">
-        <Search :size="18" /><input v-model="search" type="search" aria-label="搜索订单" placeholder="搜索订单号或商品名称" />
+        <Search :size="18" /><input v-model="search" type="search" :aria-label="t('搜索订单', 'Search orders')" :placeholder="t('搜索订单号或商品名称', 'Search by order number or item')" />
       </label>
       <label class="orders-filter">
-        <select v-model="status" aria-label="筛选订单状态">
-          <option value="">全部状态</option>
-          <option v-for="(label, value) in statuses" :key="value" :value="value">{{ label }}</option>
+        <select v-model="status" :aria-label="t('筛选订单状态', 'Filter order status')">
+          <option value="">{{ t('全部状态', 'All statuses') }}</option>
+          <option v-for="value in statusValues" :key="value" :value="value">{{ statusLabel(value) }}</option>
         </select><ChevronDown :size="15" />
       </label>
-      <p v-if="!loading" class="orders-count">{{ search.trim() || status ? '找到 ' : '共 ' }}{{ visibleOrders.length }} 笔订单</p>
+      <p v-if="!loading" class="orders-count">{{ search.trim() || status ? t('找到 ', 'Found ') : t('共 ', 'Total ') }}{{ visibleOrders.length }}{{ t(' 笔订单', ' orders') }}</p>
     </section>
     <p v-if="error" class="notice list-notice" role="alert">{{ error }}</p>
-    <p v-if="loading && !orders.length" class="loading-list" role="status">正在载入订单…</p>
+    <p v-if="loading && !orders.length" class="loading-list" role="status">{{ t('正在载入订单…', 'Loading orders…') }}</p>
     <section v-else-if="!visibleOrders.length && !error" class="surface orders-empty-card">
       <PackageSearch :size="28" />
-      <h2>{{ search.trim() || status ? '没有匹配的订单' : '当前账户暂无订单' }}</h2>
-      <button v-if="search.trim() || status" class="text-button" @click="search = ''; status = ''">清除筛选</button>
+      <h2>{{ search.trim() || status ? t('没有匹配的订单', 'No matching orders') : t('当前账户暂无订单', 'No orders on this account') }}</h2>
+      <button v-if="search.trim() || status" class="text-button" @click="search = ''; status = ''">{{ t('清除筛选', 'Clear filters') }}</button>
     </section>
     <div v-else class="order-cards">
       <article v-for="order in visibleOrders" :key="order.order_id" class="surface listed-order">
@@ -59,9 +60,9 @@ function consult(order: Order) {
           <b>{{ money(item.price) }}</b>
         </div>
         <footer>
-          <div><span>{{ order.items.length }} 件商品</span><b>{{ money(orderTotal(order)) }}</b></div>
-          <button class="text-button" :disabled="assistantBusy" @click="consult(order)">咨询此订单</button>
-          <button class="button secondary" @click="selected = order">订单详情<ArrowRight :size="15" /></button>
+          <div><span>{{ order.items.length }} {{ t('件商品', 'items') }}</span><b>{{ money(orderTotal(order)) }}</b></div>
+          <button class="text-button" :disabled="assistantBusy" @click="consult(order)">{{ t('咨询此订单', 'Ask about this order') }}</button>
+          <button class="button secondary" @click="selected = order">{{ t('订单详情', 'Order details') }}<ArrowRight :size="15" /></button>
         </footer>
       </article>
     </div>

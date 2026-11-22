@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { addressFields } from '../retail'
+import { addressFieldKeys, addressFieldLabel } from '../retail'
+import { t } from '../i18n'
 import type { Address } from '../types'
 
 const address = defineModel<Address>({ required: true })
@@ -7,8 +8,8 @@ const address = defineModel<Address>({ required: true })
 
 <template>
   <div class="address-fields">
-    <label v-for="(label, key) in addressFields" :key="key" class="field" :class="{ 'address-wide': key === 'address1' || key === 'address2' }">
-      <span>{{ label }} <small v-if="key === 'address2'">选填</small></span>
+    <label v-for="key in addressFieldKeys" :key="key" class="field" :class="{ 'address-wide': key === 'address1' || key === 'address2' }">
+      <span>{{ addressFieldLabel(key) }} <small v-if="key === 'address2'">{{ t('选填', 'optional') }}</small></span>
       <input v-model.trim="address[key]" :name="key" :required="key !== 'address2'" maxlength="200" />
     </label>
   </div>

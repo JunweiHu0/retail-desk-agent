@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
 import { api, authExpired, errorText, RequestError } from './api'
+import { t } from './i18n'
 import { progressLabel } from './retail'
 import type { ChatTarget, Message, Session, SessionRef } from './types'
 
@@ -94,7 +95,7 @@ export function useDesk(userId: string, target: ChatTarget | undefined, onAuthEx
       if (!mounted || target?.draft !== undefined) return
       const saved = stored(activeKey)
       const intended = target?.id && (history.value.find(item => item.id === target.id) ||
-        { id: target.id, title: '待确认操作' })
+        { id: target.id, title: t('待确认操作', 'Pending action') })
       let current = intended || (saved === '' ? undefined : history.value.find(item => item.id === saved) || history.value[0])
       while (current) {
         try {
@@ -108,19 +109,19 @@ export function useDesk(userId: string, target: ChatTarget | undefined, onAuthEx
           if (!missingSession(e)) {
             select(current, null)
             mustRefresh.value = true
-            error.value = errorText(e, '咨询记录暂时无法载入，请刷新重试。')
+            error.value = errorText(e, t('咨询记录暂时无法载入，请刷新重试。', 'Could not load conversations. Please refresh and try again.'))
             break
           }
           forget(current)
           if (intended) {
-            error.value = '这段咨询已无法打开，请从咨询记录中选择。'
+            error.value = t('这段咨询已无法打开，请从咨询记录中选择。', 'This conversation can no longer be opened. Choose one from Conversations.')
             break
           }
           current = history.value[0]
         }
       }
     } catch (e) {
-      if (!needsLogin(e) && mounted) error.value = errorText(e, '咨询记录暂时无法载入。')
+      if (!needsLogin(e) && mounted) error.value = errorText(e, t('咨询记录暂时无法载入。', 'Could not load conversations.'))
     } finally { phase.value = null }
   })
 
@@ -155,7 +156,7 @@ export function useDesk(userId: string, target: ChatTarget | undefined, onAuthEx
     if (active.value) await open(active.value)
     else {
       try { history.value = (await api.sessions()).sessions }
-      catch (e) { if (!needsLogin(e)) error.value = errorText(e, '咨询记录暂时无法载入。') }
+      catch (e) { if (!needsLogin(e)) error.value = errorText(e, t('咨询记录暂时无法载入。', 'Could not load conversations.')) }
     }
     await status
   }
@@ -228,7 +229,7 @@ export function useDesk(userId: string, target: ChatTarget | undefined, onAuthEx
         if (needsLogin(syncError) || !mounted) return
         if (missingSession(syncError)) forget(item)
         else mustRefresh.value = true
-        error.value = errorText(syncError, '暂时无法核对办理结果，请刷新咨询。')
+        error.value = errorText(syncError, t('暂时无法核对办理结果，请刷新咨询。', 'Could not verify the result. Please refresh the conversation.'))
       }
     } finally { phase.value = null }
   }
@@ -241,7 +242,7 @@ export function useDesk(userId: string, target: ChatTarget | undefined, onAuthEx
     if (message.id !== polledMessage) { polledMessage = message.id; polls = 0 }
     if (polls >= 10) {
       pausedReply.value = message.id
-      error.value = '暂未收到回复。你可以刷新咨询查看进度，或继续留言。'
+      error.value = t('暂未收到回复。你可以刷新咨询查看进度，或继续留言。', 'No reply yet. Refresh the conversation or send another message.')
       return
     }
     let current = true

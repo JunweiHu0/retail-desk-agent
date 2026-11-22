@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import type { Address, Customer, Health, Order, Session, SessionRef } from './types'
 
 const endpoint = (path: string) => import.meta.env.BASE_URL.replace(/\/$/, '') + path
@@ -16,16 +17,16 @@ async function checkResponse(response: Response) {
   if (response.ok) return
   const body = await response.json().catch(() => ({}))
   const messages: Record<number, string> = {
-    401: '请先登录。',
-    403: '当前账户无法执行这项操作。',
-    404: '未找到相关记录。',
-    409: '当前状态已更新，请重新核对。',
-    422: '请检查填写的信息后重试。',
-    429: '操作过于频繁，请稍后重试。',
-    503: '客服暂时无法接待，请稍后重试。',
+    401: t('请先登录。', 'Please sign in.'),
+    403: t('当前账户无法执行这项操作。', 'This account cannot perform that action.'),
+    404: t('未找到相关记录。', 'No matching record was found.'),
+    409: t('当前状态已更新，请重新核对。', 'The state changed. Please review it again.'),
+    422: t('请检查填写的信息后重试。', 'Please check the form and try again.'),
+    429: t('操作过于频繁，请稍后重试。', 'Too many requests. Please try again later.'),
+    503: t('客服暂时无法接待，请稍后重试。', 'Support is temporarily unavailable. Please try again later.'),
   }
   const detail = response.status < 500 && typeof body?.detail === 'string' ? body.detail : undefined
-  throw new RequestError(response.status, detail || messages[response.status] || '服务暂时不可用，请稍后重试。')
+  throw new RequestError(response.status, detail || messages[response.status] || t('服务暂时不可用，请稍后重试。', 'The service is temporarily unavailable. Please try again later.'))
 }
 
 async function request<T>(path: string, body?: unknown, method = 'GET'): Promise<T> {
