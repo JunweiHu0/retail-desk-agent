@@ -406,11 +406,11 @@ The `complete` flag is true for each run; all terminations and protocol fields a
 | Split | Strict `pass_3` | Standard `pass@3` | Episode success |
 | --- | ---: | ---: | ---: |
 | `test` | 31/40 (0.775) | 36/40 (0.900) | 101/120 (0.842) |
-| `development` | 42/54 (0.778) | 51/54 (0.944) | 139/162 (0.858) |
+| `development` | 42/54 (0.778) | 51/54 (0.944) | 140/162 (0.864) |
 | `validation` | 16/20 (0.800) | 19/20 (0.950) | 53/60 (0.883) |
-| **all 114** | **89/114 (0.781)** | **106/114 (0.930)** | **293/342 (0.857)** |
+| **all 114** | **89/114 (0.781)** | **106/114 (0.930)** | **294/342 (0.860)** |
 
-The JSON lists six candidate episode entries across tasks 63, 91, 98 and 107; five become net new successes under the conservative rule. The accepted alternatives are 63:2 (gift-card refund explicitly requested), 91:1/2 (same 8GB e-reader variant), 98:2 (other Visa card explicitly requested), and 107:0/2 (same-spec boots variant). The entries not adjusted after inspecting the actual DB are 0:1, 19:1, 98:0/1 and 109:1.
+The JSON lists six candidate episode entries across tasks 63, 91, 98 and 107; all six become net new successes under the conservative rule. The accepted alternatives are 63:2 (gift-card refund explicitly requested), 91:1/2 (same 8GB e-reader variant), 98:2 (other Visa card explicitly requested), and 107:0/2 (same-spec boots variant). The entries not adjusted after inspecting the actual DB are 0:1, 19:1, 98:0/1 and 109:1.
 
 **Concurrency trade-off.** A separate 20-concurrency diagnostic run of test seed 0 completed in ~22 min instead of ~33 min, but only 24/40 episodes succeeded (0.600) under the 600 s budget: 8 `wall_time_budget`, 4 `agent_error` (all `OpenAITimeoutError` at the 300 s model-request timeout), 1 simulator/protocol error, 2 `agent_transferred`, 25 `simulator_finish`. Ten concurrent episodes remain the reported configuration; 20 concurrency is reported only as a throughput/quality trade-off. An 8-task smoke subset at concurrency 10 gives 7/8; the failed task is a complex exchange that left the order in `delivered`.
 

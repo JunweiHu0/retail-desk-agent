@@ -103,8 +103,8 @@
   "val_standard": 19,
   "strict_total": 89,
   "standard_total": 106,
-  "episode_success": 293,
+  "episode_success": 294,
   "episode_total": 342
  },
- "notes": "Adjusted counts treat only the listed mismatches as acceptable; all other mismatches remain failures. This is a secondary/adjudicated metric, not official tau2."
+ "notes": "Adjusted counts treat only the listed mismatches as acceptable; all other mismatches remain failures. This is a secondary/adjudicated metric, not official tau2. Six accepted episodes are net-new successes (288 -> 294); the earlier 293 count was one short."
 }
