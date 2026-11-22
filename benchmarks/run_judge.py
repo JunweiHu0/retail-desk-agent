@@ -25,6 +25,7 @@ The judge is evaluation-side only; it never participates in the agent loop.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -43,8 +44,10 @@ from benchmarks.reference.judge import (
     DeepSeekJudge,
     JudgeError,
     build_judge_input,
+    parse_secondary,
     parse_verdict,
     summarize,
+    summarize_secondary,
 )
 
 RAW_DIRNAME = "raw"
@@ -127,6 +130,37 @@ def parse_episode_pairs(value: str) -> set[tuple[str, int]]:
     return pairs
 
 
+def load_payload_rows(path: Path) -> list[dict]:
+    """Load prebuilt judge payloads from a JSONL file."""
+    rows: list[dict] = []
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        for lineno, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"invalid JSON on line {lineno} of {path}: {exc}")
+            if not isinstance(row, dict) or not isinstance(row.get("payload"), dict):
+                raise SystemExit(f"line {lineno} of {path} has no payload object")
+            payload = row["payload"]
+            task_id = str(row.get("task_id") or payload.get("task_id") or "")
+            seed = row.get("seed", payload.get("seed"))
+            if not task_id or not isinstance(seed, int):
+                raise SystemExit(f"line {lineno} of {path} has no valid task_id/seed")
+            rows.append(
+                {
+                    "task_id": task_id,
+                    "seed": seed,
+                    "split": row.get("split"),
+                    "source": row.get("source"),
+                    "payload": payload,
+                }
+            )
+    return rows
+
+
 def raw_path(output: Path, task_id: str, seed: int) -> Path:
     return output / RAW_DIRNAME / f"task-{task_id}-seed-{seed}.json"
 
@@ -140,6 +174,7 @@ def write_raw(
     thinking: bool,
     reasoning_effort: str | None,
     max_tokens: int,
+    mode: str,
     records: list[dict],
 ) -> None:
     """Persist every attempt before its content is parsed."""
@@ -151,6 +186,7 @@ def write_raw(
         "thinking": thinking,
         "reasoning_effort": reasoning_effort,
         "max_tokens": max_tokens,
+        "mode": mode,
         "attempts": records,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n")
@@ -163,7 +199,10 @@ def raw_metadata(output: Path) -> dict:
             data = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError):
             continue
-        return {key: data.get(key) for key in ("model", "thinking", "reasoning_effort", "max_tokens")}
+        return {
+            key: data.get(key)
+            for key in ("model", "thinking", "reasoning_effort", "max_tokens", "mode")
+        }
     return {}
 
 
@@ -217,11 +256,13 @@ def reparse_raw(output: Path, fallback_model: str) -> dict[tuple[str, int], dict
             continue
         attempts = data.get("attempts") or []
         chosen = next((item for item in reversed(attempts) if item.get("content")), None)
+        mode = data.get("mode") or "diagnostic"
         base = {
             "task_id": task_id,
             "seed": seed,
             "judge_model": data.get("model") or fallback_model,
             "judge_version": JUDGE_VERSION,
+            "judge_mode": mode,
             "raw_path": str(path),
             "usage": (chosen or {}).get("usage"),
             "finish_reason": (chosen or {}).get("finish_reason"),
@@ -233,8 +274,9 @@ def reparse_raw(output: Path, fallback_model: str) -> dict[tuple[str, int], dict
                 "error": "no saved content in raw file",
             }
             continue
+        parser = parse_secondary if mode == "secondary" else parse_verdict
         try:
-            verdict = parse_verdict(chosen["content"])
+            verdict = parser(chosen["content"])
         except JudgeError as exc:
             verdicts[(task_id, seed)] = {**base, "verdict": "error", "error": str(exc)}
             continue
@@ -263,6 +305,15 @@ def main():
         type=Path,
         default=None,
         help="frozen fixture directory (contains task-<id>.json)",
+    )
+    parser.add_argument(
+        "--payloads",
+        type=Path,
+        default=None,
+        help=(
+            "JSONL of prebuilt judge payloads with task_id, seed and payload; "
+            "alternative to --run/--fixtures, requires --output"
+        ),
     )
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument(
@@ -294,6 +345,15 @@ def main():
         "--episodes",
         default=None,
         help="comma-separated task:seed pairs, e.g. 6:0,28:1 (precise curation)",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("diagnostic", "secondary"),
+        default="diagnostic",
+        help=(
+            "diagnostic: 5 dims / 0-10 / pass-fail; secondary: proposal 4 dims "
+            "1-5 + hallucination/false_success_claim, never part of pass-fail"
+        ),
     )
     parser.add_argument(
         "--thinking",
@@ -336,15 +396,25 @@ def main():
         if not verdicts:
             raise SystemExit(f"no raw responses found under {output / RAW_DIRNAME}")
         count = write_outputs(output, verdicts)
-        ok = [item for item in verdicts.values() if item["verdict"] in {"pass", "fail"}]
         meta = raw_metadata(output)
-        summary = summarize(ok)
+        mode = meta.get("mode") or args.mode
+        if mode == "secondary":
+            ok = [item for item in verdicts.values() if item.get("verdict") != "error"]
+            summary = summarize_secondary(ok)
+        else:
+            ok = [
+                item
+                for item in verdicts.values()
+                if item.get("verdict") in {"pass", "fail"}
+            ]
+            summary = summarize(ok)
         summary["usage"] = raw_usage(output)
         summary.update(
             {
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "judge_model": meta.get("model") or model,
                 "judge_version": JUDGE_VERSION,
+                "judge_mode": mode,
                 "judge_thinking": meta.get("thinking"),
                 "judge_reasoning_effort": meta.get("reasoning_effort"),
                 "judge_max_tokens": meta.get("max_tokens"),
@@ -361,21 +431,42 @@ def main():
             raise SystemExit(2)
         return
 
-    if args.run is None or args.fixtures is None:
-        raise SystemExit("--run and --fixtures are required unless --reparse is used")
-    run = args.run.resolve()
-    fixtures = args.fixtures.resolve()
-    output = (args.output or run / "judge").resolve()
-    output.mkdir(parents=True, exist_ok=True)
+    use_payloads = args.payloads is not None
     task_ids = set(args.task_ids.split(",")) if args.task_ids else None
     seeds = {int(value) for value in args.seeds.split(",")} if args.seeds else None
     wanted = parse_episode_pairs(args.episodes) if args.episodes else None
+    row_meta: dict[tuple[str, int], dict] = {}
 
-    jobs = [
-        job
-        for job in episode_dirs(run, task_ids, seeds)
-        if wanted is None or (job[0], job[1]) in wanted
-    ]
+    if use_payloads:
+        if args.output is None:
+            raise SystemExit("--payloads requires --output")
+        output = args.output.resolve()
+        rows = load_payload_rows(args.payloads.resolve())
+        row_meta = {(row["task_id"], row["seed"]): row for row in rows}
+        jobs = [
+            (row["task_id"], row["seed"], row["payload"])
+            for row in rows
+            if (task_ids is None or row["task_id"] in task_ids)
+            and (seeds is None or row["seed"] in seeds)
+            and (wanted is None or (row["task_id"], row["seed"]) in wanted)
+        ]
+        run = None
+        fixtures = None
+    else:
+        if args.run is None or args.fixtures is None:
+            raise SystemExit(
+                "--run and --fixtures are required unless --reparse or --payloads is used"
+            )
+        run = args.run.resolve()
+        fixtures = args.fixtures.resolve()
+        output = (args.output or run / "judge").resolve()
+        jobs = [
+            job
+            for job in episode_dirs(run, task_ids, seeds)
+            if wanted is None or (job[0], job[1]) in wanted
+        ]
+    output.mkdir(parents=True, exist_ok=True)
+
     if wanted is not None:
         missing = wanted - {(task_id, seed) for task_id, seed, _ in jobs}
         if missing:
@@ -398,17 +489,23 @@ def main():
                 "episodes": len(jobs),
                 "output": str(output),
                 "model": model,
+                "mode": args.mode,
                 "thinking": args.thinking,
                 "reasoning_effort": args.reasoning_effort,
                 "max_tokens": args.max_tokens,
+                "payloads": str(args.payloads.resolve()) if use_payloads else None,
                 "dry_run": args.dry_run,
             }
         )
     )
 
     prompts = {}
-    for task_id, seed, attempt in jobs:
-        prompts[(task_id, seed)] = load_episode(fixtures, task_id, attempt)
+    if use_payloads:
+        for task_id, seed, payload in jobs:
+            prompts[(task_id, seed)] = payload
+    else:
+        for task_id, seed, attempt in jobs:
+            prompts[(task_id, seed)] = load_episode(fixtures, task_id, attempt)
 
     if args.dry_run:
         prompt_dir = output / "prompts"
@@ -430,6 +527,7 @@ def main():
         thinking=args.thinking,
         reasoning_effort=args.reasoning_effort,
         max_tokens=args.max_tokens,
+        mode=args.mode,
     )
     lock = threading.Lock()
     verdicts: dict[tuple[str, int], dict] = {}
@@ -447,6 +545,7 @@ def main():
                 thinking=args.thinking,
                 reasoning_effort=args.reasoning_effort,
                 max_tokens=args.max_tokens,
+                mode=args.mode,
                 records=attempt_records,
             )
 
@@ -465,6 +564,7 @@ def main():
                 "error": str(exc),
                 "judge_model": model,
                 "judge_version": JUDGE_VERSION,
+                "judge_mode": args.mode,
                 "raw_path": str(path),
             }
         verdict = dict(judged["verdict"])
@@ -474,6 +574,7 @@ def main():
                 "seed": seed,
                 "judge_model": model,
                 "judge_version": JUDGE_VERSION,
+                "judge_mode": args.mode,
                 "usage": (judged.get("raw") or {}).get("usage"),
                 "finish_reason": judged.get("finish_reason"),
                 "raw_path": str(path),
@@ -492,33 +593,59 @@ def main():
                 verdict = future.result()
                 with lock:
                     verdicts[(task_id, seed)] = verdict
-                print(
-                    json.dumps(
-                        {
-                            "task_id": task_id,
-                            "seed": seed,
-                            "verdict": verdict.get("verdict"),
-                            "score": verdict.get("score"),
-                        },
-                        ensure_ascii=False,
-                    ),
-                    flush=True,
-                )
+                if args.mode == "secondary":
+                    line = {
+                        "task_id": task_id,
+                        "seed": seed,
+                        "proposal_rubric": verdict.get("proposal_rubric"),
+                        "hallucination": verdict.get("hallucination"),
+                        "false_success_claim": verdict.get("false_success_claim"),
+                    }
+                else:
+                    line = {
+                        "task_id": task_id,
+                        "seed": seed,
+                        "verdict": verdict.get("verdict"),
+                        "score": verdict.get("score"),
+                    }
+                print(json.dumps(line, ensure_ascii=False), flush=True)
     finally:
         judge.close()
 
-    ok = [value for value in verdicts.values() if value["verdict"] in {"pass", "fail"}]
-    summary = summarize(ok, judge.usage)
+    if use_payloads:
+        for key, verdict in verdicts.items():
+            row = row_meta.get(key) or {}
+            verdict.update(
+                {
+                    "split": row.get("split"),
+                    "source": row.get("source"),
+                    "db_success": prompts[key].get("db_success"),
+                    "adjusted_success": prompts[key].get("adjusted_success"),
+                }
+            )
+
+    if args.mode == "secondary":
+        ok = [value for value in verdicts.values() if value.get("verdict") != "error"]
+        summary = summarize_secondary(ok, judge.usage)
+    else:
+        ok = [
+            value
+            for value in verdicts.values()
+            if value.get("verdict") in {"pass", "fail"}
+        ]
+        summary = summarize(ok, judge.usage)
     summary.update(
         {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "judge_model": model,
             "judge_base_url": args.base_url,
+            "judge_mode": args.mode,
             "judge_thinking": args.thinking,
             "judge_reasoning_effort": args.reasoning_effort,
             "judge_max_tokens": args.max_tokens,
-            "run": str(run),
-            "fixtures": str(fixtures),
+            "run": str(run) if run is not None else None,
+            "fixtures": str(fixtures) if fixtures is not None else None,
+            "payloads": str(args.payloads.resolve()) if use_payloads else None,
             "concurrency": args.concurrency,
             "raw_dir": str(output / RAW_DIRNAME),
             "episodes_with_errors": len(verdicts) - len(ok),

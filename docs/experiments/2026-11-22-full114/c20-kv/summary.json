@@ -1,0 +1,40 @@
+{
+  "run_id": "full74-c20-20261122",
+  "source": "TACC $TACC_USERDIR/retail-agent/tau2-results/full74-c20-20261122/metrics.jsonl",
+  "metric": "vLLM /metrics kv_cache_usage_perc, sampled at 1 Hz",
+  "window": {
+    "start": "2026-11-22T11:30:20.760000",
+    "end": "2026-11-22T20:17:20.500000"
+  },
+  "samples": {
+    "valid": 132774,
+    "active_running_gt_0": 55998,
+    "malformed_or_torn": 4483,
+    "blank": 60
+  },
+  "kv_cache": {
+    "peak": 0.7236,
+    "active_mean": 0.3415,
+    "active_p50": 0.3550,
+    "active_p95": 0.6098,
+    "active_p99": 0.6558,
+    "all_sample_mean": 0.1440,
+    "all_sample_p95": 0.5691,
+    "percentile_method": "nearest-rank"
+  },
+  "concurrency": {
+    "max_running": 20,
+    "max_waiting": 9,
+    "max_preempt": 0
+  },
+  "file": {
+    "bytes": 40936658,
+    "sha256": "927818ec9ee78ded8841ff5b3a6443a176d3fda1352d1b9e1bf889da841228a5"
+  },
+  "notes": [
+    "active_* statistics use samples with running > 0; all_sample_* include idle samples.",
+    "kv_cache_usage_perc is an engine-global vLLM metric and cannot be attributed to an individual episode.",
+    "4,483 rows (3.3%) in the original sampler output were torn or duplicated by concurrent appends; they were skipped during parsing.",
+    "The 40 MB raw metrics file is not stored in the repository; it was downloaded from the run directory above."
+  ]
+}

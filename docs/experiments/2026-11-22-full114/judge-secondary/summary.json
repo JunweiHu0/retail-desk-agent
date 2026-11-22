@@ -1,0 +1,39 @@
+{
+ "judge_version": "retail-llm-judge-v5",
+ "judge_mode": "secondary",
+ "episodes": 342,
+ "mean_proposal_rubric": {
+  "intent_recognition": 4.66374269005848,
+  "empathy": 2.891812865497076,
+  "policy_compliance": 3.4327485380116958,
+  "missing_information": 4.038011695906433,
+  "overall": 3.415204678362573
+ },
+ "proposal_rubric_judged": 342,
+ "proposal_rubric_unknown": 0,
+ "hallucination_rate": 0.17251461988304093,
+ "hallucination_judged": 342,
+ "hallucination_unknown": 0,
+ "false_success_claim_rate": 0.12573099415204678,
+ "false_success_claim_judged": 342,
+ "false_success_claim_unknown": 0,
+ "usage": {
+  "calls": 344,
+  "prompt_tokens": 1719800,
+  "completion_tokens": 1893380,
+  "reasoning_tokens": 1781443,
+  "errors": 2
+ },
+ "generated_at": "2026-11-22T12:24:27.600289+00:00",
+ "judge_model": "deepseek-flash",
+ "judge_base_url": "https://api.deepseek.com",
+ "judge_thinking": true,
+ "judge_reasoning_effort": "high",
+ "judge_max_tokens": 32768,
+ "run": null,
+ "fixtures": null,
+ "payloads": "/tmp/judge-payloads.jsonl",
+ "concurrency": 6,
+ "raw_dir": "/tmp/judge-full114-secondary/raw",
+ "episodes_with_errors": 0
+}

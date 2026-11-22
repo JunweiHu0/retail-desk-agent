@@ -1,0 +1,23 @@
+{
+ "primary": {
+  "tasks": 114,
+  "episodes": 342,
+  "successes": 288,
+  "strict_pass3": 86,
+  "standard_pass3": 105,
+  "strict_rate": 0.7543859649122807,
+  "standard_rate": 0.9210526315789473,
+  "episode_success_rate": 0.8421052631578947
+ },
+ "adjusted": {
+  "tasks": 114,
+  "episodes": 342,
+  "successes": 294,
+  "strict_pass3": 89,
+  "standard_pass3": 106,
+  "strict_rate": 0.7807017543859649,
+  "standard_rate": 0.9298245614035088,
+  "episode_success_rate": 0.8596491228070176
+ },
+ "note": "Primary uses formal results with 600s wall-time reruns where available; adjusted additionally accepts the six conservative branch-aware alternatives. Mixed-budget diagnostic."
+}

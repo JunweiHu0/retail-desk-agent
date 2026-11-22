@@ -5,11 +5,14 @@ import json
 import httpx
 
 from benchmarks.reference.judge import (
+    SECONDARY_PROMPT,
     DeepSeekJudge,
     JudgeError,
     build_judge_input,
+    parse_secondary,
     parse_verdict,
     summarize,
+    summarize_secondary,
 )
 
 VERDICT = {
@@ -280,8 +283,104 @@ def test_reparse_raw_rebuilds_verdicts_without_api(tmp_path):
         thinking=True,
         reasoning_effort="high",
         max_tokens=2048,
+        mode="diagnostic",
         records=[{"attempt": 1, "content": json.dumps(VERDICT), "parse_error": None}],
     )
     verdicts = reparse_raw(tmp_path, "fallback")
     assert verdicts[("7", 1)]["verdict"] == "pass"
     assert verdicts[("7", 1)]["judge_model"] == "deepseek-flash"
+
+
+SECONDARY = {
+    "proposal_rubric": {
+        "intent_recognition": 5,
+        "empathy": 4,
+        "policy_compliance": 5,
+        "missing_information": 4,
+        "overall": 4,
+    },
+    "hallucination": False,
+    "false_success_claim": False,
+    "reason": "The agent understood the request and asked for the missing ZIP code.",
+    "evidence": ["user: please change the address", "assistant: which ZIP?"],
+}
+
+
+def test_judge_secondary_mode_uses_secondary_prompt():
+    seen = {}
+
+    def handler(request):
+        seen.update(json.loads(request.content))
+        return response_with(json.dumps(SECONDARY))
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    judge = DeepSeekJudge(api_key="test", client=client, mode="secondary")
+    result = judge.judge({"task_id": "1", "seed": 0})
+    assert seen["messages"][0]["content"] == SECONDARY_PROMPT
+    assert result["verdict"]["proposal_rubric"]["overall"] == 4
+    assert "verdict" not in result["verdict"]
+
+
+def test_parse_secondary_rejects_out_of_range_aspect():
+    bad = json.loads(json.dumps(SECONDARY))
+    bad["proposal_rubric"]["empathy"] = 6
+    try:
+        parse_secondary(bad)
+    except JudgeError as exc:
+        assert "empathy" in str(exc)
+    else:
+        raise AssertionError("out-of-range empathy must be rejected")
+
+
+def test_summarize_secondary_reports_rates():
+    summary = summarize_secondary(
+        [
+            SECONDARY,
+            {**SECONDARY, "hallucination": True, "false_success_claim": True},
+        ]
+    )
+    assert summary["judge_mode"] == "secondary"
+    assert summary["episodes"] == 2
+    assert summary["mean_proposal_rubric"]["overall"] == 4.0
+    assert summary["hallucination_rate"] == 0.5
+    assert summary["false_success_claim_rate"] == 0.5
+
+
+def test_reparse_raw_secondary_mode(tmp_path):
+    from benchmarks.run_judge import reparse_raw, write_raw
+
+    write_raw(
+        tmp_path / "raw" / "task-7-seed-1.json",
+        task_id="7",
+        seed=1,
+        model="deepseek-flash",
+        thinking=True,
+        reasoning_effort="high",
+        max_tokens=2048,
+        mode="secondary",
+        records=[{"attempt": 1, "content": json.dumps(SECONDARY), "parse_error": None}],
+    )
+    verdicts = reparse_raw(tmp_path, "fallback")
+    assert verdicts[("7", 1)]["judge_mode"] == "secondary"
+    assert verdicts[("7", 1)]["proposal_rubric"]["overall"] == 4
+
+
+def test_load_payload_rows_accepts_gzip(tmp_path):
+    import gzip
+
+    from benchmarks.run_judge import load_payload_rows
+
+    path = tmp_path / "payloads.jsonl.gz"
+    row = {
+        "task_id": "7",
+        "seed": 1,
+        "split": "test",
+        "source": "unit",
+        "payload": {"task_id": "7", "seed": 1, "user_scenario": {}},
+    }
+    with gzip.open(path, "wt", encoding="utf-8") as handle:
+        handle.write(json.dumps(row) + "\n")
+    rows = load_payload_rows(path)
+    assert rows[0]["task_id"] == "7"
+    assert rows[0]["seed"] == 1
+    assert rows[0]["payload"]["user_scenario"] == {}

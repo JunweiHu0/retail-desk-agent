@@ -1,0 +1,30 @@
+{
+ "artifact": "retail-llm-judge secondary pass (proposal four-aspect 1-5)",
+ "generated_at": "2026-11-22T12:24:27.600289+00:00",
+ "judge_version": "retail-llm-judge-v5",
+ "judge_mode": "secondary",
+ "judge_model": "deepseek-flash",
+ "judge_thinking": true,
+ "judge_reasoning_effort": "high",
+ "judge_max_tokens": 32768,
+ "episodes": 342,
+ "payloads": "payloads.jsonl.gz",
+ "command": ".venv/bin/python -m benchmarks.run_judge --payloads docs/experiments/2026-11-22-full114/judge-secondary/payloads.jsonl.gz --output /tmp/judge-full114-secondary --mode secondary --thinking --reasoning-effort high --max-tokens 32768 --concurrency 6",
+ "files": {
+  "summary.json": {
+   "bytes": 1129,
+   "sha256": "d7b62c03ae9c0f8e2d2cf7f7dde03011612db8e2279a4b9fc20878682615ddd5"
+  },
+  "verdicts.json": {
+   "bytes": 736450,
+   "sha256": "a90fc4a70e54f67712efb47a4455da19bfa06d40899d77a98f06d0844c3b21b5"
+  },
+  "payloads.jsonl.gz": {
+   "bytes": 389924,
+   "sha256": "365e68a6ee595afda71e020c1f13e754e65d620d4e9e8dc6f9fdfc4dbbb1caf6"
+  }
+ },
+ "raw_responses": "kept outside the repository at /tmp/judge-full114-secondary/raw (342 files)",
+ "payloads_source": "/tmp/judge-payloads.jsonl (342 rows, 114 tasks x 3 seeds)",
+ "raw_responses_note": "Raw responses are not part of the repository; verdicts.json contains the parsed scores. The raw/ directory remains at /tmp/judge-full114-secondary/raw for this session only."
+}
