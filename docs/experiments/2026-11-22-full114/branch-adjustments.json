@@ -1,0 +1,110 @@
+{
+ "policy_version": "branch-aware-v1",
+ "description": "Conservative post-hoc re-score of clear user-authorized alternatives in already-recorded episodes; no rerun.",
+ "adjusted_episodes": [
+  {
+   "task_id": "63",
+   "seed": 2,
+   "reason": "simulated user explicitly requested the gift-card refund; only payment_method_id and gift-card balance differ",
+   "allowed_paths": [
+    "/orders/#W5061109/payment_history/1/payment_method_id",
+    "/users/chen_johnson_4204/payment_methods/gift_card_3406421/balance"
+   ]
+  },
+  {
+   "task_id": "91",
+   "seed": 1,
+   "reason": "scenario allows the same 8GB e-reader when available; only exchange item and price difference differ",
+   "allowed_paths": [
+    "/orders/#W3239882/exchange_new_items/0",
+    "/orders/#W3239882/exchange_price_difference"
+   ]
+  },
+  {
+   "task_id": "91",
+   "seed": 2,
+   "reason": "same as task 91 seed 1",
+   "allowed_paths": [
+    "/orders/#W3239882/exchange_new_items/0",
+    "/orders/#W3239882/exchange_price_difference"
+   ]
+  },
+  {
+   "task_id": "98",
+   "seed": 2,
+   "reason": "scenario and simulated user explicitly requested the other Visa card; only the two exchange payment methods differ",
+   "allowed_paths": [
+    "/orders/#W3916020/exchange_payment_method_id",
+    "/orders/#W4689314/exchange_payment_method_id"
+   ]
+  },
+  {
+   "task_id": "107",
+   "seed": 0,
+   "reason": "scenario allows a same-spec boots variant; only exchange item and price difference differ",
+   "allowed_paths": [
+    "/orders/#W1304208/exchange_new_items/0",
+    "/orders/#W1304208/exchange_price_difference"
+   ]
+  },
+  {
+   "task_id": "107",
+   "seed": 2,
+   "reason": "same as task 107 seed 0",
+   "allowed_paths": [
+    "/orders/#W1304208/exchange_new_items/0",
+    "/orders/#W1304208/exchange_price_difference"
+   ]
+  }
+ ],
+ "not_adjusted": [
+  {
+   "task_id": "0",
+   "seed": 1,
+   "reason": "actual exchange_new_items positionally swaps the keyboard and thermostat; not a valid no-backlight keyboard branch"
+  },
+  {
+   "task_id": "19",
+   "seed": 1,
+   "reason": "actual exchange refunds 41.64 while returning the bottle saves 54.04; scenario prefers the larger saving"
+  },
+  {
+   "task_id": "98",
+   "seed": 0,
+   "reason": "payment method plus missing cancellation/refund changes"
+  },
+  {
+   "task_id": "98",
+   "seed": 1,
+   "reason": "incomplete exchange (jigsaw missing) plus payment method and transfer"
+  },
+  {
+   "task_id": "109",
+   "seed": 1,
+   "reason": "actual tablet is more expensive than the target cheapest tablet, plus address/payment/status mismatches"
+  }
+ ],
+ "original": {
+  "test_strict": 31,
+  "test_standard": 36,
+  "dev_strict": 39,
+  "dev_standard": 50,
+  "val_strict": 16,
+  "val_standard": 19,
+  "strict_total": 86,
+  "standard_total": 105
+ },
+ "adjusted": {
+  "test_strict": 31,
+  "test_standard": 36,
+  "dev_strict": 42,
+  "dev_standard": 51,
+  "val_strict": 16,
+  "val_standard": 19,
+  "strict_total": 89,
+  "standard_total": 106,
+  "episode_success": 293,
+  "episode_total": 342
+ },
+ "notes": "Adjusted counts treat only the listed mismatches as acceptable; all other mismatches remain failures. This is a secondary/adjudicated metric, not official tau2."
+}

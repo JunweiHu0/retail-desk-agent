@@ -10,9 +10,10 @@ Formal 600 s per-episode budget:
 - all: 91/120 (0.758)
 - pass_3: 25/40 (0.625)
 
-The 14 episodes that hit `wall_time_budget` were rerun at `max_seconds=1800`
-(all other settings unchanged). 10 of 14 then matched the target DB; the
-diagnostic, mixed-budget numbers are:
+17 episodes hit `wall_time_budget`; 3 still matched the target DB, and the
+remaining 14 were rerun at `max_seconds=1800` (all other settings unchanged).
+10 of those 14 then matched the target DB; the diagnostic, mixed-budget numbers
+are:
 
 - seed 0: 34/40 (0.850)
 - seed 1: 33/40 (0.825)

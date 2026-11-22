@@ -1,0 +1,86 @@
+{
+  "auxiliary": {
+    "agent": {
+      "active_seconds": {
+        "missing_attempts": 0,
+        "observed_total": 23011.1907880879,
+        "total": 23011.1907880879
+      },
+      "input_tokens": {
+        "known_total": 3015935,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 3015935,
+        "total": 3015935
+      },
+      "model_calls": {
+        "missing_attempts": 0,
+        "observed_total": 314,
+        "total": 314
+      },
+      "output_tokens": {
+        "known_total": 327418,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 327418,
+        "total": 327418
+      },
+      "tool_calls": {
+        "missing_attempts": 0,
+        "observed_total": 164,
+        "total": 164
+      }
+    },
+    "agent_turn_latency": {
+      "count": 240,
+      "missing_attempts": 0,
+      "p50_seconds": 40.47273961384781,
+      "p95_seconds": 310.39648994088634
+    },
+    "all_tokens": null,
+    "attempts_including_retries": 60,
+    "episode_latency": {
+      "count": 60,
+      "missing_attempts": 0,
+      "p50_seconds": 601.7968076518737,
+      "p95_seconds": 758.7575830777408
+    },
+    "simulator": {
+      "calls": {
+        "missing_attempts": 0,
+        "observed_total": 272,
+        "total": 272
+      },
+      "completion_tokens": {
+        "missing_calls": 9,
+        "observed_total": 110234,
+        "total": null,
+        "unknown_call_count_attempts": 0
+      },
+      "prompt_tokens": {
+        "missing_calls": 9,
+        "observed_total": 418099,
+        "total": null,
+        "unknown_call_count_attempts": 0
+      }
+    },
+    "successful_task_definition": "all requested seeds pass",
+    "tokens_per_successful_episode": null,
+    "tokens_per_successful_task": null
+  },
+  "complete": true,
+  "db_success_rate": 0.4666666666666667,
+  "expected_episodes": 60,
+  "missing_episodes": [],
+  "missing_snapshots": [],
+  "pass_3": 0.35,
+  "protocol_invalid_episodes": [],
+  "recorded_episodes": 60,
+  "successes": 28,
+  "terminations": {
+    "agent_transferred": 4,
+    "simulator_finish": 23,
+    "wall_time_budget": 33
+  },
+  "valid_snapshots": 60
+}

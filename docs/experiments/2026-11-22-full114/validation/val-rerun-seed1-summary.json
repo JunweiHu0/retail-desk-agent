@@ -1,0 +1,84 @@
+{
+  "auxiliary": {
+    "agent": {
+      "active_seconds": {
+        "missing_attempts": 0,
+        "observed_total": 5640.276042018086,
+        "total": 5640.276042018086
+      },
+      "input_tokens": {
+        "known_total": 1232165,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 1232165,
+        "total": 1232165
+      },
+      "model_calls": {
+        "missing_attempts": 0,
+        "observed_total": 109,
+        "total": 109
+      },
+      "output_tokens": {
+        "known_total": 117250,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 117250,
+        "total": 117250
+      },
+      "tool_calls": {
+        "missing_attempts": 0,
+        "observed_total": 55,
+        "total": 55
+      }
+    },
+    "agent_turn_latency": {
+      "count": 90,
+      "missing_attempts": 0,
+      "p50_seconds": 33.417678626370616,
+      "p95_seconds": 232.03135678368844
+    },
+    "all_tokens": 1641704,
+    "attempts_including_retries": 11,
+    "episode_latency": {
+      "count": 11,
+      "missing_attempts": 0,
+      "p50_seconds": 834.4964629102033,
+      "p95_seconds": 1326.5225866721012
+    },
+    "simulator": {
+      "calls": {
+        "missing_attempts": 0,
+        "observed_total": 101,
+        "total": 101
+      },
+      "completion_tokens": {
+        "missing_calls": 0,
+        "observed_total": 62384,
+        "total": 62384,
+        "unknown_call_count_attempts": 0
+      },
+      "prompt_tokens": {
+        "missing_calls": 0,
+        "observed_total": 229905,
+        "total": 229905,
+        "unknown_call_count_attempts": 0
+      }
+    },
+    "successful_task_definition": "all requested seeds pass",
+    "tokens_per_successful_episode": 164170.4,
+    "tokens_per_successful_task": 164170.4
+  },
+  "complete": true,
+  "db_success_rate": 0.9090909090909091,
+  "expected_episodes": 11,
+  "missing_episodes": [],
+  "missing_snapshots": [],
+  "pass_3": null,
+  "protocol_invalid_episodes": [],
+  "recorded_episodes": 11,
+  "successes": 10,
+  "terminations": {
+    "simulator_finish": 11
+  },
+  "valid_snapshots": 11
+}

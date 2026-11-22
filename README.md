@@ -23,11 +23,12 @@ The system is Vue 3 + FastAPI + LangGraph. It reuses the official `tau2-bench` R
 | # | Claim | Evidence | Review cost |
 | --- | --- | --- | --- |
 | C1 | The complete offline flow runs through the real LangGraph graph and all 16 official Retail tools, with preview → explicit approval → transactional commit. | Offline demo below; 190 backend tests | ~10 min, no API key |
-| C2 | The evaluation compares business state, not tool calls: the final database is compared with a target database produced by replaying the official reference actions. | `benchmarks/reference/`; formal test below | ~30 min, model access |
-| C3 | Ten concurrent episodes are the formal configuration: test 40 gives 31/40 on seed 0 and 91/120 over seeds 0/1/2, with 37.4% peak KV and zero preemptions. Raising to 20 concurrency reduces wall time from ~33 min to ~22 min but drops seed-0 success to 24/40, because 4 episodes hit the 300 s model-request timeout and 8 hit the 600 s episode budget. | `docs/experiments/2026-11-21-formal-test40/`; `results-seed-*.json`; `test40-c20` TACC run | inspect: 2 min; rerun: TACC access |
+| C2 | The evaluation compares business state, not tool calls: the final database is compared with a target database produced by replaying the official reference actions. | `benchmarks/reference/`; 114-task result below | ~30 min, model access |
+| C3 | Ten concurrent episodes are the reported configuration: across the full 114-task pool, strict `pass_3` is 86/114 (0.754) and standard `pass@3` is 105/114 (0.921); the 40-task test split alone is 31/40 strict and 101/120 episode successes. This is a mixed-budget diagnostic: test uses 600 s plus 14 wall-time reruns at 1800 s, development uses 1800 s, and validation uses 600 s plus 33 wall-time reruns at 1800 s. Test seed-0 peak KV was 37.4% with zero preemptions. A separate 20-concurrency diagnostic run was faster (~22 min vs ~33 min) but succeeded on only 24/40 seed-0 test episodes under the 600 s budget, because 4 episodes hit the 300 s model-request timeout and 8 hit the episode budget. | `docs/experiments/2026-11-22-full114/`; `docs/experiments/2026-11-21-formal-test40/`; `test40-c20` TACC run | inspect: 2 min; rerun: TACC access |
 | C4 | Every tool call, decision and turn is persisted and exposed; per-turn ATIF-v1.8 trajectories are written for the running app. | `/infra`; `infra/<run_id>/atif.jsonl`; `docs/experiments/2026-11-21-formal-test40/replay/` | ~5 min |
+| C5 | A secondary, branch-aware re-score accepts only the user-authorized alternative paths listed in `branch-adjustments.json`; it gives 89/114 strict (0.781) and 106/114 standard `pass@3` (0.930), and never replaces the strict metric. | `docs/experiments/2026-11-22-full114/branch-adjustments.json` | inspect: 2 min |
 
-The project report contains the full claims and measurements. The archived JSON under `docs/experiments/2026-11-21-formal-test40/` is the artifact-side source of truth for the numbers below.
+The project report contains the full claims and measurements. The archived JSON under `docs/experiments/2026-11-22-full114/` (114-task aggregate) and `docs/experiments/2026-11-21-formal-test40/` (test-split reruns and replay) is the artifact-side source of truth for the numbers below.
 
 ## Repository layout
 
@@ -185,14 +186,18 @@ Per-episode budgets are 80 model calls, 80 tool calls and 600 seconds; note and 
 
 ## Test cases and data
 
-| Split | Tasks | Use |
-| --- | --- | --- |
-| `smoke` | 8 | quick end-to-end check |
-| `test` | 40 | main evaluation |
-| `development` | 54 | development tasks |
-| `validation` | 20 | held-out validation tasks |
+The benchmark is one **114-task Retail pool**; the split labels are bookkeeping,
+not different datasets. The `test` portion contains 40 tasks and the remaining
+74 `train` tasks are the 54 development plus 20 validation tasks. The 8-task
+`smoke` set is a quick-check subset. The reported result below covers all 114
+tasks with seeds 0, 1 and 2. The budget is heterogeneous: test uses 600 s plus
+14 wall-time reruns at 1800 s, development uses 1800 s, and validation uses
+600 s plus 33 wall-time reruns at 1800 s. The 114-task aggregate is therefore a
+**mixed-budget diagnostic**, not a single 600 s protocol.
 
-The formal result below uses the official **`test` split** with seeds 0, 1 and 2. `pass_3` in this artifact is the strict definition: a task passes only if **all three seeds** match the target database (this is stricter than the usual “any of three” pass@3). `development` and `validation` are the 74 non-test tasks; together with `test` they form the 114-task Retail pool.
+`pass_3` in this artifact is the strict definition: a task passes only if **all
+three seeds** match the target database (this is stricter than the usual “any of
+three” pass@3). Standard `pass@3` (at least one of three) is also reported.
 
 ### Baseline reference
 
@@ -248,6 +253,8 @@ The recorded numbers use the course TACC environment: vLLM 0.26.0, `Qwen3.8-27B-
 
 For `pass_3`, rerun seeds 1 and 2 with the same `EVAL_NAME` and configuration, then merge the three `results.json` files. The evaluator's `summarize(records, task_ids, [0,1,2])` computes `pass_3`; a task passes only if all three seeds match the target database. In the recorded environment, seeds 1 and 2 are run as separate jobs because the TACC serve job has a one-hour limit.
 
+To reproduce the 114-task table, run the same evaluator for each split with the archived budgets: `--split test` at 600 s (then rerun wall-time episodes with `--max-seconds 1800`), `--split development --max-seconds 1800`, and `--split validation` at 600 s (then rerun wall-time episodes at 1800 s). The archived per-chunk results and TACC run ids are in `docs/experiments/2026-11-22-full114/`. The 114-task totals are merged from the three split runs; standard `pass@3` is derived from the per-task seed matrix.
+
 ## Rerun locally with an OpenAI-compatible endpoint
 
 If a TACC allocation is unavailable, the same evaluator can run against a local live app. The model endpoint must support the app's tool calls; the simulator automatically falls back from chat `json_schema` to the Responses API and then to `json_object` when a provider lacks one of those modes.
@@ -278,7 +285,7 @@ The local live run requires the same model and thinking value on the app and the
 
 ## View the recorded replay sessions
 
-The portable replay export contains 134 sessions (120 formal episodes plus 14 wall-time reruns), 966 events, and no account passwords or bearer tokens. Import it into a fresh app database:
+The portable replay export contains the recorded evaluation sessions and events, with no account passwords or bearer tokens. The `--data` argument is the path to the replay export directory; run the import from the repository root:
 
 ```bash
 export RETAIL_DB_PATH="$PWD/runtime/replay.sqlite3"
@@ -294,49 +301,76 @@ Open <http://127.0.0.1:8000>, log in as `replay@retail-demo.example.com` / `Repl
 
 `summary.json` reports:
 
-- `db_success_rate`: successful episodes / expected episodes;
-- `pass_3`: tasks that pass on seeds 0, 1 and 2 (only when all three seeds are in one summary);
+- `db_success_rate`: successful episodes / expected episodes; its aggregate is the episode-success (`pass^1`) estimate;
+- `pass_3`: the strict definition, tasks that pass on all three seeds (only when all three seeds are in one summary);
+- standard `pass@3`: tasks that pass on at least one of three seeds; derived from the per-task seed matrix;
+- branch-aware/adjudicated: a secondary post-hoc re-score that accepts only the alternative paths listed in `branch-adjustments.json`; it is not official tau2 and does not replace strict `pass_3`;
 - `complete`: all expected episodes have a valid snapshot and no protocol errors;
 - `terminations`: `simulator_finish`, `agent_transferred`, `wall_time_budget`, `agent_error`, etc.;
 - `protocol_invalid_episodes`: missing/rejected tau2 pin, policy hash, model or protocol.
 
-Each episode's `score.json` contains the scope and exact mismatches; `trace.json` contains the conversation and events for diagnostics. The app also records per-turn model calls, tool calls, tokens and latencies in `infra/`, and an ATIF-v1.8 trajectory per completed turn.
+The 114-task totals are computed by merging the per-split summaries in `docs/experiments/2026-11-22-full114/`; standard `pass@3` is derived from the per-task seed matrix. Each episode's `score.json` contains the scope and exact mismatches; `trace.json` contains the conversation and events for diagnostics. The app also records per-turn model calls, tool calls, tokens and latencies in `infra/`, and an ATIF-v1.8 trajectory per completed turn.
 
 Where each claim is evidenced:
 
 - C1 / correctness → `tests/`, the offline demo in Getting Started, and the per-task matrix in `docs/experiments/2026-11-21-formal-test40/index.html`;
-- C2 / DB evaluation and formal test → `benchmarks/reference/`, `results-seed-*.json`, `summary.json`;
-- C3 / concurrency, KV and latency → `docs/experiments/2026-11-21-formal-test40/` and the TACC concurrency run;
-- C4 / persistence and ATIF → `infra/<run_id>/atif.jsonl`, `turns.jsonl`, `requests.jsonl`, and the replay export.
+- C2 / DB evaluation and 114-task result → `benchmarks/reference/`, `docs/experiments/2026-11-22-full114/`, `docs/experiments/2026-11-21-formal-test40/reruns/`;
+- C3 / concurrency, KV and latency → `docs/experiments/2026-11-22-full114/`, `docs/experiments/2026-11-21-formal-test40/`, and the TACC concurrency run;
+- C4 / persistence and ATIF → `infra/<run_id>/atif.jsonl`, `turns.jsonl`, `requests.jsonl`, and the replay export;
+- C5 / adjudicated result → `docs/experiments/2026-11-22-full114/branch-adjustments.json`.
 
 ## Recorded results to reproduce
 
-The recorded formal configuration is `test`, `lg_b1`, thinking `auto`, concurrency 10, Qwen3.8-27B on vLLM 0.26; seeds 0, 1 and 2 are separate TACC jobs:
+The recorded configuration is `lg_b1`, thinking `auto`, concurrency 10, Qwen3.8-27B on vLLM 0.26; seeds 0, 1 and 2 are separate TACC jobs. The 114-task aggregate is a mixed-budget diagnostic: test uses 600 s plus 14 wall-time reruns at 1800 s, development uses 1800 s, and validation uses 600 s plus 33 wall-time reruns at 1800 s.
 
-| Run | DB matches | `db_success_rate` |
-| --- | ---: | ---: |
-| seed 0 | 31/40 | 0.775 |
-| seed 1 | 30/40 | 0.750 |
-| seed 2 | 30/40 | 0.750 |
-| **all seeds** | **91/120** | **0.758** |
-| **pass_3 (all three seeds)** | **25/40** | **0.625** |
+| Split | Tasks | Strict `pass_3` | Episode success (`pass^1`) |
+| --- | ---: | ---: | ---: |
+| `test` | 40 | 31/40 (0.775) | 101/120 (0.842) |
+| `development` | 54 | 39/54 (0.722) | 134/162 (0.827)† |
+| `validation` | 20 | 16/20 (0.800) | 53/60 (0.883) |
+| **all 114** | **114** | **86/114 (0.754)** | **288/342 (0.842)**† |
 
-The `complete` flag is true for each run; all terminations and protocol fields are in `summary.json`. Peak KV on seed 0 was 37.4%, max running 10, preemptions 0.
+**Standard `pass@3` (at least one of three seeds): 105/114 (0.921).** Strict `pass_3` requires all three seeds to match the target DB. Episode success is the `pass^1` estimate over the 342 episodes (one attempt per task and seed). † Development episode success and the total are provisional: task 41 seed 0 was still queued at aggregation time. Task 41 seed 2 already succeeded, so neither strict `pass_3` nor standard `pass@3` can change; the only possible update is development episode success 134/162 → 135/162.
 
-**Concurrency trade-off.** A 20-concurrency run of test seed 0 completed in ~22 min instead of ~33 min, but only 24/40 episodes succeeded (0.600): 8 `wall_time_budget`, 4 `agent_error` (all `OpenAITimeoutError` at the 300 s model-request timeout), 1 simulator/protocol error, 2 `agent_transferred`, 25 `simulator_finish`. Ten concurrent episodes remain the formal configuration; 20 concurrency is reported only as a throughput/quality trade-off. The `smoke` split at concurrency 10 gives 7/8; the failed task is a complex exchange that left the order in `delivered`.
+Task 20 seed 1 and task 37 seed 0 are confirmed tau2 multi-item-bug cases. They are counted conservatively as failures (wall-time failures at 1800 s) and remain in the 134/162 and 114-task denominators; they are not excluded.
 
-**Wall-time rerun (diagnostic).** The 14 episodes that hit the 600 s `wall_time_budget` were rerun with `max_seconds=1800`, all other settings unchanged; 10 of 14 then matched the target DB. The mixed-budget diagnostic numbers are seed 0/1/2 = 34/33/34 of 40, all 101/120 (0.842), `pass_3` 31/40 (0.775). The four remaining failures are not timeouts: task 36 seed 0 (cheapest-variant selection plus an approval loop), task 100 seed 0/2 (the action-card `after` preview makes the simulated user reject, then transfer), and task 100 seed 1 (the simulator exhausts its 4096-token reasoning budget). These reruns are archived under `docs/experiments/2026-11-21-formal-test40/reruns/` and must not be presented as the formal 600 s protocol.
+The `complete` flag is true for each run; all terminations and protocol fields are in the per-split `summary.json` files. Test seed-0 peak KV was 37.4%, max running 10, preemptions 0.
+
+**Development failure classification (15 tasks).**
+
+| Class | Tasks |
+| --- | --- |
+| Real agent behaviour | 31, 87, 88, 110 |
+| Wall-time budget | 76, 41 |
+| Confirmed tau2 multi-item bug | 20, 37 |
+| Path ambiguity / gold-target defect | 0, 19, 63, 91, 98, 107, 109 |
+
+**Secondary/adjudicated result (branch-aware-v1).** This is a post-hoc re-score of clear user-authorized alternative paths in already-recorded episodes; no rerun. It is not an official tau2 score and does not replace the strict numbers above. Only the mismatches listed in `docs/experiments/2026-11-22-full114/branch-adjustments.json` are accepted; all other mismatches remain failures.
+
+| Split | Strict `pass_3` | Standard `pass@3` | Episode success |
+| --- | ---: | ---: | ---: |
+| `test` | 31/40 (0.775) | 36/40 (0.900) | 101/120 (0.842) |
+| `development` | 42/54 (0.778) | 51/54 (0.944) | 139/162 (0.858) |
+| `validation` | 16/20 (0.800) | 19/20 (0.950) | 53/60 (0.883) |
+| **all 114** | **89/114 (0.781)** | **106/114 (0.930)** | **293/342 (0.857)** |
+
+The JSON lists six candidate episode entries across tasks 63, 91, 98 and 107; five become net new successes under the conservative rule. The accepted alternatives are 63:2 (gift-card refund explicitly requested), 91:1/2 (same 8GB e-reader variant), 98:2 (other Visa card explicitly requested), and 107:0/2 (same-spec boots variant). The entries not adjusted after inspecting the actual DB are 0:1, 19:1, 98:0/1 and 109:1.
+
+**Concurrency trade-off.** A separate 20-concurrency diagnostic run of test seed 0 completed in ~22 min instead of ~33 min, but only 24/40 episodes succeeded (0.600) under the 600 s budget: 8 `wall_time_budget`, 4 `agent_error` (all `OpenAITimeoutError` at the 300 s model-request timeout), 1 simulator/protocol error, 2 `agent_transferred`, 25 `simulator_finish`. Ten concurrent episodes remain the reported configuration; 20 concurrency is reported only as a throughput/quality trade-off. An 8-task smoke subset at concurrency 10 gives 7/8; the failed task is a complex exchange that left the order in `delivered`.
+
+**Test-split rerun detail.** 17 test episodes hit the 600 s `wall_time_budget`; 3 of them still matched the target DB, and the remaining 14 were rerun with `max_seconds=1800`, all other settings unchanged. 10 of those 14 then matched the target DB. The four remaining failures are not timeouts: task 36 seed 0 (cheapest-variant selection plus an approval loop), task 100 seed 0/2 (the action-card `after` preview makes the simulated user reject, then transfer), and task 100 seed 1 (the simulator exhausts its 4096-token reasoning budget). These reruns are archived under `docs/experiments/2026-11-22-full114/test/`.
 
 **No-tool reference.** The official tau2 runner on the same model and test split gives `bare_llm` pass^1 = 0.050 (2/40), archived under `docs/experiments/2026-11-17-tau2-test40/`. It uses tau2's own harness and simulator, so it is a lower-bound reference, not a paired run.
 
-Raw results for these runs are archived under `docs/experiments/2026-11-21-formal-test40/` (per-seed `results-*.json`, manifests, `reruns/`, and the portable replay export). Full per-episode `trace.json`/`snapshot.json` files remain under the TACC run directory described above. The older `docs/experiments/2026-11-17-*` serving recordings belong to the earlier deployment line and are not the `v1` formal result.
+Raw results for the 114-task run are archived under `docs/experiments/2026-11-22-full114/` (per-split results and summaries, including test and validation reruns). The 40-task test formal run and its portable replay export remain under `docs/experiments/2026-11-21-formal-test40/`. Full per-episode `trace.json`/`snapshot.json` files remain under the TACC run directories described above. The older `docs/experiments/2026-11-17-*` serving recordings belong to the earlier deployment line and are not the `v1` reported result.
 
 ## Known limitations and expected variation
 
 - **TACC/Qwen is required for the exact numbers.** The local demo and tests verify the implementation, but the recorded quality and serving numbers use the course `Qwen3.8-27B` endpoint. Without TACC access, reviewers can inspect the archived JSON and rerun the local demo/tests.
 - **The tau2 pin is strict.** The evaluator rejects any checkout other than `0c69df4...`; the TACC setup downloads that exact archive and builds a source inventory. This is intentional for reproducibility.
-- **Per-episode budget and concurrency.** The evaluator allows 600 s per episode. At 10 concurrency, 6 of 40 test episodes hit this budget; at 20 concurrency, 8 hit it and 4 more hit the 300 s model-request timeout. The 10-concurrency configuration is the formal one. The 1800 s rerun is a diagnostic mixed-budget number, not the formal protocol.
-- **Target is a single reference path.** Success is exact equality with one target DB produced by replaying the official reference actions. Conditional scenarios can have valid alternative paths (for example task 5), and the simulated user can choose a different branch or reason text; the report and `EVAL-VALIDITY.md` classify these separately from agent errors.
+- **Per-episode budget and concurrency.** The 114-task aggregate is mixed-budget: test uses 600 s plus 14 wall-time reruns at 1800 s, development uses 1800 s, and validation uses 600 s plus 33 wall-time reruns at 1800 s. The 20-concurrency diagnostic uses 600 s. At 10 concurrency, 6 of 40 test episodes hit the 600 s budget; at 20 concurrency, 8 hit it and 4 more hit the 300 s model-request timeout. The 10-concurrency configuration is the reported one. Do not read the 114-task total as a single 600 s protocol.
+- **Known-bug and provisional tasks.** Task 20 seed 1 and task 37 seed 0 are confirmed tau2 multi-item-bug cases and are counted conservatively as failures, not excluded. Task 41 seed 0 was still queued at aggregation time, so development episode success (134/162) and the 288/342 total are provisional; strict `pass_3` and standard `pass@3` are unaffected.
+- **Target is a single reference path.** Success is exact equality with one target DB produced by replaying the official reference actions. Conditional scenarios can have valid alternative paths (for example task 5), and the simulated user can choose a different branch or reason text; the report and `EVAL-VALIDITY.md` classify these separately from agent errors. A secondary branch-aware re-score (`branch-adjustments.json`) accepts only the explicitly listed user-authorized alternatives; it is reported separately and does not replace the strict metric.
 - **Upstream tau2 multi-item bug.** The pinned tau2 `modify_pending_order_items` reuses the last variant when applying multi-item modifications. This affects test tasks 36 and 100 (and 20/21/37 in train); the strict target contains the same corrupted values. The `retail_ours` branch fixes this and six ambiguous tasks, but is explicitly a non-official benchmark variant.
 - **Simulator budget.** The simulated customer has a 4096-token output limit. Verbose personas can exhaust it while reasoning and return `content=null`, recorded as `simulator_or_protocol_error`; this is an evaluation-side failure, not an agent-tool failure.
 - **Thinking mode.** The recorded app uses `MODEL_THINKING=auto`. Qwen may spend the entire 4096-token output budget on reasoning and return an empty answer; this is visible in the per-turn telemetry and contributes to some failures. The evaluation does not hide these failures.

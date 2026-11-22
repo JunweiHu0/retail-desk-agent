@@ -1,0 +1,6302 @@
+[
+  {
+    "agent_usage": {
+      "active_seconds": 125.23450710903853,
+      "input_tokens": 45604,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 2522,
+      "phases": {
+        "executor": {
+          "input_tokens": 45604,
+          "model_calls": 5,
+          "output_tokens": 2522,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 125.23450710903853,
+          "input_tokens": 45604,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 2522,
+          "phases": {
+            "executor": {
+              "input_tokens": 45604,
+              "model_calls": 5,
+              "output_tokens": 2522,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 230.95163267408498,
+        "elapsed_seconds": 232.16622300702147,
+        "error": null,
+        "finish_drain_seconds": 0.5318935168907046,
+        "finish_error": null,
+        "fixture_hash": "75145c4e5827ba4ddfd930e6f714805602d4b1ef4ebf863c4be199dc247a8773",
+        "infrastructure_error": false,
+        "input_hash": "301e36a940b3ab7ba31789d54c33292f48ea34fbceefab91e029e20da35dfca8",
+        "path": "task-5/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "96abc540f18944c29005eca16b243c65",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 219,
+            "prompt_tokens": 447,
+            "prompt_tokens_details": null,
+            "total_tokens": 666
+          },
+          {
+            "completion_tokens": 371,
+            "prompt_tokens": 800,
+            "prompt_tokens_details": null,
+            "total_tokens": 1171
+          },
+          {
+            "completion_tokens": 310,
+            "prompt_tokens": 2494,
+            "prompt_tokens_details": null,
+            "total_tokens": 2804
+          },
+          {
+            "completion_tokens": 1092,
+            "prompt_tokens": 1578,
+            "prompt_tokens_details": null,
+            "total_tokens": 2670
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "5",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          93.73537267302163,
+          18.167776917805895,
+          16.05808951286599
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 230.95163267408498,
+    "elapsed_seconds": 232.16622300702147,
+    "error": null,
+    "finish_drain_seconds": 0.5318935168907046,
+    "finish_error": null,
+    "fixture_hash": "75145c4e5827ba4ddfd930e6f714805602d4b1ef4ebf863c4be199dc247a8773",
+    "infrastructure_error": false,
+    "input_hash": "301e36a940b3ab7ba31789d54c33292f48ea34fbceefab91e029e20da35dfca8",
+    "path": "task-5/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "96abc540f18944c29005eca16b243c65",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 219,
+        "prompt_tokens": 447,
+        "prompt_tokens_details": null,
+        "total_tokens": 666
+      },
+      {
+        "completion_tokens": 371,
+        "prompt_tokens": 800,
+        "prompt_tokens_details": null,
+        "total_tokens": 1171
+      },
+      {
+        "completion_tokens": 310,
+        "prompt_tokens": 2494,
+        "prompt_tokens_details": null,
+        "total_tokens": 2804
+      },
+      {
+        "completion_tokens": 1092,
+        "prompt_tokens": 1578,
+        "prompt_tokens_details": null,
+        "total_tokens": 2670
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "5",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      93.73537267302163,
+      18.167776917805895,
+      16.05808951286599
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 112.91486148769036,
+      "input_tokens": 45705,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 2454,
+      "phases": {
+        "executor": {
+          "input_tokens": 45705,
+          "model_calls": 5,
+          "output_tokens": 2454,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 112.91486148769036,
+          "input_tokens": 45705,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 2454,
+          "phases": {
+            "executor": {
+              "input_tokens": 45705,
+              "model_calls": 5,
+              "output_tokens": 2454,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 179.7597234658897,
+        "elapsed_seconds": 181.4650803548284,
+        "error": null,
+        "finish_drain_seconds": 0.8326255460269749,
+        "finish_error": null,
+        "fixture_hash": "7bd6ac52a9870935bd23d745894871426b629fc0d623a53fe82e9e060c1be3b5",
+        "infrastructure_error": false,
+        "input_hash": "4cc0a0fec1f07eeb1c44ac7978708a411d2ca799c52d52f995c98cac6d1e72ae",
+        "path": "task-9/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "e1a265e2f6f4496ea910fb857691bb9c",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 243,
+            "prompt_tokens": 435,
+            "prompt_tokens_details": null,
+            "total_tokens": 678
+          },
+          {
+            "completion_tokens": 238,
+            "prompt_tokens": 820,
+            "prompt_tokens_details": null,
+            "total_tokens": 1058
+          },
+          {
+            "completion_tokens": 280,
+            "prompt_tokens": 2521,
+            "prompt_tokens_details": null,
+            "total_tokens": 2801
+          },
+          {
+            "completion_tokens": 183,
+            "prompt_tokens": 1610,
+            "prompt_tokens_details": null,
+            "total_tokens": 1793
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "9",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          82.32029766589403,
+          12.817359416047111,
+          19.572721184929833
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 179.7597234658897,
+    "elapsed_seconds": 181.4650803548284,
+    "error": null,
+    "finish_drain_seconds": 0.8326255460269749,
+    "finish_error": null,
+    "fixture_hash": "7bd6ac52a9870935bd23d745894871426b629fc0d623a53fe82e9e060c1be3b5",
+    "infrastructure_error": false,
+    "input_hash": "4cc0a0fec1f07eeb1c44ac7978708a411d2ca799c52d52f995c98cac6d1e72ae",
+    "path": "task-9/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "e1a265e2f6f4496ea910fb857691bb9c",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 243,
+        "prompt_tokens": 435,
+        "prompt_tokens_details": null,
+        "total_tokens": 678
+      },
+      {
+        "completion_tokens": 238,
+        "prompt_tokens": 820,
+        "prompt_tokens_details": null,
+        "total_tokens": 1058
+      },
+      {
+        "completion_tokens": 280,
+        "prompt_tokens": 2521,
+        "prompt_tokens_details": null,
+        "total_tokens": 2801
+      },
+      {
+        "completion_tokens": 183,
+        "prompt_tokens": 1610,
+        "prompt_tokens_details": null,
+        "total_tokens": 1793
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "9",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      82.32029766589403,
+      12.817359416047111,
+      19.572721184929833
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 131.2615672920365,
+      "input_tokens": 13035,
+      "known_usage_calls": 2,
+      "model_calls": 2,
+      "output_tokens": 2952,
+      "phases": {
+        "executor": {
+          "input_tokens": 13035,
+          "model_calls": 2,
+          "output_tokens": 2952,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 131.2615672920365,
+          "input_tokens": 13035,
+          "known_usage_calls": 2,
+          "model_calls": 2,
+          "output_tokens": 2952,
+          "phases": {
+            "executor": {
+              "input_tokens": 13035,
+              "model_calls": 2,
+              "output_tokens": 2952,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 198.37338024796918,
+        "elapsed_seconds": 199.85924104205333,
+        "error": null,
+        "finish_drain_seconds": 0.565160650992766,
+        "finish_error": null,
+        "fixture_hash": "e55c6a1f17754e2389dcb83aca9ea84d97a8aeb4b6fdd9d341ec35e49bb0eead",
+        "infrastructure_error": false,
+        "input_hash": "dcb31c28ad1342441b3ed27b44c10438fbddc422de64ba4989c09ab1e2ef53fe",
+        "path": "task-12/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "8a33a1b4a37e4320846807b52b29dc4a",
+        "simulator_actions": 2,
+        "simulator_calls_attempted": 2,
+        "simulator_usage": [
+          {
+            "completion_tokens": 240,
+            "prompt_tokens": 438,
+            "prompt_tokens_details": null,
+            "total_tokens": 678
+          },
+          {
+            "completion_tokens": 699,
+            "prompt_tokens": 921,
+            "prompt_tokens_details": null,
+            "total_tokens": 1620
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "12",
+        "termination": "agent_transferred",
+        "trial_id": 0,
+        "turn_latencies": [
+          121.10150766605511,
+          11.275117228971794
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 198.37338024796918,
+    "elapsed_seconds": 199.85924104205333,
+    "error": null,
+    "finish_drain_seconds": 0.565160650992766,
+    "finish_error": null,
+    "fixture_hash": "e55c6a1f17754e2389dcb83aca9ea84d97a8aeb4b6fdd9d341ec35e49bb0eead",
+    "infrastructure_error": false,
+    "input_hash": "dcb31c28ad1342441b3ed27b44c10438fbddc422de64ba4989c09ab1e2ef53fe",
+    "path": "task-12/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "8a33a1b4a37e4320846807b52b29dc4a",
+    "simulator_actions": 2,
+    "simulator_calls_attempted": 2,
+    "simulator_usage": [
+      {
+        "completion_tokens": 240,
+        "prompt_tokens": 438,
+        "prompt_tokens_details": null,
+        "total_tokens": 678
+      },
+      {
+        "completion_tokens": 699,
+        "prompt_tokens": 921,
+        "prompt_tokens_details": null,
+        "total_tokens": 1620
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "12",
+    "termination": "agent_transferred",
+    "trial_id": 0,
+    "turn_latencies": [
+      121.10150766605511,
+      11.275117228971794
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 52.507018071832135,
+      "input_tokens": 17479,
+      "known_usage_calls": 2,
+      "model_calls": 2,
+      "output_tokens": 777,
+      "phases": {
+        "executor": {
+          "input_tokens": 17479,
+          "model_calls": 2,
+          "output_tokens": 777,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 52.507018071832135,
+          "input_tokens": 17479,
+          "known_usage_calls": 2,
+          "model_calls": 2,
+          "output_tokens": 777,
+          "phases": {
+            "executor": {
+              "input_tokens": 17479,
+              "model_calls": 2,
+              "output_tokens": 777,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 86.9704176899977,
+        "elapsed_seconds": 88.19863045495003,
+        "error": null,
+        "finish_drain_seconds": 0.5863538589328527,
+        "finish_error": null,
+        "fixture_hash": "cdf8a71272b67a42a5c004a93a2f61d82959f9c21e637e0bcb97d21d261df31d",
+        "infrastructure_error": false,
+        "input_hash": "3646583e6d2626dc0848b25091c9bff180dc3afdbce211ad691d7c41540011f5",
+        "path": "task-17/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "550ac85306244dd8831d182bdbd1c1ee",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 178,
+            "prompt_tokens": 406,
+            "prompt_tokens_details": null,
+            "total_tokens": 584
+          },
+          {
+            "completion_tokens": 194,
+            "prompt_tokens": 2185,
+            "prompt_tokens_details": null,
+            "total_tokens": 2379
+          },
+          {
+            "completion_tokens": 286,
+            "prompt_tokens": 1215,
+            "prompt_tokens_details": null,
+            "total_tokens": 1501
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "17",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          40.2593854740262,
+          13.815541598945856
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 86.9704176899977,
+    "elapsed_seconds": 88.19863045495003,
+    "error": null,
+    "finish_drain_seconds": 0.5863538589328527,
+    "finish_error": null,
+    "fixture_hash": "cdf8a71272b67a42a5c004a93a2f61d82959f9c21e637e0bcb97d21d261df31d",
+    "infrastructure_error": false,
+    "input_hash": "3646583e6d2626dc0848b25091c9bff180dc3afdbce211ad691d7c41540011f5",
+    "path": "task-17/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "550ac85306244dd8831d182bdbd1c1ee",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 178,
+        "prompt_tokens": 406,
+        "prompt_tokens_details": null,
+        "total_tokens": 584
+      },
+      {
+        "completion_tokens": 194,
+        "prompt_tokens": 2185,
+        "prompt_tokens_details": null,
+        "total_tokens": 2379
+      },
+      {
+        "completion_tokens": 286,
+        "prompt_tokens": 1215,
+        "prompt_tokens_details": null,
+        "total_tokens": 1501
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "17",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      40.2593854740262,
+      13.815541598945856
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 241.97684025787748,
+      "input_tokens": 52022,
+      "known_usage_calls": 6,
+      "model_calls": 6,
+      "output_tokens": 5453,
+      "phases": {
+        "executor": {
+          "input_tokens": 52022,
+          "model_calls": 6,
+          "output_tokens": 5453,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 241.97684025787748,
+          "input_tokens": 52022,
+          "known_usage_calls": 6,
+          "model_calls": 6,
+          "output_tokens": 5453,
+          "phases": {
+            "executor": {
+              "input_tokens": 52022,
+              "model_calls": 6,
+              "output_tokens": 5453,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 358.6099896109663,
+        "elapsed_seconds": 360.1348672930617,
+        "error": null,
+        "finish_drain_seconds": 0.552948199911043,
+        "finish_error": null,
+        "fixture_hash": "53edd59131ac4a6011eff2573984a9cf4c78b220c179911a4711673788d823c0",
+        "infrastructure_error": false,
+        "input_hash": "784933382be0547631fecdf9ff655766304f388101988a22c8566368142832bb",
+        "path": "task-18/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "ed92ef3dcb484246bb3dae2adba7180e",
+        "simulator_actions": 6,
+        "simulator_calls_attempted": 6,
+        "simulator_usage": [
+          {
+            "completion_tokens": 294,
+            "prompt_tokens": 451,
+            "prompt_tokens_details": null,
+            "total_tokens": 745
+          },
+          {
+            "completion_tokens": 416,
+            "prompt_tokens": 2253,
+            "prompt_tokens_details": null,
+            "total_tokens": 2669
+          },
+          {
+            "completion_tokens": 486,
+            "prompt_tokens": 758,
+            "prompt_tokens_details": null,
+            "total_tokens": 1244
+          },
+          {
+            "completion_tokens": 208,
+            "prompt_tokens": 1138,
+            "prompt_tokens_details": null,
+            "total_tokens": 1346
+          },
+          {
+            "completion_tokens": 344,
+            "prompt_tokens": 3057,
+            "prompt_tokens_details": null,
+            "total_tokens": 3401
+          },
+          {
+            "completion_tokens": 186,
+            "prompt_tokens": 2033,
+            "prompt_tokens_details": null,
+            "total_tokens": 2219
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "18",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          61.985128885135055,
+          14.202855885028839,
+          133.10145242605358,
+          13.847769896965474,
+          22.261481635970995
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 358.6099896109663,
+    "elapsed_seconds": 360.1348672930617,
+    "error": null,
+    "finish_drain_seconds": 0.552948199911043,
+    "finish_error": null,
+    "fixture_hash": "53edd59131ac4a6011eff2573984a9cf4c78b220c179911a4711673788d823c0",
+    "infrastructure_error": false,
+    "input_hash": "784933382be0547631fecdf9ff655766304f388101988a22c8566368142832bb",
+    "path": "task-18/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "ed92ef3dcb484246bb3dae2adba7180e",
+    "simulator_actions": 6,
+    "simulator_calls_attempted": 6,
+    "simulator_usage": [
+      {
+        "completion_tokens": 294,
+        "prompt_tokens": 451,
+        "prompt_tokens_details": null,
+        "total_tokens": 745
+      },
+      {
+        "completion_tokens": 416,
+        "prompt_tokens": 2253,
+        "prompt_tokens_details": null,
+        "total_tokens": 2669
+      },
+      {
+        "completion_tokens": 486,
+        "prompt_tokens": 758,
+        "prompt_tokens_details": null,
+        "total_tokens": 1244
+      },
+      {
+        "completion_tokens": 208,
+        "prompt_tokens": 1138,
+        "prompt_tokens_details": null,
+        "total_tokens": 1346
+      },
+      {
+        "completion_tokens": 344,
+        "prompt_tokens": 3057,
+        "prompt_tokens_details": null,
+        "total_tokens": 3401
+      },
+      {
+        "completion_tokens": 186,
+        "prompt_tokens": 2033,
+        "prompt_tokens_details": null,
+        "total_tokens": 2219
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "18",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      61.985128885135055,
+      14.202855885028839,
+      133.10145242605358,
+      13.847769896965474,
+      22.261481635970995
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 111.29932852694765,
+      "input_tokens": 25777,
+      "known_usage_calls": 3,
+      "model_calls": 3,
+      "output_tokens": 2376,
+      "phases": {
+        "executor": {
+          "input_tokens": 25777,
+          "model_calls": 3,
+          "output_tokens": 2376,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 111.29932852694765,
+          "input_tokens": 25777,
+          "known_usage_calls": 3,
+          "model_calls": 3,
+          "output_tokens": 2376,
+          "phases": {
+            "executor": {
+              "input_tokens": 25777,
+              "model_calls": 3,
+              "output_tokens": 2376,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 194.16499389801174,
+        "elapsed_seconds": 195.54857847397216,
+        "error": null,
+        "finish_drain_seconds": 0.6328707179054618,
+        "finish_error": null,
+        "fixture_hash": "c1ea8c57c78aa385c67e333e0b0e54d2babf9db24ac42752f6cbdfb5ab6e695f",
+        "infrastructure_error": false,
+        "input_hash": "19f9d2e343c78a8e47f6f143ff690613454faccf52dfe1a288f4d3c7bb1746df",
+        "path": "task-26/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "e85311cc509b49a7bbe42f1207bf3001",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 278,
+            "prompt_tokens": 417,
+            "prompt_tokens_details": null,
+            "total_tokens": 695
+          },
+          {
+            "completion_tokens": 384,
+            "prompt_tokens": 752,
+            "prompt_tokens_details": null,
+            "total_tokens": 1136
+          },
+          {
+            "completion_tokens": 354,
+            "prompt_tokens": 2494,
+            "prompt_tokens_details": null,
+            "total_tokens": 2848
+          },
+          {
+            "completion_tokens": 361,
+            "prompt_tokens": 1615,
+            "prompt_tokens_details": null,
+            "total_tokens": 1976
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "26",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          69.44452293007635,
+          13.872719957027584,
+          29.692944700829685
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 194.16499389801174,
+    "elapsed_seconds": 195.54857847397216,
+    "error": null,
+    "finish_drain_seconds": 0.6328707179054618,
+    "finish_error": null,
+    "fixture_hash": "c1ea8c57c78aa385c67e333e0b0e54d2babf9db24ac42752f6cbdfb5ab6e695f",
+    "infrastructure_error": false,
+    "input_hash": "19f9d2e343c78a8e47f6f143ff690613454faccf52dfe1a288f4d3c7bb1746df",
+    "path": "task-26/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "e85311cc509b49a7bbe42f1207bf3001",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 278,
+        "prompt_tokens": 417,
+        "prompt_tokens_details": null,
+        "total_tokens": 695
+      },
+      {
+        "completion_tokens": 384,
+        "prompt_tokens": 752,
+        "prompt_tokens_details": null,
+        "total_tokens": 1136
+      },
+      {
+        "completion_tokens": 354,
+        "prompt_tokens": 2494,
+        "prompt_tokens_details": null,
+        "total_tokens": 2848
+      },
+      {
+        "completion_tokens": 361,
+        "prompt_tokens": 1615,
+        "prompt_tokens_details": null,
+        "total_tokens": 1976
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "26",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      69.44452293007635,
+      13.872719957027584,
+      29.692944700829685
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 563.062646349892,
+      "input_tokens": 25068,
+      "known_usage_calls": 3,
+      "model_calls": 3,
+      "output_tokens": 11170,
+      "phases": {
+        "executor": {
+          "input_tokens": 25068,
+          "model_calls": 3,
+          "output_tokens": 11170,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 563.062646349892,
+          "input_tokens": 25068,
+          "known_usage_calls": 3,
+          "model_calls": 3,
+          "output_tokens": 11170,
+          "phases": {
+            "executor": {
+              "input_tokens": 25068,
+              "model_calls": 3,
+              "output_tokens": 11170,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 600.0157372129615,
+        "elapsed_seconds": 601.1933167139068,
+        "error": {
+          "type": "TimeoutException"
+        },
+        "finish_drain_seconds": 0.5458731669932604,
+        "finish_error": null,
+        "fixture_hash": "a6df6abadc12af149732d3f5b7b7bdd4c558743b9da91081b2b2326b69c56c6b",
+        "infrastructure_error": false,
+        "input_hash": "e0fbf9625d0c40494313234c47e491edd55674a6ae80ffb0354cf1a4d63313b1",
+        "path": "task-27/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "37aac20613bb4dcdb7f8576bc3653c0b",
+        "simulator_actions": 2,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 236,
+            "prompt_tokens": 444,
+            "prompt_tokens_details": null,
+            "total_tokens": 680
+          },
+          {
+            "completion_tokens": 236,
+            "prompt_tokens": 537,
+            "prompt_tokens_details": null,
+            "total_tokens": 773
+          }
+        ],
+        "simulator_usage_unknown_calls": 1,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "27",
+        "termination": "wall_time_budget",
+        "trial_id": 0,
+        "turn_latencies": [
+          391.5457368090283,
+          173.2588231379632
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 600.0157372129615,
+    "elapsed_seconds": 601.1933167139068,
+    "error": {
+      "type": "TimeoutException"
+    },
+    "finish_drain_seconds": 0.5458731669932604,
+    "finish_error": null,
+    "fixture_hash": "a6df6abadc12af149732d3f5b7b7bdd4c558743b9da91081b2b2326b69c56c6b",
+    "infrastructure_error": false,
+    "input_hash": "e0fbf9625d0c40494313234c47e491edd55674a6ae80ffb0354cf1a4d63313b1",
+    "path": "task-27/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "37aac20613bb4dcdb7f8576bc3653c0b",
+    "simulator_actions": 2,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 236,
+        "prompt_tokens": 444,
+        "prompt_tokens_details": null,
+        "total_tokens": 680
+      },
+      {
+        "completion_tokens": 236,
+        "prompt_tokens": 537,
+        "prompt_tokens_details": null,
+        "total_tokens": 773
+      }
+    ],
+    "simulator_usage_unknown_calls": 1,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "27",
+    "termination": "wall_time_budget",
+    "trial_id": 0,
+    "turn_latencies": [
+      391.5457368090283,
+      173.2588231379632
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 147.31988194212317,
+      "input_tokens": 21207,
+      "known_usage_calls": 3,
+      "model_calls": 3,
+      "output_tokens": 3067,
+      "phases": {
+        "executor": {
+          "input_tokens": 21207,
+          "model_calls": 3,
+          "output_tokens": 3067,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 147.31988194212317,
+          "input_tokens": 21207,
+          "known_usage_calls": 3,
+          "model_calls": 3,
+          "output_tokens": 3067,
+          "phases": {
+            "executor": {
+              "input_tokens": 21207,
+              "model_calls": 3,
+              "output_tokens": 3067,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 190.85880323685706,
+        "elapsed_seconds": 192.110847649863,
+        "error": null,
+        "finish_drain_seconds": 0.5872849989682436,
+        "finish_error": null,
+        "fixture_hash": "ae4501e60cf4483957f90296ab49eac89cd0591d927b63591c5e4e79e37e3a08",
+        "infrastructure_error": false,
+        "input_hash": "344b15cc8646dac7ca917131eb87d875392987b632f489c244b0797b771c9643",
+        "path": "task-32/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "6f9bb70354334cfe8c143fb43a9f0502",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 267,
+            "prompt_tokens": 473,
+            "prompt_tokens_details": null,
+            "total_tokens": 740
+          },
+          {
+            "completion_tokens": 173,
+            "prompt_tokens": 551,
+            "prompt_tokens_details": null,
+            "total_tokens": 724
+          },
+          {
+            "completion_tokens": 177,
+            "prompt_tokens": 734,
+            "prompt_tokens_details": null,
+            "total_tokens": 911
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "32",
+        "termination": "agent_transferred",
+        "trial_id": 0,
+        "turn_latencies": [
+          23.42341413698159,
+          97.68054617079906,
+          27.81912128208205
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 190.85880323685706,
+    "elapsed_seconds": 192.110847649863,
+    "error": null,
+    "finish_drain_seconds": 0.5872849989682436,
+    "finish_error": null,
+    "fixture_hash": "ae4501e60cf4483957f90296ab49eac89cd0591d927b63591c5e4e79e37e3a08",
+    "infrastructure_error": false,
+    "input_hash": "344b15cc8646dac7ca917131eb87d875392987b632f489c244b0797b771c9643",
+    "path": "task-32/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "6f9bb70354334cfe8c143fb43a9f0502",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 267,
+        "prompt_tokens": 473,
+        "prompt_tokens_details": null,
+        "total_tokens": 740
+      },
+      {
+        "completion_tokens": 173,
+        "prompt_tokens": 551,
+        "prompt_tokens_details": null,
+        "total_tokens": 724
+      },
+      {
+        "completion_tokens": 177,
+        "prompt_tokens": 734,
+        "prompt_tokens_details": null,
+        "total_tokens": 911
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "32",
+    "termination": "agent_transferred",
+    "trial_id": 0,
+    "turn_latencies": [
+      23.42341413698159,
+      97.68054617079906,
+      27.81912128208205
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 254.03175318590365,
+      "input_tokens": 31214,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 5754,
+      "phases": {
+        "executor": {
+          "input_tokens": 31214,
+          "model_calls": 4,
+          "output_tokens": 5754,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 254.03175318590365,
+          "input_tokens": 31214,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 5754,
+          "phases": {
+            "executor": {
+              "input_tokens": 31214,
+              "model_calls": 4,
+              "output_tokens": 5754,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 339.11948668188415,
+        "elapsed_seconds": 340.31789118796587,
+        "error": null,
+        "finish_drain_seconds": 0.5849229448940605,
+        "finish_error": null,
+        "fixture_hash": "58485234a6f466ec92ad3d682e9610333b1a218734c1fc0944ea2c45a740dbfb",
+        "infrastructure_error": false,
+        "input_hash": "3e12f57f730fa247481a0f59bec920539ef228330583baf0663dd99fe1928da2",
+        "path": "task-33/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "f2cc8fd617d643abb95823e550b613cc",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 474,
+            "prompt_tokens": 547,
+            "prompt_tokens_details": null,
+            "total_tokens": 1021
+          },
+          {
+            "completion_tokens": 265,
+            "prompt_tokens": 1092,
+            "prompt_tokens_details": null,
+            "total_tokens": 1357
+          },
+          {
+            "completion_tokens": 391,
+            "prompt_tokens": 1665,
+            "prompt_tokens_details": null,
+            "total_tokens": 2056
+          },
+          {
+            "completion_tokens": 268,
+            "prompt_tokens": 1570,
+            "prompt_tokens_details": null,
+            "total_tokens": 1838
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "33",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          213.1076167859137,
+          20.70687323017046,
+          21.891210542991757
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 339.11948668188415,
+    "elapsed_seconds": 340.31789118796587,
+    "error": null,
+    "finish_drain_seconds": 0.5849229448940605,
+    "finish_error": null,
+    "fixture_hash": "58485234a6f466ec92ad3d682e9610333b1a218734c1fc0944ea2c45a740dbfb",
+    "infrastructure_error": false,
+    "input_hash": "3e12f57f730fa247481a0f59bec920539ef228330583baf0663dd99fe1928da2",
+    "path": "task-33/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "f2cc8fd617d643abb95823e550b613cc",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 474,
+        "prompt_tokens": 547,
+        "prompt_tokens_details": null,
+        "total_tokens": 1021
+      },
+      {
+        "completion_tokens": 265,
+        "prompt_tokens": 1092,
+        "prompt_tokens_details": null,
+        "total_tokens": 1357
+      },
+      {
+        "completion_tokens": 391,
+        "prompt_tokens": 1665,
+        "prompt_tokens_details": null,
+        "total_tokens": 2056
+      },
+      {
+        "completion_tokens": 268,
+        "prompt_tokens": 1570,
+        "prompt_tokens_details": null,
+        "total_tokens": 1838
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "33",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      213.1076167859137,
+      20.70687323017046,
+      21.891210542991757
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 472.4999101604335,
+      "input_tokens": 115207,
+      "known_usage_calls": 12,
+      "model_calls": 12,
+      "output_tokens": 9007,
+      "phases": {
+        "executor": {
+          "input_tokens": 115207,
+          "model_calls": 12,
+          "output_tokens": 9007,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 8,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 472.4999101604335,
+          "input_tokens": 115207,
+          "known_usage_calls": 12,
+          "model_calls": 12,
+          "output_tokens": 9007,
+          "phases": {
+            "executor": {
+              "input_tokens": 115207,
+              "model_calls": 12,
+              "output_tokens": 9007,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 8,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 579.4748913440853,
+        "elapsed_seconds": 581.4306849890854,
+        "error": null,
+        "finish_drain_seconds": 0.8780562030151486,
+        "finish_error": null,
+        "fixture_hash": "efb583bf60648548717c51450dc806e0c47444b50beacf56699cd211cbd34eb3",
+        "infrastructure_error": false,
+        "input_hash": "da36091d2e0eac70e79bb0e1e7237f4e88027d60452789b3856495e4b80a0329",
+        "path": "task-36/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "6e1d8c39a1404e4589994a1d24eda2df",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 167,
+            "prompt_tokens": 521,
+            "prompt_tokens_details": null,
+            "total_tokens": 688
+          },
+          {
+            "completion_tokens": 129,
+            "prompt_tokens": 729,
+            "prompt_tokens_details": null,
+            "total_tokens": 858
+          },
+          {
+            "completion_tokens": 259,
+            "prompt_tokens": 1050,
+            "prompt_tokens_details": null,
+            "total_tokens": 1309
+          },
+          {
+            "completion_tokens": 819,
+            "prompt_tokens": 3397,
+            "prompt_tokens_details": null,
+            "total_tokens": 4216
+          },
+          {
+            "completion_tokens": 300,
+            "prompt_tokens": 1321,
+            "prompt_tokens_details": null,
+            "total_tokens": 1621
+          },
+          {
+            "completion_tokens": 216,
+            "prompt_tokens": 3028,
+            "prompt_tokens_details": null,
+            "total_tokens": 3244
+          },
+          {
+            "completion_tokens": 127,
+            "prompt_tokens": 2196,
+            "prompt_tokens_details": null,
+            "total_tokens": 2323
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "36",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          58.942400420084596,
+          55.61893657105975,
+          303.01771818404086,
+          20.646973775001243,
+          13.702468048082665,
+          25.395872761961073
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 579.4748913440853,
+    "elapsed_seconds": 581.4306849890854,
+    "error": null,
+    "finish_drain_seconds": 0.8780562030151486,
+    "finish_error": null,
+    "fixture_hash": "efb583bf60648548717c51450dc806e0c47444b50beacf56699cd211cbd34eb3",
+    "infrastructure_error": false,
+    "input_hash": "da36091d2e0eac70e79bb0e1e7237f4e88027d60452789b3856495e4b80a0329",
+    "path": "task-36/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "6e1d8c39a1404e4589994a1d24eda2df",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 167,
+        "prompt_tokens": 521,
+        "prompt_tokens_details": null,
+        "total_tokens": 688
+      },
+      {
+        "completion_tokens": 129,
+        "prompt_tokens": 729,
+        "prompt_tokens_details": null,
+        "total_tokens": 858
+      },
+      {
+        "completion_tokens": 259,
+        "prompt_tokens": 1050,
+        "prompt_tokens_details": null,
+        "total_tokens": 1309
+      },
+      {
+        "completion_tokens": 819,
+        "prompt_tokens": 3397,
+        "prompt_tokens_details": null,
+        "total_tokens": 4216
+      },
+      {
+        "completion_tokens": 300,
+        "prompt_tokens": 1321,
+        "prompt_tokens_details": null,
+        "total_tokens": 1621
+      },
+      {
+        "completion_tokens": 216,
+        "prompt_tokens": 3028,
+        "prompt_tokens_details": null,
+        "total_tokens": 3244
+      },
+      {
+        "completion_tokens": 127,
+        "prompt_tokens": 2196,
+        "prompt_tokens_details": null,
+        "total_tokens": 2323
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "36",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      58.942400420084596,
+      55.61893657105975,
+      303.01771818404086,
+      20.646973775001243,
+      13.702468048082665,
+      25.395872761961073
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 286.3473212441895,
+      "input_tokens": 99159,
+      "known_usage_calls": 11,
+      "model_calls": 11,
+      "output_tokens": 5929,
+      "phases": {
+        "executor": {
+          "input_tokens": 99159,
+          "model_calls": 11,
+          "output_tokens": 5929,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 6,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 286.3473212441895,
+          "input_tokens": 99159,
+          "known_usage_calls": 11,
+          "model_calls": 11,
+          "output_tokens": 5929,
+          "phases": {
+            "executor": {
+              "input_tokens": 99159,
+              "model_calls": 11,
+              "output_tokens": 5929,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 6,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 351.34153245482594,
+        "elapsed_seconds": 352.54404666880146,
+        "error": null,
+        "finish_drain_seconds": 0.5614911229349673,
+        "finish_error": null,
+        "fixture_hash": "7bbc493144ab5dee108a039bcf8bb35ac439da3e0e8985fbcb7cdec23a74881b",
+        "infrastructure_error": false,
+        "input_hash": "52932c83c672e4db825ddf332db87b526967d9a3cd7957a651227765c071f6b7",
+        "path": "task-38/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "2fcb5556f45d45f9a99f3164596aed61",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 152,
+            "prompt_tokens": 513,
+            "prompt_tokens_details": null,
+            "total_tokens": 665
+          },
+          {
+            "completion_tokens": 134,
+            "prompt_tokens": 696,
+            "prompt_tokens_details": null,
+            "total_tokens": 830
+          },
+          {
+            "completion_tokens": 155,
+            "prompt_tokens": 934,
+            "prompt_tokens_details": null,
+            "total_tokens": 1089
+          },
+          {
+            "completion_tokens": 125,
+            "prompt_tokens": 1352,
+            "prompt_tokens_details": null,
+            "total_tokens": 1477
+          },
+          {
+            "completion_tokens": 128,
+            "prompt_tokens": 1476,
+            "prompt_tokens_details": null,
+            "total_tokens": 1604
+          },
+          {
+            "completion_tokens": 175,
+            "prompt_tokens": 3170,
+            "prompt_tokens_details": null,
+            "total_tokens": 3345
+          },
+          {
+            "completion_tokens": 118,
+            "prompt_tokens": 2291,
+            "prompt_tokens_details": null,
+            "total_tokens": 2409
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "38",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          26.349424931919202,
+          33.17116932105273,
+          198.00588948396035,
+          15.154909119941294,
+          4.855112418998033,
+          12.506404176121578
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 351.34153245482594,
+    "elapsed_seconds": 352.54404666880146,
+    "error": null,
+    "finish_drain_seconds": 0.5614911229349673,
+    "finish_error": null,
+    "fixture_hash": "7bbc493144ab5dee108a039bcf8bb35ac439da3e0e8985fbcb7cdec23a74881b",
+    "infrastructure_error": false,
+    "input_hash": "52932c83c672e4db825ddf332db87b526967d9a3cd7957a651227765c071f6b7",
+    "path": "task-38/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "2fcb5556f45d45f9a99f3164596aed61",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 152,
+        "prompt_tokens": 513,
+        "prompt_tokens_details": null,
+        "total_tokens": 665
+      },
+      {
+        "completion_tokens": 134,
+        "prompt_tokens": 696,
+        "prompt_tokens_details": null,
+        "total_tokens": 830
+      },
+      {
+        "completion_tokens": 155,
+        "prompt_tokens": 934,
+        "prompt_tokens_details": null,
+        "total_tokens": 1089
+      },
+      {
+        "completion_tokens": 125,
+        "prompt_tokens": 1352,
+        "prompt_tokens_details": null,
+        "total_tokens": 1477
+      },
+      {
+        "completion_tokens": 128,
+        "prompt_tokens": 1476,
+        "prompt_tokens_details": null,
+        "total_tokens": 1604
+      },
+      {
+        "completion_tokens": 175,
+        "prompt_tokens": 3170,
+        "prompt_tokens_details": null,
+        "total_tokens": 3345
+      },
+      {
+        "completion_tokens": 118,
+        "prompt_tokens": 2291,
+        "prompt_tokens_details": null,
+        "total_tokens": 2409
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "38",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      26.349424931919202,
+      33.17116932105273,
+      198.00588948396035,
+      15.154909119941294,
+      4.855112418998033,
+      12.506404176121578
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 457.1670303232968,
+      "input_tokens": 47660,
+      "known_usage_calls": 6,
+      "model_calls": 6,
+      "output_tokens": 9443,
+      "phases": {
+        "executor": {
+          "input_tokens": 47660,
+          "model_calls": 6,
+          "output_tokens": 9443,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 4,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 457.1670303232968,
+          "input_tokens": 47660,
+          "known_usage_calls": 6,
+          "model_calls": 6,
+          "output_tokens": 9443,
+          "phases": {
+            "executor": {
+              "input_tokens": 47660,
+              "model_calls": 6,
+              "output_tokens": 9443,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 4,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 563.0566539189313,
+        "elapsed_seconds": 564.7211659338791,
+        "error": null,
+        "finish_drain_seconds": 0.57336988998577,
+        "finish_error": null,
+        "fixture_hash": "dd4518ac40be58f719bca7d20cb632d0a478105a1539f50919779e83fa1ac0c9",
+        "infrastructure_error": false,
+        "input_hash": "43fd0f94811a4659b82e0e49beef66ebb51ef1bf01ea432fe39d49421ba2da83",
+        "path": "task-39/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "8a9513992a674ca9bcdfadc2fd207d69",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 428,
+            "prompt_tokens": 487,
+            "prompt_tokens_details": null,
+            "total_tokens": 915
+          },
+          {
+            "completion_tokens": 426,
+            "prompt_tokens": 1091,
+            "prompt_tokens_details": null,
+            "total_tokens": 1517
+          },
+          {
+            "completion_tokens": 449,
+            "prompt_tokens": 868,
+            "prompt_tokens_details": null,
+            "total_tokens": 1317
+          },
+          {
+            "completion_tokens": 334,
+            "prompt_tokens": 1141,
+            "prompt_tokens_details": null,
+            "total_tokens": 1475
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "39",
+        "termination": "agent_transferred",
+        "trial_id": 0,
+        "turn_latencies": [
+          154.2253831611015,
+          218.76695517404005,
+          69.35542039503343,
+          17.43561445805244
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 563.0566539189313,
+    "elapsed_seconds": 564.7211659338791,
+    "error": null,
+    "finish_drain_seconds": 0.57336988998577,
+    "finish_error": null,
+    "fixture_hash": "dd4518ac40be58f719bca7d20cb632d0a478105a1539f50919779e83fa1ac0c9",
+    "infrastructure_error": false,
+    "input_hash": "43fd0f94811a4659b82e0e49beef66ebb51ef1bf01ea432fe39d49421ba2da83",
+    "path": "task-39/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "8a9513992a674ca9bcdfadc2fd207d69",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 428,
+        "prompt_tokens": 487,
+        "prompt_tokens_details": null,
+        "total_tokens": 915
+      },
+      {
+        "completion_tokens": 426,
+        "prompt_tokens": 1091,
+        "prompt_tokens_details": null,
+        "total_tokens": 1517
+      },
+      {
+        "completion_tokens": 449,
+        "prompt_tokens": 868,
+        "prompt_tokens_details": null,
+        "total_tokens": 1317
+      },
+      {
+        "completion_tokens": 334,
+        "prompt_tokens": 1141,
+        "prompt_tokens_details": null,
+        "total_tokens": 1475
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "39",
+    "termination": "agent_transferred",
+    "trial_id": 0,
+    "turn_latencies": [
+      154.2253831611015,
+      218.76695517404005,
+      69.35542039503343,
+      17.43561445805244
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 384.6661608980503,
+      "input_tokens": 22267,
+      "known_usage_calls": 3,
+      "model_calls": 3,
+      "output_tokens": 7634,
+      "phases": {
+        "executor": {
+          "input_tokens": 22267,
+          "model_calls": 3,
+          "output_tokens": 7634,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 384.6661608980503,
+          "input_tokens": 22267,
+          "known_usage_calls": 3,
+          "model_calls": 3,
+          "output_tokens": 7634,
+          "phases": {
+            "executor": {
+              "input_tokens": 22267,
+              "model_calls": 3,
+              "output_tokens": 7634,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 572.3599897008389,
+        "elapsed_seconds": 574.0181930568069,
+        "error": null,
+        "finish_drain_seconds": 0.9613818461075425,
+        "finish_error": null,
+        "fixture_hash": "25eb802c41ff99b51b45170e48d5e9084b195ebd2cc3a6a859c3ea7b4cde8b0c",
+        "infrastructure_error": false,
+        "input_hash": "44b49b85a18334f50288db1265730de2881822589613f0a2692232179eae042f",
+        "path": "task-40/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "1001b9f58154414a9944781d33aba74d",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 269,
+            "prompt_tokens": 473,
+            "prompt_tokens_details": null,
+            "total_tokens": 742
+          },
+          {
+            "completion_tokens": 1124,
+            "prompt_tokens": 1902,
+            "prompt_tokens_details": null,
+            "total_tokens": 3026
+          },
+          {
+            "completion_tokens": 842,
+            "prompt_tokens": 1022,
+            "prompt_tokens_details": null,
+            "total_tokens": 1864
+          },
+          {
+            "completion_tokens": 1360,
+            "prompt_tokens": 1420,
+            "prompt_tokens_details": null,
+            "total_tokens": 2780
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "40",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          77.89482168899849,
+          240.8290324578993,
+          69.93330372404307
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 572.3599897008389,
+    "elapsed_seconds": 574.0181930568069,
+    "error": null,
+    "finish_drain_seconds": 0.9613818461075425,
+    "finish_error": null,
+    "fixture_hash": "25eb802c41ff99b51b45170e48d5e9084b195ebd2cc3a6a859c3ea7b4cde8b0c",
+    "infrastructure_error": false,
+    "input_hash": "44b49b85a18334f50288db1265730de2881822589613f0a2692232179eae042f",
+    "path": "task-40/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "1001b9f58154414a9944781d33aba74d",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 269,
+        "prompt_tokens": 473,
+        "prompt_tokens_details": null,
+        "total_tokens": 742
+      },
+      {
+        "completion_tokens": 1124,
+        "prompt_tokens": 1902,
+        "prompt_tokens_details": null,
+        "total_tokens": 3026
+      },
+      {
+        "completion_tokens": 842,
+        "prompt_tokens": 1022,
+        "prompt_tokens_details": null,
+        "total_tokens": 1864
+      },
+      {
+        "completion_tokens": 1360,
+        "prompt_tokens": 1420,
+        "prompt_tokens_details": null,
+        "total_tokens": 2780
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "40",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      77.89482168899849,
+      240.8290324578993,
+      69.93330372404307
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 238.2751905983314,
+      "input_tokens": 129548,
+      "known_usage_calls": 10,
+      "model_calls": 10,
+      "output_tokens": 4444,
+      "phases": {
+        "executor": {
+          "input_tokens": 129548,
+          "model_calls": 10,
+          "output_tokens": 4444,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 6,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 238.2751905983314,
+          "input_tokens": 129548,
+          "known_usage_calls": 10,
+          "model_calls": 10,
+          "output_tokens": 4444,
+          "phases": {
+            "executor": {
+              "input_tokens": 129548,
+              "model_calls": 10,
+              "output_tokens": 4444,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 6,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 389.92471989407204,
+        "elapsed_seconds": 391.2903397080954,
+        "error": null,
+        "finish_drain_seconds": 0.8000406068749726,
+        "finish_error": null,
+        "fixture_hash": "484652d5922a96503f738c0992428d5dbcafb44d0cbda89b4cee2eaa8dad0b82",
+        "infrastructure_error": false,
+        "input_hash": "c7b70dbb2a151b27b16039fed3abb686134ed626917a3a18c2d45dbee2ba7618",
+        "path": "task-42/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "5551f713f60c4e4595a308d75b4bb57d",
+        "simulator_actions": 9,
+        "simulator_calls_attempted": 9,
+        "simulator_usage": [
+          {
+            "completion_tokens": 366,
+            "prompt_tokens": 505,
+            "prompt_tokens_details": null,
+            "total_tokens": 871
+          },
+          {
+            "completion_tokens": 222,
+            "prompt_tokens": 861,
+            "prompt_tokens_details": null,
+            "total_tokens": 1083
+          },
+          {
+            "completion_tokens": 441,
+            "prompt_tokens": 1509,
+            "prompt_tokens_details": null,
+            "total_tokens": 1950
+          },
+          {
+            "completion_tokens": 242,
+            "prompt_tokens": 2825,
+            "prompt_tokens_details": null,
+            "total_tokens": 3067
+          },
+          {
+            "completion_tokens": 305,
+            "prompt_tokens": 3572,
+            "prompt_tokens_details": null,
+            "total_tokens": 3877
+          },
+          {
+            "completion_tokens": 494,
+            "prompt_tokens": 2635,
+            "prompt_tokens_details": null,
+            "total_tokens": 3129
+          },
+          {
+            "completion_tokens": 269,
+            "prompt_tokens": 2902,
+            "prompt_tokens_details": null,
+            "total_tokens": 3171
+          },
+          {
+            "completion_tokens": 292,
+            "prompt_tokens": 4894,
+            "prompt_tokens_details": null,
+            "total_tokens": 5186
+          },
+          {
+            "completion_tokens": 183,
+            "prompt_tokens": 3935,
+            "prompt_tokens_details": null,
+            "total_tokens": 4118
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "42",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          47.836256719892845,
+          22.26053898781538,
+          26.644096941919997,
+          14.761626580031589,
+          41.835071491776034,
+          44.74219869193621,
+          15.856979693984613,
+          30.612543473020196
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 389.92471989407204,
+    "elapsed_seconds": 391.2903397080954,
+    "error": null,
+    "finish_drain_seconds": 0.8000406068749726,
+    "finish_error": null,
+    "fixture_hash": "484652d5922a96503f738c0992428d5dbcafb44d0cbda89b4cee2eaa8dad0b82",
+    "infrastructure_error": false,
+    "input_hash": "c7b70dbb2a151b27b16039fed3abb686134ed626917a3a18c2d45dbee2ba7618",
+    "path": "task-42/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "5551f713f60c4e4595a308d75b4bb57d",
+    "simulator_actions": 9,
+    "simulator_calls_attempted": 9,
+    "simulator_usage": [
+      {
+        "completion_tokens": 366,
+        "prompt_tokens": 505,
+        "prompt_tokens_details": null,
+        "total_tokens": 871
+      },
+      {
+        "completion_tokens": 222,
+        "prompt_tokens": 861,
+        "prompt_tokens_details": null,
+        "total_tokens": 1083
+      },
+      {
+        "completion_tokens": 441,
+        "prompt_tokens": 1509,
+        "prompt_tokens_details": null,
+        "total_tokens": 1950
+      },
+      {
+        "completion_tokens": 242,
+        "prompt_tokens": 2825,
+        "prompt_tokens_details": null,
+        "total_tokens": 3067
+      },
+      {
+        "completion_tokens": 305,
+        "prompt_tokens": 3572,
+        "prompt_tokens_details": null,
+        "total_tokens": 3877
+      },
+      {
+        "completion_tokens": 494,
+        "prompt_tokens": 2635,
+        "prompt_tokens_details": null,
+        "total_tokens": 3129
+      },
+      {
+        "completion_tokens": 269,
+        "prompt_tokens": 2902,
+        "prompt_tokens_details": null,
+        "total_tokens": 3171
+      },
+      {
+        "completion_tokens": 292,
+        "prompt_tokens": 4894,
+        "prompt_tokens_details": null,
+        "total_tokens": 5186
+      },
+      {
+        "completion_tokens": 183,
+        "prompt_tokens": 3935,
+        "prompt_tokens_details": null,
+        "total_tokens": 4118
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "42",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      47.836256719892845,
+      22.26053898781538,
+      26.644096941919997,
+      14.761626580031589,
+      41.835071491776034,
+      44.74219869193621,
+      15.856979693984613,
+      30.612543473020196
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 93.74172561103478,
+      "input_tokens": 34030,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 2346,
+      "phases": {
+        "executor": {
+          "input_tokens": 34030,
+          "model_calls": 4,
+          "output_tokens": 2346,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 93.74172561103478,
+          "input_tokens": 34030,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 2346,
+          "phases": {
+            "executor": {
+              "input_tokens": 34030,
+              "model_calls": 4,
+              "output_tokens": 2346,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 172.2185566201806,
+        "elapsed_seconds": 173.84254663414322,
+        "error": null,
+        "finish_drain_seconds": 0.7228222880512476,
+        "finish_error": null,
+        "fixture_hash": "bcdb758263beb7ef596a17dad839abcc9476e03084775d02d3de4ab874939a6a",
+        "infrastructure_error": false,
+        "input_hash": "3d58d17870c6b77a2a2418ebb021ae3ed956a4c75ed80e03ca52b4a03c65ef83",
+        "path": "task-45/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "9569a396a91948dc851b2f8875638d60",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 336,
+            "prompt_tokens": 503,
+            "prompt_tokens_details": null,
+            "total_tokens": 839
+          },
+          {
+            "completion_tokens": 379,
+            "prompt_tokens": 827,
+            "prompt_tokens_details": null,
+            "total_tokens": 1206
+          },
+          {
+            "completion_tokens": 350,
+            "prompt_tokens": 2955,
+            "prompt_tokens_details": null,
+            "total_tokens": 3305
+          },
+          {
+            "completion_tokens": 270,
+            "prompt_tokens": 1804,
+            "prompt_tokens_details": null,
+            "total_tokens": 2074
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "45",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          66.75913888704963,
+          19.662010572850704,
+          9.564078623894602
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 172.2185566201806,
+    "elapsed_seconds": 173.84254663414322,
+    "error": null,
+    "finish_drain_seconds": 0.7228222880512476,
+    "finish_error": null,
+    "fixture_hash": "bcdb758263beb7ef596a17dad839abcc9476e03084775d02d3de4ab874939a6a",
+    "infrastructure_error": false,
+    "input_hash": "3d58d17870c6b77a2a2418ebb021ae3ed956a4c75ed80e03ca52b4a03c65ef83",
+    "path": "task-45/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "9569a396a91948dc851b2f8875638d60",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 336,
+        "prompt_tokens": 503,
+        "prompt_tokens_details": null,
+        "total_tokens": 839
+      },
+      {
+        "completion_tokens": 379,
+        "prompt_tokens": 827,
+        "prompt_tokens_details": null,
+        "total_tokens": 1206
+      },
+      {
+        "completion_tokens": 350,
+        "prompt_tokens": 2955,
+        "prompt_tokens_details": null,
+        "total_tokens": 3305
+      },
+      {
+        "completion_tokens": 270,
+        "prompt_tokens": 1804,
+        "prompt_tokens_details": null,
+        "total_tokens": 2074
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "45",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      66.75913888704963,
+      19.662010572850704,
+      9.564078623894602
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 535.4165510029998,
+      "input_tokens": 50004,
+      "known_usage_calls": 6,
+      "model_calls": 6,
+      "output_tokens": 10090,
+      "phases": {
+        "executor": {
+          "input_tokens": 50004,
+          "model_calls": 6,
+          "output_tokens": 10090,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 4,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 535.4165510029998,
+          "input_tokens": 50004,
+          "known_usage_calls": 6,
+          "model_calls": 6,
+          "output_tokens": 10090,
+          "phases": {
+            "executor": {
+              "input_tokens": 50004,
+              "model_calls": 6,
+              "output_tokens": 10090,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 4,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 600.0154734312091,
+        "elapsed_seconds": 601.4675977891311,
+        "error": {
+          "type": "TimeoutException"
+        },
+        "finish_drain_seconds": 0.5393008051905781,
+        "finish_error": null,
+        "fixture_hash": "e0d8301810f706071ebb0a2591f841cb080653fb99161f0657e1dda825bf340d",
+        "infrastructure_error": false,
+        "input_hash": "ecba6066e55ae84832e4f3ccf99ba2ee12176edfba4fcc53d57137e5cd9a963f",
+        "path": "task-49/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "c650d70d90264d659b4dbbc2a77c9f67",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 363,
+            "prompt_tokens": 450,
+            "prompt_tokens_details": null,
+            "total_tokens": 813
+          },
+          {
+            "completion_tokens": 321,
+            "prompt_tokens": 549,
+            "prompt_tokens_details": null,
+            "total_tokens": 870
+          },
+          {
+            "completion_tokens": 652,
+            "prompt_tokens": 838,
+            "prompt_tokens_details": null,
+            "total_tokens": 1490
+          }
+        ],
+        "simulator_usage_unknown_calls": 1,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "49",
+        "termination": "wall_time_budget",
+        "trial_id": 0,
+        "turn_latencies": [
+          208.49930408108048,
+          264.15994201693684,
+          64.48045300995
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 600.0154734312091,
+    "elapsed_seconds": 601.4675977891311,
+    "error": {
+      "type": "TimeoutException"
+    },
+    "finish_drain_seconds": 0.5393008051905781,
+    "finish_error": null,
+    "fixture_hash": "e0d8301810f706071ebb0a2591f841cb080653fb99161f0657e1dda825bf340d",
+    "infrastructure_error": false,
+    "input_hash": "ecba6066e55ae84832e4f3ccf99ba2ee12176edfba4fcc53d57137e5cd9a963f",
+    "path": "task-49/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "c650d70d90264d659b4dbbc2a77c9f67",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 363,
+        "prompt_tokens": 450,
+        "prompt_tokens_details": null,
+        "total_tokens": 813
+      },
+      {
+        "completion_tokens": 321,
+        "prompt_tokens": 549,
+        "prompt_tokens_details": null,
+        "total_tokens": 870
+      },
+      {
+        "completion_tokens": 652,
+        "prompt_tokens": 838,
+        "prompt_tokens_details": null,
+        "total_tokens": 1490
+      }
+    ],
+    "simulator_usage_unknown_calls": 1,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "49",
+    "termination": "wall_time_budget",
+    "trial_id": 0,
+    "turn_latencies": [
+      208.49930408108048,
+      264.15994201693684,
+      64.48045300995
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 117.80189933464862,
+      "input_tokens": 33107,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 1946,
+      "phases": {
+        "executor": {
+          "input_tokens": 33107,
+          "model_calls": 4,
+          "output_tokens": 1946,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 117.80189933464862,
+          "input_tokens": 33107,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 1946,
+          "phases": {
+            "executor": {
+              "input_tokens": 33107,
+              "model_calls": 4,
+              "output_tokens": 1946,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 163.49056891398504,
+        "elapsed_seconds": 164.91213064198382,
+        "error": null,
+        "finish_drain_seconds": 0.5590632879175246,
+        "finish_error": null,
+        "fixture_hash": "e113cc773c9e31739ab9dcd7e8f660e13fb06f023387c3b092d24483459a93e3",
+        "infrastructure_error": false,
+        "input_hash": "5854a8d6622def54b4553d5dd8b80ced3a115b9d17bf1db099738b030412df4e",
+        "path": "task-51/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "d83ef45c45114584b4a2a023d7d42087",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 236,
+            "prompt_tokens": 428,
+            "prompt_tokens_details": null,
+            "total_tokens": 664
+          },
+          {
+            "completion_tokens": 183,
+            "prompt_tokens": 687,
+            "prompt_tokens_details": null,
+            "total_tokens": 870
+          },
+          {
+            "completion_tokens": 248,
+            "prompt_tokens": 2149,
+            "prompt_tokens_details": null,
+            "total_tokens": 2397
+          },
+          {
+            "completion_tokens": 113,
+            "prompt_tokens": 1304,
+            "prompt_tokens_details": null,
+            "total_tokens": 1417
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "51",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          94.08102254383266,
+          9.835636259056628,
+          15.824143762001768
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 163.49056891398504,
+    "elapsed_seconds": 164.91213064198382,
+    "error": null,
+    "finish_drain_seconds": 0.5590632879175246,
+    "finish_error": null,
+    "fixture_hash": "e113cc773c9e31739ab9dcd7e8f660e13fb06f023387c3b092d24483459a93e3",
+    "infrastructure_error": false,
+    "input_hash": "5854a8d6622def54b4553d5dd8b80ced3a115b9d17bf1db099738b030412df4e",
+    "path": "task-51/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "d83ef45c45114584b4a2a023d7d42087",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 236,
+        "prompt_tokens": 428,
+        "prompt_tokens_details": null,
+        "total_tokens": 664
+      },
+      {
+        "completion_tokens": 183,
+        "prompt_tokens": 687,
+        "prompt_tokens_details": null,
+        "total_tokens": 870
+      },
+      {
+        "completion_tokens": 248,
+        "prompt_tokens": 2149,
+        "prompt_tokens_details": null,
+        "total_tokens": 2397
+      },
+      {
+        "completion_tokens": 113,
+        "prompt_tokens": 1304,
+        "prompt_tokens_details": null,
+        "total_tokens": 1417
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "51",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      94.08102254383266,
+      9.835636259056628,
+      15.824143762001768
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 227.49332756199874,
+      "input_tokens": 17356,
+      "known_usage_calls": 2,
+      "model_calls": 2,
+      "output_tokens": 4183,
+      "phases": {
+        "executor": {
+          "input_tokens": 17356,
+          "model_calls": 2,
+          "output_tokens": 4183,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 227.49332756199874,
+          "input_tokens": 17356,
+          "known_usage_calls": 2,
+          "model_calls": 2,
+          "output_tokens": 4183,
+          "phases": {
+            "executor": {
+              "input_tokens": 17356,
+              "model_calls": 2,
+              "output_tokens": 4183,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 292.7383337840438,
+        "elapsed_seconds": 294.56697354093194,
+        "error": null,
+        "finish_drain_seconds": 0.5416720730718225,
+        "finish_error": null,
+        "fixture_hash": "2fdbf10042c35111b7895576765916397837f80f7a84893b631d38e81438751c",
+        "infrastructure_error": false,
+        "input_hash": "7ab23cded07e69392de094ae34ed40f6d21cfe5ecb7c287ebb1f4abfa53dff9b",
+        "path": "task-53/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "17ce517a7e994954bfbf5a899a434474",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 243,
+            "prompt_tokens": 423,
+            "prompt_tokens_details": null,
+            "total_tokens": 666
+          },
+          {
+            "completion_tokens": 501,
+            "prompt_tokens": 2096,
+            "prompt_tokens_details": null,
+            "total_tokens": 2597
+          },
+          {
+            "completion_tokens": 412,
+            "prompt_tokens": 1225,
+            "prompt_tokens_details": null,
+            "total_tokens": 1637
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "53",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          99.38804813311435,
+          130.12953219097108
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 292.7383337840438,
+    "elapsed_seconds": 294.56697354093194,
+    "error": null,
+    "finish_drain_seconds": 0.5416720730718225,
+    "finish_error": null,
+    "fixture_hash": "2fdbf10042c35111b7895576765916397837f80f7a84893b631d38e81438751c",
+    "infrastructure_error": false,
+    "input_hash": "7ab23cded07e69392de094ae34ed40f6d21cfe5ecb7c287ebb1f4abfa53dff9b",
+    "path": "task-53/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "17ce517a7e994954bfbf5a899a434474",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 243,
+        "prompt_tokens": 423,
+        "prompt_tokens_details": null,
+        "total_tokens": 666
+      },
+      {
+        "completion_tokens": 501,
+        "prompt_tokens": 2096,
+        "prompt_tokens_details": null,
+        "total_tokens": 2597
+      },
+      {
+        "completion_tokens": 412,
+        "prompt_tokens": 1225,
+        "prompt_tokens_details": null,
+        "total_tokens": 1637
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "53",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      99.38804813311435,
+      130.12953219097108
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 321.8674520594068,
+      "input_tokens": 128660,
+      "known_usage_calls": 9,
+      "model_calls": 9,
+      "output_tokens": 5674,
+      "phases": {
+        "executor": {
+          "input_tokens": 128660,
+          "model_calls": 9,
+          "output_tokens": 5674,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 4,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 321.8674520594068,
+          "input_tokens": 128660,
+          "known_usage_calls": 9,
+          "model_calls": 9,
+          "output_tokens": 5674,
+          "phases": {
+            "executor": {
+              "input_tokens": 128660,
+              "model_calls": 9,
+              "output_tokens": 5674,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 4,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 580.5045592619572,
+        "elapsed_seconds": 581.7805401140358,
+        "error": null,
+        "finish_drain_seconds": 0.6088552649598569,
+        "finish_error": null,
+        "fixture_hash": "25fa97ca1ecad0388f7879ef2eba65925649cb1a0b61301c556608b80a6a5c4b",
+        "infrastructure_error": false,
+        "input_hash": "180c303bfe3540d2b82dfde96a21a30032b8fc701fcfab332cb547aa9f5592aa",
+        "path": "task-55/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "6d93246a9886470c9ad0957a7cfa03dd",
+        "simulator_actions": 10,
+        "simulator_calls_attempted": 10,
+        "simulator_usage": [
+          {
+            "completion_tokens": 297,
+            "prompt_tokens": 472,
+            "prompt_tokens_details": null,
+            "total_tokens": 769
+          },
+          {
+            "completion_tokens": 345,
+            "prompt_tokens": 1131,
+            "prompt_tokens_details": null,
+            "total_tokens": 1476
+          },
+          {
+            "completion_tokens": 250,
+            "prompt_tokens": 2521,
+            "prompt_tokens_details": null,
+            "total_tokens": 2771
+          },
+          {
+            "completion_tokens": 657,
+            "prompt_tokens": 1877,
+            "prompt_tokens_details": null,
+            "total_tokens": 2534
+          },
+          {
+            "completion_tokens": 358,
+            "prompt_tokens": 3670,
+            "prompt_tokens_details": null,
+            "total_tokens": 4028
+          },
+          {
+            "completion_tokens": 514,
+            "prompt_tokens": 3040,
+            "prompt_tokens_details": null,
+            "total_tokens": 3554
+          },
+          {
+            "completion_tokens": 219,
+            "prompt_tokens": 5400,
+            "prompt_tokens_details": null,
+            "total_tokens": 5619
+          },
+          {
+            "completion_tokens": 1566,
+            "prompt_tokens": 4199,
+            "prompt_tokens_details": null,
+            "total_tokens": 5765
+          },
+          {
+            "completion_tokens": 224,
+            "prompt_tokens": 5701,
+            "prompt_tokens_details": null,
+            "total_tokens": 5925
+          },
+          {
+            "completion_tokens": 576,
+            "prompt_tokens": 5131,
+            "prompt_tokens_details": null,
+            "total_tokens": 5707
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "55",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          188.73389821499586,
+          26.242276520933956,
+          15.532626559957862,
+          6.180500355083495,
+          22.859923616051674,
+          11.059720177901909,
+          22.21072629094124,
+          11.383074962999672,
+          26.956600738922134
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 580.5045592619572,
+    "elapsed_seconds": 581.7805401140358,
+    "error": null,
+    "finish_drain_seconds": 0.6088552649598569,
+    "finish_error": null,
+    "fixture_hash": "25fa97ca1ecad0388f7879ef2eba65925649cb1a0b61301c556608b80a6a5c4b",
+    "infrastructure_error": false,
+    "input_hash": "180c303bfe3540d2b82dfde96a21a30032b8fc701fcfab332cb547aa9f5592aa",
+    "path": "task-55/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "6d93246a9886470c9ad0957a7cfa03dd",
+    "simulator_actions": 10,
+    "simulator_calls_attempted": 10,
+    "simulator_usage": [
+      {
+        "completion_tokens": 297,
+        "prompt_tokens": 472,
+        "prompt_tokens_details": null,
+        "total_tokens": 769
+      },
+      {
+        "completion_tokens": 345,
+        "prompt_tokens": 1131,
+        "prompt_tokens_details": null,
+        "total_tokens": 1476
+      },
+      {
+        "completion_tokens": 250,
+        "prompt_tokens": 2521,
+        "prompt_tokens_details": null,
+        "total_tokens": 2771
+      },
+      {
+        "completion_tokens": 657,
+        "prompt_tokens": 1877,
+        "prompt_tokens_details": null,
+        "total_tokens": 2534
+      },
+      {
+        "completion_tokens": 358,
+        "prompt_tokens": 3670,
+        "prompt_tokens_details": null,
+        "total_tokens": 4028
+      },
+      {
+        "completion_tokens": 514,
+        "prompt_tokens": 3040,
+        "prompt_tokens_details": null,
+        "total_tokens": 3554
+      },
+      {
+        "completion_tokens": 219,
+        "prompt_tokens": 5400,
+        "prompt_tokens_details": null,
+        "total_tokens": 5619
+      },
+      {
+        "completion_tokens": 1566,
+        "prompt_tokens": 4199,
+        "prompt_tokens_details": null,
+        "total_tokens": 5765
+      },
+      {
+        "completion_tokens": 224,
+        "prompt_tokens": 5701,
+        "prompt_tokens_details": null,
+        "total_tokens": 5925
+      },
+      {
+        "completion_tokens": 576,
+        "prompt_tokens": 5131,
+        "prompt_tokens_details": null,
+        "total_tokens": 5707
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "55",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      188.73389821499586,
+      26.242276520933956,
+      15.532626559957862,
+      6.180500355083495,
+      22.859923616051674,
+      11.059720177901909,
+      22.21072629094124,
+      11.383074962999672,
+      26.956600738922134
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 161.8072711979039,
+      "input_tokens": 34646,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 2586,
+      "phases": {
+        "executor": {
+          "input_tokens": 34646,
+          "model_calls": 4,
+          "output_tokens": 2586,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 161.8072711979039,
+          "input_tokens": 34646,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 2586,
+          "phases": {
+            "executor": {
+              "input_tokens": 34646,
+              "model_calls": 4,
+              "output_tokens": 2586,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 505.39840237190947,
+        "elapsed_seconds": 506.6589098488912,
+        "error": {
+          "message": "the JSON object must be str, bytes or bytearray, not NoneType",
+          "type": "SimulatorResponseError"
+        },
+        "finish_drain_seconds": 0.6264282530173659,
+        "finish_error": null,
+        "fixture_hash": "2d1755825ac280af68b1d80e2aa654b6ee0135c125e95f18148caa3e8694f907",
+        "infrastructure_error": false,
+        "input_hash": "48e8b70cde3523766057fdd98bd84af2210efa3e469204e08cfec3bbcae40ced",
+        "path": "task-56/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "dada5932cb544a85b65028d5621006ca",
+        "simulator_actions": 2,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 332,
+            "prompt_tokens": 477,
+            "prompt_tokens_details": null,
+            "total_tokens": 809
+          },
+          {
+            "completion_tokens": 2561,
+            "prompt_tokens": 2286,
+            "prompt_tokens_details": null,
+            "total_tokens": 4847
+          },
+          {
+            "completion_tokens": 4096,
+            "prompt_tokens": 1348,
+            "prompt_tokens_details": null,
+            "total_tokens": 5444
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "56",
+        "termination": "simulator_or_protocol_error",
+        "trial_id": 0,
+        "turn_latencies": [
+          122.17789897881448,
+          42.17920536105521
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 505.39840237190947,
+    "elapsed_seconds": 506.6589098488912,
+    "error": {
+      "message": "the JSON object must be str, bytes or bytearray, not NoneType",
+      "type": "SimulatorResponseError"
+    },
+    "finish_drain_seconds": 0.6264282530173659,
+    "finish_error": null,
+    "fixture_hash": "2d1755825ac280af68b1d80e2aa654b6ee0135c125e95f18148caa3e8694f907",
+    "infrastructure_error": false,
+    "input_hash": "48e8b70cde3523766057fdd98bd84af2210efa3e469204e08cfec3bbcae40ced",
+    "path": "task-56/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "dada5932cb544a85b65028d5621006ca",
+    "simulator_actions": 2,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 332,
+        "prompt_tokens": 477,
+        "prompt_tokens_details": null,
+        "total_tokens": 809
+      },
+      {
+        "completion_tokens": 2561,
+        "prompt_tokens": 2286,
+        "prompt_tokens_details": null,
+        "total_tokens": 4847
+      },
+      {
+        "completion_tokens": 4096,
+        "prompt_tokens": 1348,
+        "prompt_tokens_details": null,
+        "total_tokens": 5444
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "56",
+    "termination": "simulator_or_protocol_error",
+    "trial_id": 0,
+    "turn_latencies": [
+      122.17789897881448,
+      42.17920536105521
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 192.9005222900305,
+      "input_tokens": 34436,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 3633,
+      "phases": {
+        "executor": {
+          "input_tokens": 34436,
+          "model_calls": 4,
+          "output_tokens": 3633,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 192.9005222900305,
+          "input_tokens": 34436,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 3633,
+          "phases": {
+            "executor": {
+              "input_tokens": 34436,
+              "model_calls": 4,
+              "output_tokens": 3633,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 273.1945113791153,
+        "elapsed_seconds": 274.60050523490645,
+        "error": null,
+        "finish_drain_seconds": 0.5435829819180071,
+        "finish_error": null,
+        "fixture_hash": "28910adfbe37de725aca36a60f4ac22cbe6d7d6d152bd1707735cb31a94c3710",
+        "infrastructure_error": false,
+        "input_hash": "688f01c77b13bac67babb1cab57ec52db727e6a6c87cc4624b11b45b664941fb",
+        "path": "task-60/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "62e64ffec3f643a4aca30ecccc70a47b",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 448,
+            "prompt_tokens": 451,
+            "prompt_tokens_details": null,
+            "total_tokens": 899
+          },
+          {
+            "completion_tokens": 552,
+            "prompt_tokens": 950,
+            "prompt_tokens_details": null,
+            "total_tokens": 1502
+          },
+          {
+            "completion_tokens": 394,
+            "prompt_tokens": 2867,
+            "prompt_tokens_details": null,
+            "total_tokens": 3261
+          },
+          {
+            "completion_tokens": 204,
+            "prompt_tokens": 1965,
+            "prompt_tokens_details": null,
+            "total_tokens": 2169
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "60",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          99.38204368785955,
+          21.314829321810976,
+          74.90100725903176
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 273.1945113791153,
+    "elapsed_seconds": 274.60050523490645,
+    "error": null,
+    "finish_drain_seconds": 0.5435829819180071,
+    "finish_error": null,
+    "fixture_hash": "28910adfbe37de725aca36a60f4ac22cbe6d7d6d152bd1707735cb31a94c3710",
+    "infrastructure_error": false,
+    "input_hash": "688f01c77b13bac67babb1cab57ec52db727e6a6c87cc4624b11b45b664941fb",
+    "path": "task-60/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "62e64ffec3f643a4aca30ecccc70a47b",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 448,
+        "prompt_tokens": 451,
+        "prompt_tokens_details": null,
+        "total_tokens": 899
+      },
+      {
+        "completion_tokens": 552,
+        "prompt_tokens": 950,
+        "prompt_tokens_details": null,
+        "total_tokens": 1502
+      },
+      {
+        "completion_tokens": 394,
+        "prompt_tokens": 2867,
+        "prompt_tokens_details": null,
+        "total_tokens": 3261
+      },
+      {
+        "completion_tokens": 204,
+        "prompt_tokens": 1965,
+        "prompt_tokens_details": null,
+        "total_tokens": 2169
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "60",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      99.38204368785955,
+      21.314829321810976,
+      74.90100725903176
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 103.40682935598306,
+      "input_tokens": 33998,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 2114,
+      "phases": {
+        "executor": {
+          "input_tokens": 33998,
+          "model_calls": 4,
+          "output_tokens": 2114,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 103.40682935598306,
+          "input_tokens": 33998,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 2114,
+          "phases": {
+            "executor": {
+              "input_tokens": 33998,
+              "model_calls": 4,
+              "output_tokens": 2114,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 153.73050230601802,
+        "elapsed_seconds": 155.3205520750489,
+        "error": null,
+        "finish_drain_seconds": 0.5439613978378475,
+        "finish_error": null,
+        "fixture_hash": "99a4c031c4becc7c12eea8e2bd81f44d69b899b282e9d2a5eea6fa8044d3fcca",
+        "infrastructure_error": false,
+        "input_hash": "27d4d8dbe2cafa94a640340b4a751c6ce9e6ea2fd7059a21324c87c8c3379c74",
+        "path": "task-61/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "c855fd0d24ed4b75ba070f2fd287bb6e",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 218,
+            "prompt_tokens": 419,
+            "prompt_tokens_details": null,
+            "total_tokens": 637
+          },
+          {
+            "completion_tokens": 165,
+            "prompt_tokens": 726,
+            "prompt_tokens_details": null,
+            "total_tokens": 891
+          },
+          {
+            "completion_tokens": 191,
+            "prompt_tokens": 2606,
+            "prompt_tokens_details": null,
+            "total_tokens": 2797
+          },
+          {
+            "completion_tokens": 229,
+            "prompt_tokens": 1572,
+            "prompt_tokens_details": null,
+            "total_tokens": 1801
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "61",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          79.79182833596133,
+          10.229498408036307,
+          17.785140241030604
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 153.73050230601802,
+    "elapsed_seconds": 155.3205520750489,
+    "error": null,
+    "finish_drain_seconds": 0.5439613978378475,
+    "finish_error": null,
+    "fixture_hash": "99a4c031c4becc7c12eea8e2bd81f44d69b899b282e9d2a5eea6fa8044d3fcca",
+    "infrastructure_error": false,
+    "input_hash": "27d4d8dbe2cafa94a640340b4a751c6ce9e6ea2fd7059a21324c87c8c3379c74",
+    "path": "task-61/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "c855fd0d24ed4b75ba070f2fd287bb6e",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 218,
+        "prompt_tokens": 419,
+        "prompt_tokens_details": null,
+        "total_tokens": 637
+      },
+      {
+        "completion_tokens": 165,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": null,
+        "total_tokens": 891
+      },
+      {
+        "completion_tokens": 191,
+        "prompt_tokens": 2606,
+        "prompt_tokens_details": null,
+        "total_tokens": 2797
+      },
+      {
+        "completion_tokens": 229,
+        "prompt_tokens": 1572,
+        "prompt_tokens_details": null,
+        "total_tokens": 1801
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "61",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      79.79182833596133,
+      10.229498408036307,
+      17.785140241030604
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 115.55164286005311,
+      "input_tokens": 37619,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 2128,
+      "phases": {
+        "executor": {
+          "input_tokens": 37619,
+          "model_calls": 5,
+          "output_tokens": 2128,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 115.55164286005311,
+          "input_tokens": 37619,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 2128,
+          "phases": {
+            "executor": {
+              "input_tokens": 37619,
+              "model_calls": 5,
+              "output_tokens": 2128,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 173.41351196798496,
+        "elapsed_seconds": 174.60384162608534,
+        "error": null,
+        "finish_drain_seconds": 0.5682479839306325,
+        "finish_error": null,
+        "fixture_hash": "be7f113f0e5eee193a166dda96383fd538e4c35a9f8e2e35652172559e522751",
+        "infrastructure_error": false,
+        "input_hash": "90054b1ac94acdd08ac59097a4daeefd1a6e13eed2740284978812ae01318da0",
+        "path": "task-62/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "3edcc0d2902f49db82f63e9bdbd77416",
+        "simulator_actions": 5,
+        "simulator_calls_attempted": 5,
+        "simulator_usage": [
+          {
+            "completion_tokens": 209,
+            "prompt_tokens": 579,
+            "prompt_tokens_details": null,
+            "total_tokens": 788
+          },
+          {
+            "completion_tokens": 222,
+            "prompt_tokens": 669,
+            "prompt_tokens_details": null,
+            "total_tokens": 891
+          },
+          {
+            "completion_tokens": 252,
+            "prompt_tokens": 807,
+            "prompt_tokens_details": null,
+            "total_tokens": 1059
+          },
+          {
+            "completion_tokens": 418,
+            "prompt_tokens": 1089,
+            "prompt_tokens_details": null,
+            "total_tokens": 1507
+          },
+          {
+            "completion_tokens": 124,
+            "prompt_tokens": 1268,
+            "prompt_tokens_details": null,
+            "total_tokens": 1392
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "62",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          14.74111283896491,
+          15.873829887947068,
+          77.27217687899247,
+          9.802540814969689
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 173.41351196798496,
+    "elapsed_seconds": 174.60384162608534,
+    "error": null,
+    "finish_drain_seconds": 0.5682479839306325,
+    "finish_error": null,
+    "fixture_hash": "be7f113f0e5eee193a166dda96383fd538e4c35a9f8e2e35652172559e522751",
+    "infrastructure_error": false,
+    "input_hash": "90054b1ac94acdd08ac59097a4daeefd1a6e13eed2740284978812ae01318da0",
+    "path": "task-62/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "3edcc0d2902f49db82f63e9bdbd77416",
+    "simulator_actions": 5,
+    "simulator_calls_attempted": 5,
+    "simulator_usage": [
+      {
+        "completion_tokens": 209,
+        "prompt_tokens": 579,
+        "prompt_tokens_details": null,
+        "total_tokens": 788
+      },
+      {
+        "completion_tokens": 222,
+        "prompt_tokens": 669,
+        "prompt_tokens_details": null,
+        "total_tokens": 891
+      },
+      {
+        "completion_tokens": 252,
+        "prompt_tokens": 807,
+        "prompt_tokens_details": null,
+        "total_tokens": 1059
+      },
+      {
+        "completion_tokens": 418,
+        "prompt_tokens": 1089,
+        "prompt_tokens_details": null,
+        "total_tokens": 1507
+      },
+      {
+        "completion_tokens": 124,
+        "prompt_tokens": 1268,
+        "prompt_tokens_details": null,
+        "total_tokens": 1392
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "62",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      14.74111283896491,
+      15.873829887947068,
+      77.27217687899247,
+      9.802540814969689
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 241.8895210258197,
+      "input_tokens": 31308,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 4691,
+      "phases": {
+        "executor": {
+          "input_tokens": 31308,
+          "model_calls": 4,
+          "output_tokens": 4691,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 241.8895210258197,
+          "input_tokens": 31308,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 4691,
+          "phases": {
+            "executor": {
+              "input_tokens": 31308,
+              "model_calls": 4,
+              "output_tokens": 4691,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 319.85884093493223,
+        "elapsed_seconds": 321.1528545920737,
+        "error": null,
+        "finish_drain_seconds": 0.5713636069558561,
+        "finish_error": null,
+        "fixture_hash": "9f80164035339ab7a6116ed770beebd5a36b40bee8c39a80a22d7b095ebdb251",
+        "infrastructure_error": false,
+        "input_hash": "45952bec00acb7e1a7313ae9feb184d3a65c5aeeb620bc68a957a1ea340bb437",
+        "path": "task-64/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "da738ecfcd364c4e8029da5e3272fde1",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 207,
+            "prompt_tokens": 393,
+            "prompt_tokens_details": null,
+            "total_tokens": 600
+          },
+          {
+            "completion_tokens": 395,
+            "prompt_tokens": 756,
+            "prompt_tokens_details": null,
+            "total_tokens": 1151
+          },
+          {
+            "completion_tokens": 276,
+            "prompt_tokens": 2071,
+            "prompt_tokens_details": null,
+            "total_tokens": 2347
+          },
+          {
+            "completion_tokens": 347,
+            "prompt_tokens": 1390,
+            "prompt_tokens_details": null,
+            "total_tokens": 1737
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "64",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          206.93401269894093,
+          23.62252081488259,
+          13.899100283160806
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 319.85884093493223,
+    "elapsed_seconds": 321.1528545920737,
+    "error": null,
+    "finish_drain_seconds": 0.5713636069558561,
+    "finish_error": null,
+    "fixture_hash": "9f80164035339ab7a6116ed770beebd5a36b40bee8c39a80a22d7b095ebdb251",
+    "infrastructure_error": false,
+    "input_hash": "45952bec00acb7e1a7313ae9feb184d3a65c5aeeb620bc68a957a1ea340bb437",
+    "path": "task-64/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "da738ecfcd364c4e8029da5e3272fde1",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 207,
+        "prompt_tokens": 393,
+        "prompt_tokens_details": null,
+        "total_tokens": 600
+      },
+      {
+        "completion_tokens": 395,
+        "prompt_tokens": 756,
+        "prompt_tokens_details": null,
+        "total_tokens": 1151
+      },
+      {
+        "completion_tokens": 276,
+        "prompt_tokens": 2071,
+        "prompt_tokens_details": null,
+        "total_tokens": 2347
+      },
+      {
+        "completion_tokens": 347,
+        "prompt_tokens": 1390,
+        "prompt_tokens_details": null,
+        "total_tokens": 1737
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "64",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      206.93401269894093,
+      23.62252081488259,
+      13.899100283160806
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 198.258078266168,
+      "input_tokens": 35827,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 3906,
+      "phases": {
+        "executor": {
+          "input_tokens": 35827,
+          "model_calls": 5,
+          "output_tokens": 3906,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 198.258078266168,
+          "input_tokens": 35827,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 3906,
+          "phases": {
+            "executor": {
+              "input_tokens": 35827,
+              "model_calls": 5,
+              "output_tokens": 3906,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 262.80489326501265,
+        "elapsed_seconds": 263.94997234805487,
+        "error": null,
+        "finish_drain_seconds": 0.5392857249826193,
+        "finish_error": null,
+        "fixture_hash": "710aa6e1f31fcfe15b02cfaf8b089bcc995397694c8c7c91036fdb213ba17be6",
+        "infrastructure_error": false,
+        "input_hash": "d39ff60df4862b5a44d6239bf9e3eac8b4355086ca4694b7f0fb59b10d81e513",
+        "path": "task-65/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "8407fbf8f1c94277b60f7174d82f5c89",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 238,
+            "prompt_tokens": 400,
+            "prompt_tokens_details": null,
+            "total_tokens": 638
+          },
+          {
+            "completion_tokens": 465,
+            "prompt_tokens": 728,
+            "prompt_tokens_details": null,
+            "total_tokens": 1193
+          },
+          {
+            "completion_tokens": 196,
+            "prompt_tokens": 1183,
+            "prompt_tokens_details": null,
+            "total_tokens": 1379
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "65",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          105.1734602667857,
+          95.55087003484368
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 262.80489326501265,
+    "elapsed_seconds": 263.94997234805487,
+    "error": null,
+    "finish_drain_seconds": 0.5392857249826193,
+    "finish_error": null,
+    "fixture_hash": "710aa6e1f31fcfe15b02cfaf8b089bcc995397694c8c7c91036fdb213ba17be6",
+    "infrastructure_error": false,
+    "input_hash": "d39ff60df4862b5a44d6239bf9e3eac8b4355086ca4694b7f0fb59b10d81e513",
+    "path": "task-65/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "8407fbf8f1c94277b60f7174d82f5c89",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 238,
+        "prompt_tokens": 400,
+        "prompt_tokens_details": null,
+        "total_tokens": 638
+      },
+      {
+        "completion_tokens": 465,
+        "prompt_tokens": 728,
+        "prompt_tokens_details": null,
+        "total_tokens": 1193
+      },
+      {
+        "completion_tokens": 196,
+        "prompt_tokens": 1183,
+        "prompt_tokens_details": null,
+        "total_tokens": 1379
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "65",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      105.1734602667857,
+      95.55087003484368
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 62.82607843610458,
+      "input_tokens": 29292,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 1100,
+      "phases": {
+        "executor": {
+          "input_tokens": 29292,
+          "model_calls": 4,
+          "output_tokens": 1100,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 62.82607843610458,
+          "input_tokens": 29292,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 1100,
+          "phases": {
+            "executor": {
+              "input_tokens": 29292,
+              "model_calls": 4,
+              "output_tokens": 1100,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 87.50275462586433,
+        "elapsed_seconds": 88.95208852388896,
+        "error": null,
+        "finish_drain_seconds": 0.5381816371809691,
+        "finish_error": null,
+        "fixture_hash": "eed0f9b8a19a1f85b4cc6c09e8c233ea5c0d7300b0fd90cfebc7a16eb1a43a4f",
+        "infrastructure_error": false,
+        "input_hash": "3eeabf272e7be9e50ff92b5566a9ea89eb777f721ee28809221b153aadec70a1",
+        "path": "task-68/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "ceb17aae3ecd4b329bf39db5d4006d10",
+        "simulator_actions": 2,
+        "simulator_calls_attempted": 2,
+        "simulator_usage": [
+          {
+            "completion_tokens": 222,
+            "prompt_tokens": 444,
+            "prompt_tokens_details": null,
+            "total_tokens": 666
+          },
+          {
+            "completion_tokens": 249,
+            "prompt_tokens": 696,
+            "prompt_tokens_details": null,
+            "total_tokens": 945
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "68",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          63.65008905087598
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 87.50275462586433,
+    "elapsed_seconds": 88.95208852388896,
+    "error": null,
+    "finish_drain_seconds": 0.5381816371809691,
+    "finish_error": null,
+    "fixture_hash": "eed0f9b8a19a1f85b4cc6c09e8c233ea5c0d7300b0fd90cfebc7a16eb1a43a4f",
+    "infrastructure_error": false,
+    "input_hash": "3eeabf272e7be9e50ff92b5566a9ea89eb777f721ee28809221b153aadec70a1",
+    "path": "task-68/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "ceb17aae3ecd4b329bf39db5d4006d10",
+    "simulator_actions": 2,
+    "simulator_calls_attempted": 2,
+    "simulator_usage": [
+      {
+        "completion_tokens": 222,
+        "prompt_tokens": 444,
+        "prompt_tokens_details": null,
+        "total_tokens": 666
+      },
+      {
+        "completion_tokens": 249,
+        "prompt_tokens": 696,
+        "prompt_tokens_details": null,
+        "total_tokens": 945
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "68",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      63.65008905087598
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 104.87009251397103,
+      "input_tokens": 43910,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 1937,
+      "phases": {
+        "executor": {
+          "input_tokens": 43910,
+          "model_calls": 5,
+          "output_tokens": 1937,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 104.87009251397103,
+          "input_tokens": 43910,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 1937,
+          "phases": {
+            "executor": {
+              "input_tokens": 43910,
+              "model_calls": 5,
+              "output_tokens": 1937,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 153.30706733698025,
+        "elapsed_seconds": 154.52678660303354,
+        "error": null,
+        "finish_drain_seconds": 0.5632402349729091,
+        "finish_error": null,
+        "fixture_hash": "4d37d1fd12faee790dfcb877b7bd94ec73bc0bb61939a5a23acdadc6abe5c987",
+        "infrastructure_error": false,
+        "input_hash": "0c26860cffccec7f10b57abebf8b434b66c5f79b7609b8a2c336261326c0e65d",
+        "path": "task-70/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "f5df3ba8da8d4a78981b49832e8e80a8",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 262,
+            "prompt_tokens": 453,
+            "prompt_tokens_details": null,
+            "total_tokens": 715
+          },
+          {
+            "completion_tokens": 193,
+            "prompt_tokens": 719,
+            "prompt_tokens_details": null,
+            "total_tokens": 912
+          },
+          {
+            "completion_tokens": 239,
+            "prompt_tokens": 2132,
+            "prompt_tokens_details": null,
+            "total_tokens": 2371
+          },
+          {
+            "completion_tokens": 249,
+            "prompt_tokens": 1330,
+            "prompt_tokens_details": null,
+            "total_tokens": 1579
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "70",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          85.18543768208474,
+          8.062505901092663,
+          14.060744007118046
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 153.30706733698025,
+    "elapsed_seconds": 154.52678660303354,
+    "error": null,
+    "finish_drain_seconds": 0.5632402349729091,
+    "finish_error": null,
+    "fixture_hash": "4d37d1fd12faee790dfcb877b7bd94ec73bc0bb61939a5a23acdadc6abe5c987",
+    "infrastructure_error": false,
+    "input_hash": "0c26860cffccec7f10b57abebf8b434b66c5f79b7609b8a2c336261326c0e65d",
+    "path": "task-70/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "f5df3ba8da8d4a78981b49832e8e80a8",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 262,
+        "prompt_tokens": 453,
+        "prompt_tokens_details": null,
+        "total_tokens": 715
+      },
+      {
+        "completion_tokens": 193,
+        "prompt_tokens": 719,
+        "prompt_tokens_details": null,
+        "total_tokens": 912
+      },
+      {
+        "completion_tokens": 239,
+        "prompt_tokens": 2132,
+        "prompt_tokens_details": null,
+        "total_tokens": 2371
+      },
+      {
+        "completion_tokens": 249,
+        "prompt_tokens": 1330,
+        "prompt_tokens_details": null,
+        "total_tokens": 1579
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "70",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      85.18543768208474,
+      8.062505901092663,
+      14.060744007118046
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 241.30728632211685,
+      "input_tokens": 55073,
+      "known_usage_calls": 6,
+      "model_calls": 6,
+      "output_tokens": 4963,
+      "phases": {
+        "executor": {
+          "input_tokens": 55073,
+          "model_calls": 6,
+          "output_tokens": 4963,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 4,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 241.30728632211685,
+          "input_tokens": 55073,
+          "known_usage_calls": 6,
+          "model_calls": 6,
+          "output_tokens": 4963,
+          "phases": {
+            "executor": {
+              "input_tokens": 55073,
+              "model_calls": 6,
+              "output_tokens": 4963,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 4,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 314.95181858097203,
+        "elapsed_seconds": 316.67069872794673,
+        "error": null,
+        "finish_drain_seconds": 0.7966590442229062,
+        "finish_error": null,
+        "fixture_hash": "6fbaa426ba7ac2cca339a84993c71b58fbaac1229baebcf85e8ca4c74c6d71e2",
+        "infrastructure_error": false,
+        "input_hash": "e725446b41ea334f1a370a69a26b8f1d624d8ff8f3911dfdd1212244b6ece15d",
+        "path": "task-71/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "6c6747314f9248d291b90142afbca99d",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 511,
+            "prompt_tokens": 514,
+            "prompt_tokens_details": null,
+            "total_tokens": 1025
+          },
+          {
+            "completion_tokens": 417,
+            "prompt_tokens": 1053,
+            "prompt_tokens_details": null,
+            "total_tokens": 1470
+          },
+          {
+            "completion_tokens": 231,
+            "prompt_tokens": 2818,
+            "prompt_tokens_details": null,
+            "total_tokens": 3049
+          },
+          {
+            "completion_tokens": 243,
+            "prompt_tokens": 1857,
+            "prompt_tokens_details": null,
+            "total_tokens": 2100
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "71",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          212.88339907606132,
+          14.812617860967293,
+          16.322147160070017
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 314.95181858097203,
+    "elapsed_seconds": 316.67069872794673,
+    "error": null,
+    "finish_drain_seconds": 0.7966590442229062,
+    "finish_error": null,
+    "fixture_hash": "6fbaa426ba7ac2cca339a84993c71b58fbaac1229baebcf85e8ca4c74c6d71e2",
+    "infrastructure_error": false,
+    "input_hash": "e725446b41ea334f1a370a69a26b8f1d624d8ff8f3911dfdd1212244b6ece15d",
+    "path": "task-71/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "6c6747314f9248d291b90142afbca99d",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 511,
+        "prompt_tokens": 514,
+        "prompt_tokens_details": null,
+        "total_tokens": 1025
+      },
+      {
+        "completion_tokens": 417,
+        "prompt_tokens": 1053,
+        "prompt_tokens_details": null,
+        "total_tokens": 1470
+      },
+      {
+        "completion_tokens": 231,
+        "prompt_tokens": 2818,
+        "prompt_tokens_details": null,
+        "total_tokens": 3049
+      },
+      {
+        "completion_tokens": 243,
+        "prompt_tokens": 1857,
+        "prompt_tokens_details": null,
+        "total_tokens": 2100
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "71",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      212.88339907606132,
+      14.812617860967293,
+      16.322147160070017
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 442.3336620104965,
+      "input_tokens": 74690,
+      "known_usage_calls": 7,
+      "model_calls": 7,
+      "output_tokens": 9380,
+      "phases": {
+        "executor": {
+          "input_tokens": 74690,
+          "model_calls": 7,
+          "output_tokens": 9380,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 442.3336620104965,
+          "input_tokens": 74690,
+          "known_usage_calls": 7,
+          "model_calls": 7,
+          "output_tokens": 9380,
+          "phases": {
+            "executor": {
+              "input_tokens": 74690,
+              "model_calls": 7,
+              "output_tokens": 9380,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 558.6589469930623,
+        "elapsed_seconds": 560.1176926160697,
+        "error": null,
+        "finish_drain_seconds": 0.8530050099361688,
+        "finish_error": null,
+        "fixture_hash": "bc45e3a69eddc5859c1af2d2c41e2707e5abb4ca60858165fed8d13aa3554d36",
+        "infrastructure_error": false,
+        "input_hash": "c5da539da88ec3f6630e281d84e9a64bd60b1fbafc331d56a0e097bb514d5a3a",
+        "path": "task-74/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "247e2f8393a2469992fd80fb37d0a428",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 256,
+            "prompt_tokens": 470,
+            "prompt_tokens_details": null,
+            "total_tokens": 726
+          },
+          {
+            "completion_tokens": 613,
+            "prompt_tokens": 565,
+            "prompt_tokens_details": null,
+            "total_tokens": 1178
+          },
+          {
+            "completion_tokens": 397,
+            "prompt_tokens": 1021,
+            "prompt_tokens_details": null,
+            "total_tokens": 1418
+          },
+          {
+            "completion_tokens": 295,
+            "prompt_tokens": 2639,
+            "prompt_tokens_details": null,
+            "total_tokens": 2934
+          },
+          {
+            "completion_tokens": 328,
+            "prompt_tokens": 1702,
+            "prompt_tokens_details": null,
+            "total_tokens": 2030
+          },
+          {
+            "completion_tokens": 483,
+            "prompt_tokens": 3610,
+            "prompt_tokens_details": null,
+            "total_tokens": 4093
+          },
+          {
+            "completion_tokens": 409,
+            "prompt_tokens": 2621,
+            "prompt_tokens_details": null,
+            "total_tokens": 3030
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "74",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          243.55894016684033,
+          141.03842154191807,
+          25.903211172902957,
+          17.025272006867453,
+          6.679036499001086,
+          12.518831484951079
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 558.6589469930623,
+    "elapsed_seconds": 560.1176926160697,
+    "error": null,
+    "finish_drain_seconds": 0.8530050099361688,
+    "finish_error": null,
+    "fixture_hash": "bc45e3a69eddc5859c1af2d2c41e2707e5abb4ca60858165fed8d13aa3554d36",
+    "infrastructure_error": false,
+    "input_hash": "c5da539da88ec3f6630e281d84e9a64bd60b1fbafc331d56a0e097bb514d5a3a",
+    "path": "task-74/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "247e2f8393a2469992fd80fb37d0a428",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 256,
+        "prompt_tokens": 470,
+        "prompt_tokens_details": null,
+        "total_tokens": 726
+      },
+      {
+        "completion_tokens": 613,
+        "prompt_tokens": 565,
+        "prompt_tokens_details": null,
+        "total_tokens": 1178
+      },
+      {
+        "completion_tokens": 397,
+        "prompt_tokens": 1021,
+        "prompt_tokens_details": null,
+        "total_tokens": 1418
+      },
+      {
+        "completion_tokens": 295,
+        "prompt_tokens": 2639,
+        "prompt_tokens_details": null,
+        "total_tokens": 2934
+      },
+      {
+        "completion_tokens": 328,
+        "prompt_tokens": 1702,
+        "prompt_tokens_details": null,
+        "total_tokens": 2030
+      },
+      {
+        "completion_tokens": 483,
+        "prompt_tokens": 3610,
+        "prompt_tokens_details": null,
+        "total_tokens": 4093
+      },
+      {
+        "completion_tokens": 409,
+        "prompt_tokens": 2621,
+        "prompt_tokens_details": null,
+        "total_tokens": 3030
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "74",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      243.55894016684033,
+      141.03842154191807,
+      25.903211172902957,
+      17.025272006867453,
+      6.679036499001086,
+      12.518831484951079
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 103.55162809416652,
+      "input_tokens": 27779,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 2119,
+      "phases": {
+        "executor": {
+          "input_tokens": 27779,
+          "model_calls": 4,
+          "output_tokens": 2119,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 103.55162809416652,
+          "input_tokens": 27779,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 2119,
+          "phases": {
+            "executor": {
+              "input_tokens": 27779,
+              "model_calls": 4,
+              "output_tokens": 2119,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 267.6268586060032,
+        "elapsed_seconds": 269.2223241419997,
+        "error": null,
+        "finish_drain_seconds": 0.7775935321114957,
+        "finish_error": null,
+        "fixture_hash": "3a35aac1889eaab8bf5994691ba4ce1e366e4a2a6b7ae8166b3a49a99fe9d15d",
+        "infrastructure_error": false,
+        "input_hash": "97fbdfacfd8c6176a08cad73c3c1b061ce4ddea2f77904a861794d856be32e6a",
+        "path": "task-77/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "1f92c6181c8c43e6bd65350d36fc643c",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 405,
+            "prompt_tokens": 422,
+            "prompt_tokens_details": null,
+            "total_tokens": 827
+          },
+          {
+            "completion_tokens": 231,
+            "prompt_tokens": 734,
+            "prompt_tokens_details": null,
+            "total_tokens": 965
+          },
+          {
+            "completion_tokens": 2584,
+            "prompt_tokens": 2067,
+            "prompt_tokens_details": null,
+            "total_tokens": 4651
+          },
+          {
+            "completion_tokens": 178,
+            "prompt_tokens": 1350,
+            "prompt_tokens_details": null,
+            "total_tokens": 1528
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "77",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          86.13066034880467,
+          10.77970542688854,
+          9.565775641007349
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 267.6268586060032,
+    "elapsed_seconds": 269.2223241419997,
+    "error": null,
+    "finish_drain_seconds": 0.7775935321114957,
+    "finish_error": null,
+    "fixture_hash": "3a35aac1889eaab8bf5994691ba4ce1e366e4a2a6b7ae8166b3a49a99fe9d15d",
+    "infrastructure_error": false,
+    "input_hash": "97fbdfacfd8c6176a08cad73c3c1b061ce4ddea2f77904a861794d856be32e6a",
+    "path": "task-77/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "1f92c6181c8c43e6bd65350d36fc643c",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 405,
+        "prompt_tokens": 422,
+        "prompt_tokens_details": null,
+        "total_tokens": 827
+      },
+      {
+        "completion_tokens": 231,
+        "prompt_tokens": 734,
+        "prompt_tokens_details": null,
+        "total_tokens": 965
+      },
+      {
+        "completion_tokens": 2584,
+        "prompt_tokens": 2067,
+        "prompt_tokens_details": null,
+        "total_tokens": 4651
+      },
+      {
+        "completion_tokens": 178,
+        "prompt_tokens": 1350,
+        "prompt_tokens_details": null,
+        "total_tokens": 1528
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "77",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      86.13066034880467,
+      10.77970542688854,
+      9.565775641007349
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 171.8050347219687,
+      "input_tokens": 33622,
+      "known_usage_calls": 4,
+      "model_calls": 4,
+      "output_tokens": 3458,
+      "phases": {
+        "executor": {
+          "input_tokens": 33622,
+          "model_calls": 4,
+          "output_tokens": 3458,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 171.8050347219687,
+          "input_tokens": 33622,
+          "known_usage_calls": 4,
+          "model_calls": 4,
+          "output_tokens": 3458,
+          "phases": {
+            "executor": {
+              "input_tokens": 33622,
+              "model_calls": 4,
+              "output_tokens": 3458,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 393.2069766588975,
+        "elapsed_seconds": 394.36972763901576,
+        "error": null,
+        "finish_drain_seconds": 0.5572742619551718,
+        "finish_error": null,
+        "fixture_hash": "7d9c6a5d0e03b81c29eb4d92a75d2c70b5a091804fdb0c35ee70f5d047b258e7",
+        "infrastructure_error": false,
+        "input_hash": "a2b46425c0c00381a72f95372c9e8ccc391ac106cf49ed8d715df7a82e442295",
+        "path": "task-79/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "6f7696ed45fd45bebfac3c403b640f28",
+        "simulator_actions": 3,
+        "simulator_calls_attempted": 3,
+        "simulator_usage": [
+          {
+            "completion_tokens": 472,
+            "prompt_tokens": 472,
+            "prompt_tokens_details": null,
+            "total_tokens": 944
+          },
+          {
+            "completion_tokens": 3623,
+            "prompt_tokens": 2222,
+            "prompt_tokens_details": null,
+            "total_tokens": 5845
+          },
+          {
+            "completion_tokens": 753,
+            "prompt_tokens": 1396,
+            "prompt_tokens_details": null,
+            "total_tokens": 2149
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "79",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          136.5425168061629,
+          36.63613208080642
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 393.2069766588975,
+    "elapsed_seconds": 394.36972763901576,
+    "error": null,
+    "finish_drain_seconds": 0.5572742619551718,
+    "finish_error": null,
+    "fixture_hash": "7d9c6a5d0e03b81c29eb4d92a75d2c70b5a091804fdb0c35ee70f5d047b258e7",
+    "infrastructure_error": false,
+    "input_hash": "a2b46425c0c00381a72f95372c9e8ccc391ac106cf49ed8d715df7a82e442295",
+    "path": "task-79/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "6f7696ed45fd45bebfac3c403b640f28",
+    "simulator_actions": 3,
+    "simulator_calls_attempted": 3,
+    "simulator_usage": [
+      {
+        "completion_tokens": 472,
+        "prompt_tokens": 472,
+        "prompt_tokens_details": null,
+        "total_tokens": 944
+      },
+      {
+        "completion_tokens": 3623,
+        "prompt_tokens": 2222,
+        "prompt_tokens_details": null,
+        "total_tokens": 5845
+      },
+      {
+        "completion_tokens": 753,
+        "prompt_tokens": 1396,
+        "prompt_tokens_details": null,
+        "total_tokens": 2149
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "79",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      136.5425168061629,
+      36.63613208080642
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 226.91374461818486,
+      "input_tokens": 65771,
+      "known_usage_calls": 7,
+      "model_calls": 7,
+      "output_tokens": 4461,
+      "phases": {
+        "executor": {
+          "input_tokens": 65771,
+          "model_calls": 7,
+          "output_tokens": 4461,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 4,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 226.91374461818486,
+          "input_tokens": 65771,
+          "known_usage_calls": 7,
+          "model_calls": 7,
+          "output_tokens": 4461,
+          "phases": {
+            "executor": {
+              "input_tokens": 65771,
+              "model_calls": 7,
+              "output_tokens": 4461,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 4,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 334.0116860799026,
+        "elapsed_seconds": 335.7055397538934,
+        "error": null,
+        "finish_drain_seconds": 0.7731438588816673,
+        "finish_error": null,
+        "fixture_hash": "dfd2797be92313134be1c3707156edad2f111225402d17aab6325d8a40610bf8",
+        "infrastructure_error": false,
+        "input_hash": "7924fb1a97875f6cd380f84c1474fd6698ba15e2affddb2c7df988c238782d18",
+        "path": "task-86/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "9857876b3ff740a280caacaab37e2808",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 254,
+            "prompt_tokens": 422,
+            "prompt_tokens_details": null,
+            "total_tokens": 676
+          },
+          {
+            "completion_tokens": 184,
+            "prompt_tokens": 675,
+            "prompt_tokens_details": null,
+            "total_tokens": 859
+          },
+          {
+            "completion_tokens": 243,
+            "prompt_tokens": 2302,
+            "prompt_tokens_details": null,
+            "total_tokens": 2545
+          },
+          {
+            "completion_tokens": 748,
+            "prompt_tokens": 1360,
+            "prompt_tokens_details": null,
+            "total_tokens": 2108
+          },
+          {
+            "completion_tokens": 464,
+            "prompt_tokens": 1220,
+            "prompt_tokens_details": null,
+            "total_tokens": 1684
+          },
+          {
+            "completion_tokens": 205,
+            "prompt_tokens": 2861,
+            "prompt_tokens_details": null,
+            "total_tokens": 3066
+          },
+          {
+            "completion_tokens": 180,
+            "prompt_tokens": 1975,
+            "prompt_tokens_details": null,
+            "total_tokens": 2155
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "86",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          106.87359673599713,
+          30.316750440048054,
+          40.149049965897575,
+          17.54248079820536,
+          14.732603515964001,
+          21.6904617510736
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 334.0116860799026,
+    "elapsed_seconds": 335.7055397538934,
+    "error": null,
+    "finish_drain_seconds": 0.7731438588816673,
+    "finish_error": null,
+    "fixture_hash": "dfd2797be92313134be1c3707156edad2f111225402d17aab6325d8a40610bf8",
+    "infrastructure_error": false,
+    "input_hash": "7924fb1a97875f6cd380f84c1474fd6698ba15e2affddb2c7df988c238782d18",
+    "path": "task-86/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "9857876b3ff740a280caacaab37e2808",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 254,
+        "prompt_tokens": 422,
+        "prompt_tokens_details": null,
+        "total_tokens": 676
+      },
+      {
+        "completion_tokens": 184,
+        "prompt_tokens": 675,
+        "prompt_tokens_details": null,
+        "total_tokens": 859
+      },
+      {
+        "completion_tokens": 243,
+        "prompt_tokens": 2302,
+        "prompt_tokens_details": null,
+        "total_tokens": 2545
+      },
+      {
+        "completion_tokens": 748,
+        "prompt_tokens": 1360,
+        "prompt_tokens_details": null,
+        "total_tokens": 2108
+      },
+      {
+        "completion_tokens": 464,
+        "prompt_tokens": 1220,
+        "prompt_tokens_details": null,
+        "total_tokens": 1684
+      },
+      {
+        "completion_tokens": 205,
+        "prompt_tokens": 2861,
+        "prompt_tokens_details": null,
+        "total_tokens": 3066
+      },
+      {
+        "completion_tokens": 180,
+        "prompt_tokens": 1975,
+        "prompt_tokens_details": null,
+        "total_tokens": 2155
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "86",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      106.87359673599713,
+      30.316750440048054,
+      40.149049965897575,
+      17.54248079820536,
+      14.732603515964001,
+      21.6904617510736
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 457.5810856348835,
+      "input_tokens": 62236,
+      "known_usage_calls": 7,
+      "model_calls": 7,
+      "output_tokens": 11353,
+      "phases": {
+        "executor": {
+          "input_tokens": 62236,
+          "model_calls": 7,
+          "output_tokens": 11353,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 457.5810856348835,
+          "input_tokens": 62236,
+          "known_usage_calls": 7,
+          "model_calls": 7,
+          "output_tokens": 11353,
+          "phases": {
+            "executor": {
+              "input_tokens": 62236,
+              "model_calls": 7,
+              "output_tokens": 11353,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 558.3678704011254,
+        "elapsed_seconds": 559.5450558250304,
+        "error": null,
+        "finish_drain_seconds": 0.5626636340748519,
+        "finish_error": null,
+        "fixture_hash": "b090b9d574f87b40b886ace1e547a7df99409976a377f5832a5534a15db4f532",
+        "infrastructure_error": false,
+        "input_hash": "d80a0b830dfb999b0754dbbfff4f98a636f99c68085ff198c33622a1a1799e1b",
+        "path": "task-90/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "c2c912ca6290434eaf72b0b8be0a4cd1",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 380,
+            "prompt_tokens": 465,
+            "prompt_tokens_details": null,
+            "total_tokens": 845
+          },
+          {
+            "completion_tokens": 305,
+            "prompt_tokens": 612,
+            "prompt_tokens_details": null,
+            "total_tokens": 917
+          },
+          {
+            "completion_tokens": 169,
+            "prompt_tokens": 681,
+            "prompt_tokens_details": null,
+            "total_tokens": 850
+          },
+          {
+            "completion_tokens": 424,
+            "prompt_tokens": 2412,
+            "prompt_tokens_details": null,
+            "total_tokens": 2836
+          },
+          {
+            "completion_tokens": 378,
+            "prompt_tokens": 1054,
+            "prompt_tokens_details": null,
+            "total_tokens": 1432
+          },
+          {
+            "completion_tokens": 225,
+            "prompt_tokens": 2806,
+            "prompt_tokens_details": null,
+            "total_tokens": 3031
+          },
+          {
+            "completion_tokens": 137,
+            "prompt_tokens": 2008,
+            "prompt_tokens_details": null,
+            "total_tokens": 2145
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "90",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          193.04405460413545,
+          164.71657364279963,
+          65.00733470497653,
+          20.495172374183312,
+          4.914209763985127,
+          12.83950906409882
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 558.3678704011254,
+    "elapsed_seconds": 559.5450558250304,
+    "error": null,
+    "finish_drain_seconds": 0.5626636340748519,
+    "finish_error": null,
+    "fixture_hash": "b090b9d574f87b40b886ace1e547a7df99409976a377f5832a5534a15db4f532",
+    "infrastructure_error": false,
+    "input_hash": "d80a0b830dfb999b0754dbbfff4f98a636f99c68085ff198c33622a1a1799e1b",
+    "path": "task-90/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "c2c912ca6290434eaf72b0b8be0a4cd1",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 380,
+        "prompt_tokens": 465,
+        "prompt_tokens_details": null,
+        "total_tokens": 845
+      },
+      {
+        "completion_tokens": 305,
+        "prompt_tokens": 612,
+        "prompt_tokens_details": null,
+        "total_tokens": 917
+      },
+      {
+        "completion_tokens": 169,
+        "prompt_tokens": 681,
+        "prompt_tokens_details": null,
+        "total_tokens": 850
+      },
+      {
+        "completion_tokens": 424,
+        "prompt_tokens": 2412,
+        "prompt_tokens_details": null,
+        "total_tokens": 2836
+      },
+      {
+        "completion_tokens": 378,
+        "prompt_tokens": 1054,
+        "prompt_tokens_details": null,
+        "total_tokens": 1432
+      },
+      {
+        "completion_tokens": 225,
+        "prompt_tokens": 2806,
+        "prompt_tokens_details": null,
+        "total_tokens": 3031
+      },
+      {
+        "completion_tokens": 137,
+        "prompt_tokens": 2008,
+        "prompt_tokens_details": null,
+        "total_tokens": 2145
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "90",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      193.04405460413545,
+      164.71657364279963,
+      65.00733470497653,
+      20.495172374183312,
+      4.914209763985127,
+      12.83950906409882
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 141.39333382830955,
+      "input_tokens": 49303,
+      "known_usage_calls": 5,
+      "model_calls": 5,
+      "output_tokens": 3055,
+      "phases": {
+        "executor": {
+          "input_tokens": 49303,
+          "model_calls": 5,
+          "output_tokens": 3055,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 3,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 141.39333382830955,
+          "input_tokens": 49303,
+          "known_usage_calls": 5,
+          "model_calls": 5,
+          "output_tokens": 3055,
+          "phases": {
+            "executor": {
+              "input_tokens": 49303,
+              "model_calls": 5,
+              "output_tokens": 3055,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 3,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 190.78579151490703,
+        "elapsed_seconds": 192.26383859594353,
+        "error": null,
+        "finish_drain_seconds": 0.5689101861789823,
+        "finish_error": null,
+        "fixture_hash": "14248143bdbff428601882dc0d7c856bf77519875b8d36bfeb2840bc9659adc2",
+        "infrastructure_error": false,
+        "input_hash": "a3d4f01d94d5fbd2931b650537d7340edbc6b4add0e7a172f535bb5b1e67dec9",
+        "path": "task-94/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "ace054b4ca71430c841070e36503b2e1",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 328,
+            "prompt_tokens": 424,
+            "prompt_tokens_details": null,
+            "total_tokens": 752
+          },
+          {
+            "completion_tokens": 261,
+            "prompt_tokens": 740,
+            "prompt_tokens_details": null,
+            "total_tokens": 1001
+          },
+          {
+            "completion_tokens": 292,
+            "prompt_tokens": 2952,
+            "prompt_tokens_details": null,
+            "total_tokens": 3244
+          },
+          {
+            "completion_tokens": 259,
+            "prompt_tokens": 1797,
+            "prompt_tokens_details": null,
+            "total_tokens": 2056
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "94",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          84.43521448108368,
+          38.866798172937706,
+          20.63814236409962
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 190.78579151490703,
+    "elapsed_seconds": 192.26383859594353,
+    "error": null,
+    "finish_drain_seconds": 0.5689101861789823,
+    "finish_error": null,
+    "fixture_hash": "14248143bdbff428601882dc0d7c856bf77519875b8d36bfeb2840bc9659adc2",
+    "infrastructure_error": false,
+    "input_hash": "a3d4f01d94d5fbd2931b650537d7340edbc6b4add0e7a172f535bb5b1e67dec9",
+    "path": "task-94/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "ace054b4ca71430c841070e36503b2e1",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 328,
+        "prompt_tokens": 424,
+        "prompt_tokens_details": null,
+        "total_tokens": 752
+      },
+      {
+        "completion_tokens": 261,
+        "prompt_tokens": 740,
+        "prompt_tokens_details": null,
+        "total_tokens": 1001
+      },
+      {
+        "completion_tokens": 292,
+        "prompt_tokens": 2952,
+        "prompt_tokens_details": null,
+        "total_tokens": 3244
+      },
+      {
+        "completion_tokens": 259,
+        "prompt_tokens": 1797,
+        "prompt_tokens_details": null,
+        "total_tokens": 2056
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "94",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      84.43521448108368,
+      38.866798172937706,
+      20.63814236409962
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 425.07172671635635,
+      "input_tokens": 67766,
+      "known_usage_calls": 8,
+      "model_calls": 8,
+      "output_tokens": 9998,
+      "phases": {
+        "executor": {
+          "input_tokens": 67766,
+          "model_calls": 8,
+          "output_tokens": 9998,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 5,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 425.07172671635635,
+          "input_tokens": 67766,
+          "known_usage_calls": 8,
+          "model_calls": 8,
+          "output_tokens": 9998,
+          "phases": {
+            "executor": {
+              "input_tokens": 67766,
+              "model_calls": 8,
+              "output_tokens": 9998,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 5,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 600.0123294179793,
+        "elapsed_seconds": 601.3643177850172,
+        "error": {
+          "type": "TimeoutException"
+        },
+        "finish_drain_seconds": 0.6472648638300598,
+        "finish_error": null,
+        "fixture_hash": "11436f84056fa674b1ad14dbc79c7da693065642493e4747a24461640c07e230",
+        "infrastructure_error": false,
+        "input_hash": "11b3841f7c45096ce85cde1a8b3069735cae795deff14a7e2050d8c9f7d796c7",
+        "path": "task-97/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "5e20736db0554556ae4858dd5d750a5b",
+        "simulator_actions": 6,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 453,
+            "prompt_tokens": 439,
+            "prompt_tokens_details": null,
+            "total_tokens": 892
+          },
+          {
+            "completion_tokens": 394,
+            "prompt_tokens": 566,
+            "prompt_tokens_details": null,
+            "total_tokens": 960
+          },
+          {
+            "completion_tokens": 364,
+            "prompt_tokens": 1111,
+            "prompt_tokens_details": null,
+            "total_tokens": 1475
+          },
+          {
+            "completion_tokens": 377,
+            "prompt_tokens": 2608,
+            "prompt_tokens_details": null,
+            "total_tokens": 2985
+          },
+          {
+            "completion_tokens": 535,
+            "prompt_tokens": 1515,
+            "prompt_tokens_details": null,
+            "total_tokens": 2050
+          },
+          {
+            "completion_tokens": 2675,
+            "prompt_tokens": 3094,
+            "prompt_tokens_details": null,
+            "total_tokens": 5769
+          }
+        ],
+        "simulator_usage_unknown_calls": 1,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "97",
+        "termination": "wall_time_budget",
+        "trial_id": 0,
+        "turn_latencies": [
+          260.1141764339991,
+          116.35929018398747,
+          10.79964288091287,
+          16.51580722699873,
+          10.068569474155083,
+          14.969877052120864
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 600.0123294179793,
+    "elapsed_seconds": 601.3643177850172,
+    "error": {
+      "type": "TimeoutException"
+    },
+    "finish_drain_seconds": 0.6472648638300598,
+    "finish_error": null,
+    "fixture_hash": "11436f84056fa674b1ad14dbc79c7da693065642493e4747a24461640c07e230",
+    "infrastructure_error": false,
+    "input_hash": "11b3841f7c45096ce85cde1a8b3069735cae795deff14a7e2050d8c9f7d796c7",
+    "path": "task-97/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "5e20736db0554556ae4858dd5d750a5b",
+    "simulator_actions": 6,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 453,
+        "prompt_tokens": 439,
+        "prompt_tokens_details": null,
+        "total_tokens": 892
+      },
+      {
+        "completion_tokens": 394,
+        "prompt_tokens": 566,
+        "prompt_tokens_details": null,
+        "total_tokens": 960
+      },
+      {
+        "completion_tokens": 364,
+        "prompt_tokens": 1111,
+        "prompt_tokens_details": null,
+        "total_tokens": 1475
+      },
+      {
+        "completion_tokens": 377,
+        "prompt_tokens": 2608,
+        "prompt_tokens_details": null,
+        "total_tokens": 2985
+      },
+      {
+        "completion_tokens": 535,
+        "prompt_tokens": 1515,
+        "prompt_tokens_details": null,
+        "total_tokens": 2050
+      },
+      {
+        "completion_tokens": 2675,
+        "prompt_tokens": 3094,
+        "prompt_tokens_details": null,
+        "total_tokens": 5769
+      }
+    ],
+    "simulator_usage_unknown_calls": 1,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "97",
+    "termination": "wall_time_budget",
+    "trial_id": 0,
+    "turn_latencies": [
+      260.1141764339991,
+      116.35929018398747,
+      10.79964288091287,
+      16.51580722699873,
+      10.068569474155083,
+      14.969877052120864
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 434.00591976963915,
+      "input_tokens": 139302,
+      "known_usage_calls": 12,
+      "model_calls": 12,
+      "output_tokens": 10817,
+      "phases": {
+        "executor": {
+          "input_tokens": 139302,
+          "model_calls": 12,
+          "output_tokens": 10817,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 6,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 434.00591976963915,
+          "input_tokens": 139302,
+          "known_usage_calls": 12,
+          "model_calls": 12,
+          "output_tokens": 10817,
+          "phases": {
+            "executor": {
+              "input_tokens": 139302,
+              "model_calls": 12,
+              "output_tokens": 10817,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 6,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 604.9997079388704,
+        "elapsed_seconds": 640.6060268578585,
+        "error": {
+          "type": "TimeoutException"
+        },
+        "finish_drain_seconds": 34.7200993639417,
+        "finish_error": null,
+        "fixture_hash": "d2364c1b122e3d9f04b62e56539f052c06748970468ff5c3b59594c3f37cea07",
+        "infrastructure_error": false,
+        "input_hash": "4c2375d1558096819c2026d2b88cdf19753086af0511f0e228ba5a34c4840451",
+        "path": "task-100/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "d660475ddc50470287eadd1f774a6a49",
+        "simulator_actions": 9,
+        "simulator_calls_attempted": 9,
+        "simulator_usage": [
+          {
+            "completion_tokens": 476,
+            "prompt_tokens": 472,
+            "prompt_tokens_details": null,
+            "total_tokens": 948
+          },
+          {
+            "completion_tokens": 441,
+            "prompt_tokens": 922,
+            "prompt_tokens_details": null,
+            "total_tokens": 1363
+          },
+          {
+            "completion_tokens": 271,
+            "prompt_tokens": 1380,
+            "prompt_tokens_details": null,
+            "total_tokens": 1651
+          },
+          {
+            "completion_tokens": 751,
+            "prompt_tokens": 3380,
+            "prompt_tokens_details": null,
+            "total_tokens": 4131
+          },
+          {
+            "completion_tokens": 566,
+            "prompt_tokens": 1867,
+            "prompt_tokens_details": null,
+            "total_tokens": 2433
+          },
+          {
+            "completion_tokens": 793,
+            "prompt_tokens": 3935,
+            "prompt_tokens_details": null,
+            "total_tokens": 4728
+          },
+          {
+            "completion_tokens": 526,
+            "prompt_tokens": 2468,
+            "prompt_tokens_details": null,
+            "total_tokens": 2994
+          },
+          {
+            "completion_tokens": 1140,
+            "prompt_tokens": 4515,
+            "prompt_tokens_details": null,
+            "total_tokens": 5655
+          },
+          {
+            "completion_tokens": 471,
+            "prompt_tokens": 2912,
+            "prompt_tokens_details": null,
+            "total_tokens": 3383
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "100",
+        "termination": "wall_time_budget",
+        "trial_id": 0,
+        "turn_latencies": [
+          155.3641606918536,
+          87.26800914108753,
+          18.410764671862125,
+          44.57348839798942,
+          17.99249987001531,
+          17.49182891799137,
+          12.269818528089672,
+          21.003574007889256,
+          30.121222799876705
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 604.9997079388704,
+    "elapsed_seconds": 640.6060268578585,
+    "error": {
+      "type": "TimeoutException"
+    },
+    "finish_drain_seconds": 34.7200993639417,
+    "finish_error": null,
+    "fixture_hash": "d2364c1b122e3d9f04b62e56539f052c06748970468ff5c3b59594c3f37cea07",
+    "infrastructure_error": false,
+    "input_hash": "4c2375d1558096819c2026d2b88cdf19753086af0511f0e228ba5a34c4840451",
+    "path": "task-100/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "d660475ddc50470287eadd1f774a6a49",
+    "simulator_actions": 9,
+    "simulator_calls_attempted": 9,
+    "simulator_usage": [
+      {
+        "completion_tokens": 476,
+        "prompt_tokens": 472,
+        "prompt_tokens_details": null,
+        "total_tokens": 948
+      },
+      {
+        "completion_tokens": 441,
+        "prompt_tokens": 922,
+        "prompt_tokens_details": null,
+        "total_tokens": 1363
+      },
+      {
+        "completion_tokens": 271,
+        "prompt_tokens": 1380,
+        "prompt_tokens_details": null,
+        "total_tokens": 1651
+      },
+      {
+        "completion_tokens": 751,
+        "prompt_tokens": 3380,
+        "prompt_tokens_details": null,
+        "total_tokens": 4131
+      },
+      {
+        "completion_tokens": 566,
+        "prompt_tokens": 1867,
+        "prompt_tokens_details": null,
+        "total_tokens": 2433
+      },
+      {
+        "completion_tokens": 793,
+        "prompt_tokens": 3935,
+        "prompt_tokens_details": null,
+        "total_tokens": 4728
+      },
+      {
+        "completion_tokens": 526,
+        "prompt_tokens": 2468,
+        "prompt_tokens_details": null,
+        "total_tokens": 2994
+      },
+      {
+        "completion_tokens": 1140,
+        "prompt_tokens": 4515,
+        "prompt_tokens_details": null,
+        "total_tokens": 5655
+      },
+      {
+        "completion_tokens": 471,
+        "prompt_tokens": 2912,
+        "prompt_tokens_details": null,
+        "total_tokens": 3383
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "100",
+    "termination": "wall_time_budget",
+    "trial_id": 0,
+    "turn_latencies": [
+      155.3641606918536,
+      87.26800914108753,
+      18.410764671862125,
+      44.57348839798942,
+      17.99249987001531,
+      17.49182891799137,
+      12.269818528089672,
+      21.003574007889256,
+      30.121222799876705
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 215.16505296900868,
+      "input_tokens": 50824,
+      "known_usage_calls": 7,
+      "model_calls": 7,
+      "output_tokens": 4745,
+      "phases": {
+        "executor": {
+          "input_tokens": 50824,
+          "model_calls": 7,
+          "output_tokens": 4745,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 2,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 215.16505296900868,
+          "input_tokens": 50824,
+          "known_usage_calls": 7,
+          "model_calls": 7,
+          "output_tokens": 4745,
+          "phases": {
+            "executor": {
+              "input_tokens": 50824,
+              "model_calls": 7,
+              "output_tokens": 4745,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 2,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 331.8996427040547,
+        "elapsed_seconds": 333.05305121606216,
+        "error": null,
+        "finish_drain_seconds": 0.5437704869545996,
+        "finish_error": null,
+        "fixture_hash": "f7a19625ed6c3d0d43eef2cf4d94726e73e415a6660014bf4df9b7a4ff625acf",
+        "infrastructure_error": false,
+        "input_hash": "9cb27bcd5048907292d94f6157f0f0aabb03cc156414d1e98f4ac462357a37cd",
+        "path": "task-101/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "dfa1ebebb46a425baecc1a43d08b3728",
+        "simulator_actions": 6,
+        "simulator_calls_attempted": 6,
+        "simulator_usage": [
+          {
+            "completion_tokens": 327,
+            "prompt_tokens": 501,
+            "prompt_tokens_details": null,
+            "total_tokens": 828
+          },
+          {
+            "completion_tokens": 239,
+            "prompt_tokens": 658,
+            "prompt_tokens_details": null,
+            "total_tokens": 897
+          },
+          {
+            "completion_tokens": 301,
+            "prompt_tokens": 849,
+            "prompt_tokens_details": null,
+            "total_tokens": 1150
+          },
+          {
+            "completion_tokens": 823,
+            "prompt_tokens": 1066,
+            "prompt_tokens_details": null,
+            "total_tokens": 1889
+          },
+          {
+            "completion_tokens": 316,
+            "prompt_tokens": 1314,
+            "prompt_tokens_details": null,
+            "total_tokens": 1630
+          },
+          {
+            "completion_tokens": 953,
+            "prompt_tokens": 1591,
+            "prompt_tokens_details": null,
+            "total_tokens": 2544
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": false,
+        "task_id": "101",
+        "termination": "agent_transferred",
+        "trial_id": 0,
+        "turn_latencies": [
+          25.141355243045837,
+          29.980027373880148,
+          41.80601833900437,
+          39.848019716795534,
+          32.62551160505973,
+          50.093192122876644
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 331.8996427040547,
+    "elapsed_seconds": 333.05305121606216,
+    "error": null,
+    "finish_drain_seconds": 0.5437704869545996,
+    "finish_error": null,
+    "fixture_hash": "f7a19625ed6c3d0d43eef2cf4d94726e73e415a6660014bf4df9b7a4ff625acf",
+    "infrastructure_error": false,
+    "input_hash": "9cb27bcd5048907292d94f6157f0f0aabb03cc156414d1e98f4ac462357a37cd",
+    "path": "task-101/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "dfa1ebebb46a425baecc1a43d08b3728",
+    "simulator_actions": 6,
+    "simulator_calls_attempted": 6,
+    "simulator_usage": [
+      {
+        "completion_tokens": 327,
+        "prompt_tokens": 501,
+        "prompt_tokens_details": null,
+        "total_tokens": 828
+      },
+      {
+        "completion_tokens": 239,
+        "prompt_tokens": 658,
+        "prompt_tokens_details": null,
+        "total_tokens": 897
+      },
+      {
+        "completion_tokens": 301,
+        "prompt_tokens": 849,
+        "prompt_tokens_details": null,
+        "total_tokens": 1150
+      },
+      {
+        "completion_tokens": 823,
+        "prompt_tokens": 1066,
+        "prompt_tokens_details": null,
+        "total_tokens": 1889
+      },
+      {
+        "completion_tokens": 316,
+        "prompt_tokens": 1314,
+        "prompt_tokens_details": null,
+        "total_tokens": 1630
+      },
+      {
+        "completion_tokens": 953,
+        "prompt_tokens": 1591,
+        "prompt_tokens_details": null,
+        "total_tokens": 2544
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": false,
+    "task_id": "101",
+    "termination": "agent_transferred",
+    "trial_id": 0,
+    "turn_latencies": [
+      25.141355243045837,
+      29.980027373880148,
+      41.80601833900437,
+      39.848019716795534,
+      32.62551160505973,
+      50.093192122876644
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 354.5459198821336,
+      "input_tokens": 90333,
+      "known_usage_calls": 8,
+      "model_calls": 8,
+      "output_tokens": 9334,
+      "phases": {
+        "executor": {
+          "input_tokens": 90333,
+          "model_calls": 8,
+          "output_tokens": 9334,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 5,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 354.5459198821336,
+          "input_tokens": 90333,
+          "known_usage_calls": 8,
+          "model_calls": 8,
+          "output_tokens": 9334,
+          "phases": {
+            "executor": {
+              "input_tokens": 90333,
+              "model_calls": 8,
+              "output_tokens": 9334,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 5,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 505.3197130949702,
+        "elapsed_seconds": 506.6198709248565,
+        "error": null,
+        "finish_drain_seconds": 0.7582298370543867,
+        "finish_error": null,
+        "fixture_hash": "1049359298dacfcab62a5bcf495c847f7a9fe5985868e145022c60968327a986",
+        "infrastructure_error": false,
+        "input_hash": "2fedd099814bf5cf9d3d3bd0dbc33fadc70b57a97e2c1cb20b229b18ccb93a06",
+        "path": "task-102/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "a70cbb7c0a834e9bb4c82173c102b0ca",
+        "simulator_actions": 7,
+        "simulator_calls_attempted": 7,
+        "simulator_usage": [
+          {
+            "completion_tokens": 621,
+            "prompt_tokens": 477,
+            "prompt_tokens_details": null,
+            "total_tokens": 1098
+          },
+          {
+            "completion_tokens": 628,
+            "prompt_tokens": 1898,
+            "prompt_tokens_details": null,
+            "total_tokens": 2526
+          },
+          {
+            "completion_tokens": 800,
+            "prompt_tokens": 1052,
+            "prompt_tokens_details": null,
+            "total_tokens": 1852
+          },
+          {
+            "completion_tokens": 205,
+            "prompt_tokens": 2667,
+            "prompt_tokens_details": null,
+            "total_tokens": 2872
+          },
+          {
+            "completion_tokens": 471,
+            "prompt_tokens": 1777,
+            "prompt_tokens_details": null,
+            "total_tokens": 2248
+          },
+          {
+            "completion_tokens": 329,
+            "prompt_tokens": 3525,
+            "prompt_tokens_details": null,
+            "total_tokens": 3854
+          },
+          {
+            "completion_tokens": 305,
+            "prompt_tokens": 2568,
+            "prompt_tokens_details": null,
+            "total_tokens": 2873
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "102",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          37.82560542388819,
+          157.63758884510025,
+          23.926899909041822,
+          95.61773052019998,
+          30.243754932191223,
+          13.638209087075666
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 505.3197130949702,
+    "elapsed_seconds": 506.6198709248565,
+    "error": null,
+    "finish_drain_seconds": 0.7582298370543867,
+    "finish_error": null,
+    "fixture_hash": "1049359298dacfcab62a5bcf495c847f7a9fe5985868e145022c60968327a986",
+    "infrastructure_error": false,
+    "input_hash": "2fedd099814bf5cf9d3d3bd0dbc33fadc70b57a97e2c1cb20b229b18ccb93a06",
+    "path": "task-102/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "a70cbb7c0a834e9bb4c82173c102b0ca",
+    "simulator_actions": 7,
+    "simulator_calls_attempted": 7,
+    "simulator_usage": [
+      {
+        "completion_tokens": 621,
+        "prompt_tokens": 477,
+        "prompt_tokens_details": null,
+        "total_tokens": 1098
+      },
+      {
+        "completion_tokens": 628,
+        "prompt_tokens": 1898,
+        "prompt_tokens_details": null,
+        "total_tokens": 2526
+      },
+      {
+        "completion_tokens": 800,
+        "prompt_tokens": 1052,
+        "prompt_tokens_details": null,
+        "total_tokens": 1852
+      },
+      {
+        "completion_tokens": 205,
+        "prompt_tokens": 2667,
+        "prompt_tokens_details": null,
+        "total_tokens": 2872
+      },
+      {
+        "completion_tokens": 471,
+        "prompt_tokens": 1777,
+        "prompt_tokens_details": null,
+        "total_tokens": 2248
+      },
+      {
+        "completion_tokens": 329,
+        "prompt_tokens": 3525,
+        "prompt_tokens_details": null,
+        "total_tokens": 3854
+      },
+      {
+        "completion_tokens": 305,
+        "prompt_tokens": 2568,
+        "prompt_tokens_details": null,
+        "total_tokens": 2873
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "102",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      37.82560542388819,
+      157.63758884510025,
+      23.926899909041822,
+      95.61773052019998,
+      30.243754932191223,
+      13.638209087075666
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 76.51083419122733,
+      "input_tokens": 24676,
+      "known_usage_calls": 3,
+      "model_calls": 3,
+      "output_tokens": 1622,
+      "phases": {
+        "executor": {
+          "input_tokens": 24676,
+          "model_calls": 3,
+          "output_tokens": 1622,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 1,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 76.51083419122733,
+          "input_tokens": 24676,
+          "known_usage_calls": 3,
+          "model_calls": 3,
+          "output_tokens": 1622,
+          "phases": {
+            "executor": {
+              "input_tokens": 24676,
+              "model_calls": 3,
+              "output_tokens": 1622,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 1,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 124.94708395004272,
+        "elapsed_seconds": 126.81281140586361,
+        "error": null,
+        "finish_drain_seconds": 0.7690768910106272,
+        "finish_error": null,
+        "fixture_hash": "57a9c1c1bf009b0a7d8fa0be89c18690ac324c7014529e5141fe66cca9055fa9",
+        "infrastructure_error": false,
+        "input_hash": "acfd7783796b234c59da004496da63b520e4251a272cd4d2ab68ecd468688603",
+        "path": "task-108/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "680d48c55beb495a8f5cf842e71d59aa",
+        "simulator_actions": 4,
+        "simulator_calls_attempted": 4,
+        "simulator_usage": [
+          {
+            "completion_tokens": 249,
+            "prompt_tokens": 411,
+            "prompt_tokens_details": null,
+            "total_tokens": 660
+          },
+          {
+            "completion_tokens": 185,
+            "prompt_tokens": 683,
+            "prompt_tokens_details": null,
+            "total_tokens": 868
+          },
+          {
+            "completion_tokens": 222,
+            "prompt_tokens": 2838,
+            "prompt_tokens_details": null,
+            "total_tokens": 3060
+          },
+          {
+            "completion_tokens": 207,
+            "prompt_tokens": 1659,
+            "prompt_tokens_details": null,
+            "total_tokens": 1866
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "108",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          52.871361780911684,
+          11.582235075067729,
+          13.776820871978998
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 124.94708395004272,
+    "elapsed_seconds": 126.81281140586361,
+    "error": null,
+    "finish_drain_seconds": 0.7690768910106272,
+    "finish_error": null,
+    "fixture_hash": "57a9c1c1bf009b0a7d8fa0be89c18690ac324c7014529e5141fe66cca9055fa9",
+    "infrastructure_error": false,
+    "input_hash": "acfd7783796b234c59da004496da63b520e4251a272cd4d2ab68ecd468688603",
+    "path": "task-108/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "680d48c55beb495a8f5cf842e71d59aa",
+    "simulator_actions": 4,
+    "simulator_calls_attempted": 4,
+    "simulator_usage": [
+      {
+        "completion_tokens": 249,
+        "prompt_tokens": 411,
+        "prompt_tokens_details": null,
+        "total_tokens": 660
+      },
+      {
+        "completion_tokens": 185,
+        "prompt_tokens": 683,
+        "prompt_tokens_details": null,
+        "total_tokens": 868
+      },
+      {
+        "completion_tokens": 222,
+        "prompt_tokens": 2838,
+        "prompt_tokens_details": null,
+        "total_tokens": 3060
+      },
+      {
+        "completion_tokens": 207,
+        "prompt_tokens": 1659,
+        "prompt_tokens_details": null,
+        "total_tokens": 1866
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "108",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      52.871361780911684,
+      11.582235075067729,
+      13.776820871978998
+    ],
+    "variant": "lg_b1"
+  },
+  {
+    "agent_usage": {
+      "active_seconds": 410.8380669662729,
+      "input_tokens": 126882,
+      "known_usage_calls": 10,
+      "model_calls": 10,
+      "output_tokens": 10763,
+      "phases": {
+        "executor": {
+          "input_tokens": 126882,
+          "model_calls": 10,
+          "output_tokens": 10763,
+          "unknown_usage_calls": 0
+        }
+      },
+      "tool_calls": 5,
+      "unknown_usage_calls": 0
+    },
+    "attempt_records": [
+      {
+        "agent_usage": {
+          "active_seconds": 410.8380669662729,
+          "input_tokens": 126882,
+          "known_usage_calls": 10,
+          "model_calls": 10,
+          "output_tokens": 10763,
+          "phases": {
+            "executor": {
+              "input_tokens": 126882,
+              "model_calls": 10,
+              "output_tokens": 10763,
+              "unknown_usage_calls": 0
+            }
+          },
+          "tool_calls": 5,
+          "unknown_usage_calls": 0
+        },
+        "conversation_seconds": 525.0811493960209,
+        "elapsed_seconds": 526.259768188931,
+        "error": null,
+        "finish_drain_seconds": 0.5565039501525462,
+        "finish_error": null,
+        "fixture_hash": "9b37df645df24671f66afe13bc1f7bd655bc4b62333b73ce175a02153fa44b53",
+        "infrastructure_error": false,
+        "input_hash": "711ea77a9d83e23a46110b3662a77a5256ef433634e0d2d2e64e0500fc6bab27",
+        "path": "task-111/seed-1/attempt-0",
+        "protocol_errors": [],
+        "seed": 1,
+        "session_id": "40a3384d8aa84f4ab7b6e3d3d3b15132",
+        "simulator_actions": 9,
+        "simulator_calls_attempted": 9,
+        "simulator_usage": [
+          {
+            "completion_tokens": 476,
+            "prompt_tokens": 464,
+            "prompt_tokens_details": null,
+            "total_tokens": 940
+          },
+          {
+            "completion_tokens": 499,
+            "prompt_tokens": 1197,
+            "prompt_tokens_details": null,
+            "total_tokens": 1696
+          },
+          {
+            "completion_tokens": 457,
+            "prompt_tokens": 2020,
+            "prompt_tokens_details": null,
+            "total_tokens": 2477
+          },
+          {
+            "completion_tokens": 164,
+            "prompt_tokens": 3418,
+            "prompt_tokens_details": null,
+            "total_tokens": 3582
+          },
+          {
+            "completion_tokens": 546,
+            "prompt_tokens": 2798,
+            "prompt_tokens_details": null,
+            "total_tokens": 3344
+          },
+          {
+            "completion_tokens": 428,
+            "prompt_tokens": 4472,
+            "prompt_tokens_details": null,
+            "total_tokens": 4900
+          },
+          {
+            "completion_tokens": 481,
+            "prompt_tokens": 3657,
+            "prompt_tokens_details": null,
+            "total_tokens": 4138
+          },
+          {
+            "completion_tokens": 272,
+            "prompt_tokens": 5393,
+            "prompt_tokens_details": null,
+            "total_tokens": 5665
+          },
+          {
+            "completion_tokens": 468,
+            "prompt_tokens": 4595,
+            "prompt_tokens_details": null,
+            "total_tokens": 5063
+          }
+        ],
+        "simulator_usage_unknown_calls": 0,
+        "snapshot_available": true,
+        "success": true,
+        "task_id": "111",
+        "termination": "simulator_finish",
+        "trial_id": 0,
+        "turn_latencies": [
+          215.23089244985022,
+          110.75092104193754,
+          15.339446936966851,
+          31.89841565885581,
+          7.371803471120074,
+          13.232433533063158,
+          5.984732554061338,
+          15.894245218019933
+        ],
+        "variant": "lg_b1"
+      }
+    ],
+    "attempts": 1,
+    "conversation_seconds": 525.0811493960209,
+    "elapsed_seconds": 526.259768188931,
+    "error": null,
+    "finish_drain_seconds": 0.5565039501525462,
+    "finish_error": null,
+    "fixture_hash": "9b37df645df24671f66afe13bc1f7bd655bc4b62333b73ce175a02153fa44b53",
+    "infrastructure_error": false,
+    "input_hash": "711ea77a9d83e23a46110b3662a77a5256ef433634e0d2d2e64e0500fc6bab27",
+    "path": "task-111/seed-1/attempt-0",
+    "protocol_errors": [],
+    "seed": 1,
+    "session_id": "40a3384d8aa84f4ab7b6e3d3d3b15132",
+    "simulator_actions": 9,
+    "simulator_calls_attempted": 9,
+    "simulator_usage": [
+      {
+        "completion_tokens": 476,
+        "prompt_tokens": 464,
+        "prompt_tokens_details": null,
+        "total_tokens": 940
+      },
+      {
+        "completion_tokens": 499,
+        "prompt_tokens": 1197,
+        "prompt_tokens_details": null,
+        "total_tokens": 1696
+      },
+      {
+        "completion_tokens": 457,
+        "prompt_tokens": 2020,
+        "prompt_tokens_details": null,
+        "total_tokens": 2477
+      },
+      {
+        "completion_tokens": 164,
+        "prompt_tokens": 3418,
+        "prompt_tokens_details": null,
+        "total_tokens": 3582
+      },
+      {
+        "completion_tokens": 546,
+        "prompt_tokens": 2798,
+        "prompt_tokens_details": null,
+        "total_tokens": 3344
+      },
+      {
+        "completion_tokens": 428,
+        "prompt_tokens": 4472,
+        "prompt_tokens_details": null,
+        "total_tokens": 4900
+      },
+      {
+        "completion_tokens": 481,
+        "prompt_tokens": 3657,
+        "prompt_tokens_details": null,
+        "total_tokens": 4138
+      },
+      {
+        "completion_tokens": 272,
+        "prompt_tokens": 5393,
+        "prompt_tokens_details": null,
+        "total_tokens": 5665
+      },
+      {
+        "completion_tokens": 468,
+        "prompt_tokens": 4595,
+        "prompt_tokens_details": null,
+        "total_tokens": 5063
+      }
+    ],
+    "simulator_usage_unknown_calls": 0,
+    "snapshot_available": true,
+    "success": true,
+    "task_id": "111",
+    "termination": "simulator_finish",
+    "trial_id": 0,
+    "turn_latencies": [
+      215.23089244985022,
+      110.75092104193754,
+      15.339446936966851,
+      31.89841565885581,
+      7.371803471120074,
+      13.232433533063158,
+      5.984732554061338,
+      15.894245218019933
+    ],
+    "variant": "lg_b1"
+  }
+]

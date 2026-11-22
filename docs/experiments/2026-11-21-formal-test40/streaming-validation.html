@@ -1,0 +1,68 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Streaming validation replay</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 16px;color:#241f1a;background:#fbf8f4}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2d8cc}th,td{padding:7px 9px;border-bottom:1px solid #e2d8cc;text-align:left}th{background:#f6f0e8;font-size:12px;text-transform:uppercase;color:#756a60}a{color:#9a4a1f}.ok{color:#2f7d4f;font-weight:700}.bad{color:#b2372c;font-weight:700}.note{background:#fff7ed;border:1px solid #eddcc6;padding:12px 16px;border-radius:10px;color:#6b4b2f}</style></head><body>
+<h1>Streaming validation · C=20 · 600s</h1>
+<p>validation 20 tasks × seeds 0/1/2 = 60 episodes. Success <b>28/60</b> (0.467); pass_3 (all three seeds) <b>0.35</b>.</p>
+<p class="note">Terminations: agent_transferred: 4, simulator_finish: 23, wall_time_budget: 33. This run used model streaming and concurrency 20; 33 episodes hit the 600 s budget. Click a session id to open the replay in the local frontend (log in as the replay account).</p>
+<p><a href="index.html">← back to formal test40 report</a></p>
+<table><thead><tr><th>task</th><th>seed</th><th>result</th><th>termination</th><th>replay</th></tr></thead><tbody>
+<tr><td>4</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=71e7ea74107342e5b23c2d7fc33694e1">open</a></td></tr>
+<tr><td>4</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=cac990f5cb6c4655ad02d0a4fdfcd304">open</a></td></tr>
+<tr><td>4</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=3655f0c15b23424ea13029cc813b2bd3">open</a></td></tr>
+<tr><td>6</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=c649749cd64942bc9efb36dc052fd803">open</a></td></tr>
+<tr><td>6</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=21a7cc1b81a4449ea43ee536efdf4e1d">open</a></td></tr>
+<tr><td>6</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=a09441084e754d76a417d370ab60b0d2">open</a></td></tr>
+<tr><td>8</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=4ce0fabff36649c284c4665f67ce728c">open</a></td></tr>
+<tr><td>8</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=497463d8a01345019cb6710a7437c30b">open</a></td></tr>
+<tr><td>8</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=9fa4d5317e224cccb55dede91ed83ae7">open</a></td></tr>
+<tr><td>21</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=75f403716b0945c3a1e29438b71e388b">open</a></td></tr>
+<tr><td>21</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=d7289815bc1747f6985166fedd6896d8">open</a></td></tr>
+<tr><td>21</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=34dec302fa1d47c5856d123b0c21d899">open</a></td></tr>
+<tr><td>22</td><td>0</td><td class="ok">✓</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=5dde942220b74254874d387e5bfbdf8a">open</a></td></tr>
+<tr><td>22</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=abd51db846b84a80b58abd9c0b60a1f6">open</a></td></tr>
+<tr><td>22</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=61048b6234474682be08fcd329152f13">open</a></td></tr>
+<tr><td>25</td><td>0</td><td class="ok">✓</td><td>agent_transferred</td><td><a href="http://127.0.0.1:8000/?session=2b0d662808c5405cbce6bb67147d69c2">open</a></td></tr>
+<tr><td>25</td><td>1</td><td class="ok">✓</td><td>agent_transferred</td><td><a href="http://127.0.0.1:8000/?session=c5b6a810d9e74507b2267b77147b2c64">open</a></td></tr>
+<tr><td>25</td><td>2</td><td class="ok">✓</td><td>agent_transferred</td><td><a href="http://127.0.0.1:8000/?session=2eb28889462b4e7ba9f1d30d6aa8441a">open</a></td></tr>
+<tr><td>28</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=273f062abb394faa83fc349a8adf376b">open</a></td></tr>
+<tr><td>28</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=2ac71afe26cd4f999811ca50b3f8500b">open</a></td></tr>
+<tr><td>28</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=2ada0b600d9249f69884ba1a536f8721">open</a></td></tr>
+<tr><td>35</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=392c257277c547a3be967fd7f7661515">open</a></td></tr>
+<tr><td>35</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=ab3920f24360498fa74b7ef9c6cc4269">open</a></td></tr>
+<tr><td>35</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=2f3235a7b92f4961b9c705a3107e91a8">open</a></td></tr>
+<tr><td>46</td><td>0</td><td class="ok">✓</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=aae6b65e33344b4c928276b614baceaf">open</a></td></tr>
+<tr><td>46</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=57f15d4239ec4e4a852806423734e598">open</a></td></tr>
+<tr><td>46</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=275a66b3c34841d184dd24b13f821459">open</a></td></tr>
+<tr><td>52</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=1b8234812fce4376b5b91f1ba81d6460">open</a></td></tr>
+<tr><td>52</td><td>1</td><td class="bad">✗</td><td>agent_transferred</td><td><a href="http://127.0.0.1:8000/?session=9dc378d5b9b84cfc8ebd823e9bb1adc2">open</a></td></tr>
+<tr><td>52</td><td>2</td><td class="bad">✗</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=666bdcd4c2d2480e86d72d6f37698114">open</a></td></tr>
+<tr><td>54</td><td>0</td><td class="ok">✓</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=b06fc5ad36f149b99ce8cdc55f4c054f">open</a></td></tr>
+<tr><td>54</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=0ce51f34701b4d68aed9b31cb3905f1d">open</a></td></tr>
+<tr><td>54</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=522e6452b4b64654a1c192b6c8a1d1aa">open</a></td></tr>
+<tr><td>59</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=770bb9867f4940b59ef4f91ed1fdb5c7">open</a></td></tr>
+<tr><td>59</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=0e441ce289204eda88922e2669977a79">open</a></td></tr>
+<tr><td>59</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=c3ac643c83db4b5da44a745ce0d64a49">open</a></td></tr>
+<tr><td>72</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=fd138192343b43c3be3b8003f083bd91">open</a></td></tr>
+<tr><td>72</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=cb81988c51c04ba9a5871e4c9b39b70c">open</a></td></tr>
+<tr><td>72</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=8fa1e4271e4b4dec8b87faee3f629c74">open</a></td></tr>
+<tr><td>80</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=70e6b98ba7434138bf9d94728ad74280">open</a></td></tr>
+<tr><td>80</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=5d9bae908ff44004aa07a9583bdf5710">open</a></td></tr>
+<tr><td>80</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=325549ec4a9143b8a480ee0baf1a20c2">open</a></td></tr>
+<tr><td>81</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=c9fa18da6e0e4862afa49d656bcc799f">open</a></td></tr>
+<tr><td>81</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=360d4391e0664f22b953fae5c8e9180e">open</a></td></tr>
+<tr><td>81</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=87d4003998e84a82b68cd0bed5eac526">open</a></td></tr>
+<tr><td>84</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=48be95f4607149eab5f39d40dc53ec00">open</a></td></tr>
+<tr><td>84</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=37b599f940084772abce7e36627a3367">open</a></td></tr>
+<tr><td>84</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=484e90687ae642148f4ad91054c862ab">open</a></td></tr>
+<tr><td>96</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=42c51195a9f3428ba0bc705c0db433a4">open</a></td></tr>
+<tr><td>96</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=468d0a0d50094c909fba07f5018a9a74">open</a></td></tr>
+<tr><td>96</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=dc2de37c64b14d659cca6ff04745d311">open</a></td></tr>
+<tr><td>99</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=f5e05615feba4079919204a5c04c28c2">open</a></td></tr>
+<tr><td>99</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=0978f32cdbaf4a16bff1fe8bca200d58">open</a></td></tr>
+<tr><td>99</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=3fa7dd9639b04d308342c5f467863c7b">open</a></td></tr>
+<tr><td>104</td><td>0</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=7f64f57e6e774d0c9161fbe6e1195138">open</a></td></tr>
+<tr><td>104</td><td>1</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=fdcf3b54289e4bcb82b69f86a1319479">open</a></td></tr>
+<tr><td>104</td><td>2</td><td class="bad">✗</td><td>wall_time_budget</td><td><a href="http://127.0.0.1:8000/?session=c42fc1785d9a443b94975f8f66233e32">open</a></td></tr>
+<tr><td>112</td><td>0</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=aac21f5bb30e4453804bfabc27fcbd31">open</a></td></tr>
+<tr><td>112</td><td>1</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=7b50c026c2184415b2520f80ced03862">open</a></td></tr>
+<tr><td>112</td><td>2</td><td class="ok">✓</td><td>simulator_finish</td><td><a href="http://127.0.0.1:8000/?session=20cd2aaa46794dc6b58d3db48166f24c">open</a></td></tr>
+</tbody></table></body></html>

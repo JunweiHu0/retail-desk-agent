@@ -1,0 +1,87 @@
+{
+  "auxiliary": {
+    "agent": {
+      "active_seconds": {
+        "missing_attempts": 0,
+        "observed_total": 22413.855468962574,
+        "total": 22413.855468962574
+      },
+      "input_tokens": {
+        "known_total": 3478870,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 3478870,
+        "total": 3478870
+      },
+      "model_calls": {
+        "missing_attempts": 0,
+        "observed_total": 328,
+        "total": 328
+      },
+      "output_tokens": {
+        "known_total": 257358,
+        "missing_attempts": 0,
+        "missing_calls": 0,
+        "observed_total": 257358,
+        "total": 257358
+      },
+      "tool_calls": {
+        "missing_attempts": 0,
+        "observed_total": 185,
+        "total": 185
+      }
+    },
+    "agent_turn_latency": {
+      "count": 261,
+      "missing_attempts": 0,
+      "p50_seconds": 36.11368722515181,
+      "p95_seconds": 351.2574044128414
+    },
+    "all_tokens": null,
+    "attempts_including_retries": 54,
+    "episode_latency": {
+      "count": 54,
+      "missing_attempts": 0,
+      "p50_seconds": 480.52848462644033,
+      "p95_seconds": 1781.225754122494
+    },
+    "simulator": {
+      "calls": {
+        "missing_attempts": 0,
+        "observed_total": 312,
+        "total": 312
+      },
+      "completion_tokens": {
+        "missing_calls": 1,
+        "observed_total": 133686,
+        "total": null,
+        "unknown_call_count_attempts": 0
+      },
+      "prompt_tokens": {
+        "missing_calls": 1,
+        "observed_total": 596764,
+        "total": null,
+        "unknown_call_count_attempts": 0
+      }
+    },
+    "successful_task_definition": "all requested seeds pass",
+    "tokens_per_successful_episode": null,
+    "tokens_per_successful_task": null
+  },
+  "complete": true,
+  "db_success_rate": 0.8148148148148148,
+  "expected_episodes": 54,
+  "missing_episodes": [],
+  "missing_snapshots": [],
+  "pass_3": 0.7222222222222222,
+  "protocol_invalid_episodes": [],
+  "recorded_episodes": 54,
+  "successes": 44,
+  "terminations": {
+    "agent_transferred": 1,
+    "simulator_finish": 49,
+    "simulator_or_protocol_error": 1,
+    "wall_time_budget": 3
+  },
+  "valid_snapshots": 54
+}
