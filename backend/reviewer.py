@@ -59,6 +59,12 @@ HUMAN_REQUEST = re.compile(
     r"transfer me|talk to (a|an|some) ?(person|agent))\b|人工|真人|转接|客服经理",
     re.I,
 )
+# The agent bringing up a human/transfer itself ("Would you like me to transfer you?").
+AGENT_TRANSFER_OFFER = re.compile(
+    r"\b(transfer(r?ing|red)? (you|this|your)|human (agent|representative|support)|"
+    r"live agent|escalat\w*)\b|人工|转接",
+    re.I,
+)
 AFFIRMATIVE = re.compile(
     r"\b(yes|yeah|yep|yup|confirm(ed)?|go ahead|proceed|sure|ok(ay)?|please do|do it|"
     r"correct|that'?s right|sounds good|let'?s do)\b|确认|是的|好的|可以|同意|没问题",
@@ -146,6 +152,21 @@ def _human_texts(history):
     return [_text(m) for m in history if isinstance(m, HumanMessage)]
 
 
+def customer_asked_for_human(history) -> bool:
+    """True only if the customer asked for a human before the agent offered a transfer.
+
+    Once the agent itself suggests a human, a customer reply such as "Yeah, transfer me"
+    is agreement with the agent's offer, not an independent request, so it does not
+    exempt the transfer from the unrequested-transfer check.
+    """
+    for m in history:
+        if isinstance(m, AIMessage) and AGENT_TRANSFER_OFFER.search(_text(m)):
+            return False
+        if isinstance(m, HumanMessage) and HUMAN_REQUEST.search(_text(m)):
+            return True
+    return False
+
+
 def _last_human(history):
     texts = _human_texts(history)
     return texts[-1] if texts else ""
@@ -188,7 +209,7 @@ def review_turn(history: list[BaseMessage], proposal: AIMessage, *, channel: str
             "or ask the customer for the missing information.",
         ))
 
-    if name == TRANSFER and not any(HUMAN_REQUEST.search(t) for t in _human_texts(history)):
+    if name == TRANSFER and not customer_asked_for_human(history):
         findings.append(Finding(
             "unrequested_transfer", "check",
             "The customer has not asked for a human agent. Transfer only if the request "

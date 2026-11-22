@@ -99,6 +99,46 @@ def test_requested_transfer_passes_without_feedback(service):
     assert len(model.seen) == 1
 
 
+TRANSFER_CALL = call("transfer_to_human_agents", {"summary": "x"}, "t")
+
+
+def _transfer_rules(history):
+    return [f.rule for f in reviewer.review_turn(history, TRANSFER_CALL)]
+
+
+def test_customer_agreeing_to_agent_offered_transfer_is_still_questioned():
+    # Real tau2 trajectory pattern (task 28): the agent offers, the customer just agrees.
+    history = [
+        HumanMessage(content="I want to remove the skateboard from my pending order."),
+        AIMessage(content="I can't remove items. Would you like me to transfer you to a human agent?"),
+        HumanMessage(content="Yeah, transfer me."),
+    ]
+    assert _transfer_rules(history) == ["unrequested_transfer"]
+    zh = [HumanMessage(content="帮我退一件"), AIMessage(content="这个需要转接人工，可以吗？"),
+          HumanMessage(content="好的，转人工吧")]
+    assert _transfer_rules(zh) == ["unrequested_transfer"]
+
+
+def test_customer_request_before_any_offer_still_passes():
+    history = [
+        HumanMessage(content="Hi, I need help with an order."),
+        AIMessage(content="Sure, what is the order id?"),
+        HumanMessage(content="Actually, can I talk to a human agent?"),
+        AIMessage(content="Okay, I will transfer you to a human agent."),
+        HumanMessage(content="Thanks."),
+    ]
+    assert _transfer_rules(history) == []
+    assert _transfer_rules([HumanMessage(content="我要找人工客服")]) == []
+
+
+def test_agent_self_description_is_not_a_transfer_offer():
+    history = [
+        AIMessage(content="Hi! I'm your customer service representative. How can I help?"),
+        HumanMessage(content="Get me a supervisor."),
+    ]
+    assert _transfer_rules(history) == []
+
+
 def test_internal_leak_is_rewritten_or_sanitized(service):
     leak = AIMessage(content="Your order is pending.\nExternal benchmark turn completed.")
     response, model, adapter = run(service, [leak] * 3)
