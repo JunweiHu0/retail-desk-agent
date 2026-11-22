@@ -588,15 +588,28 @@ onMounted(async () => {
                 <p class="approval-note">
                   退款与邮件为 benchmark 模拟记录，不会连接真实支付或发送邮件。
                 </p>
+                <p v-if="pending.review?.required" class="approval-note">
+                  {{
+                    pending.review.case_id
+                      ? `已提交人工复核（工单 ${pending.review.case_id}），复核通过后才会执行；在此之前可以取消。`
+                      : `该操作需要人工复核：${pending.review.reasons.join("；")}。确认后将提交给人工客服。`
+                  }}
+                </p>
                 <div class="approval-actions">
                   <button @click="decide(false)" :disabled="busy">
                     <X :size="15" />取消操作</button
                   ><button
                     class="primary"
                     @click="decide(true)"
-                    :disabled="busy"
+                    :disabled="busy || !!pending.review?.case_id"
                   >
-                    <Check :size="16" />确认执行
+                    <Check :size="16" />{{
+                      pending.review?.case_id
+                        ? "等待人工复核"
+                        : pending.review?.required
+                          ? "确认并提交复核"
+                          : "确认执行"
+                    }}
                   </button>
                 </div>
               </article>

@@ -42,6 +42,12 @@ class Store:
                     args TEXT NOT NULL, before_data TEXT NOT NULL, after_data TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS reviews (
+                    id TEXT PRIMARY KEY, session_id TEXT NOT NULL, kind TEXT NOT NULL,
+                    reason TEXT NOT NULL, details TEXT NOT NULL, status TEXT NOT NULL,
+                    created_at TEXT NOT NULL, resolved_at TEXT, resolution TEXT
+                );
+                CREATE INDEX IF NOT EXISTS reviews_status ON reviews(status, created_at);
             """)
             columns = {row[1] for row in cx.execute("PRAGMA table_info(sessions)")}
             if "owner_user_id" not in columns:
@@ -112,6 +118,43 @@ class Store:
                 dict(r) | {"data": json.loads(r["data"])}
                 for r in cx.execute("SELECT * FROM events WHERE session_id=? ORDER BY id", (sid,))
             ]
+
+    def create_review(self, cx, sid, kind, reason, details):
+        """Open a human review case. kind: "handoff" (session) or "approval" (one action)."""
+        rid = uuid.uuid4().hex
+        cx.execute(
+            "INSERT INTO reviews(id,session_id,kind,reason,details,status,created_at) "
+            "VALUES(?,?,?,?,?,'open',?)",
+            (rid, sid, kind, reason, encode(details), now()),
+        )
+        return rid
+
+    def review(self, rid, cx):
+        row = cx.execute("SELECT * FROM reviews WHERE id=?", (rid,)).fetchone()
+        if row is None:
+            raise LookupError("复核单不存在")
+        return self._review(row)
+
+    def reviews(self, cx, status=None, sid=None):
+        query, params = "SELECT * FROM reviews WHERE 1=1", []
+        if status:
+            query, params = query + " AND status=?", params + [status]
+        if sid:
+            query, params = query + " AND session_id=?", params + [sid]
+        return [self._review(r) for r in cx.execute(query + " ORDER BY created_at", params)]
+
+    def resolve_review(self, cx, rid, status, resolution):
+        cx.execute(
+            "UPDATE reviews SET status=?, resolution=?, resolved_at=? WHERE id=? AND status='open'",
+            (status, encode(resolution), now(), rid),
+        )
+
+    @staticmethod
+    def _review(row):
+        item = dict(row)
+        item["details"] = json.loads(item["details"])
+        item["resolution"] = json.loads(item["resolution"]) if item["resolution"] else None
+        return item
 
     def dataset(self, cx):
         return json.loads(cx.execute("SELECT data FROM dataset WHERE id=1").fetchone()[0])

@@ -22,7 +22,26 @@ def main():
     parser.add_argument("--timeout", type=float, default=600)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--save-to", default="deep-retail")
+    parser.add_argument("--auto-resume", action="store_true")
+    parser.add_argument("--num-trials", type=int, default=1)
+    parser.add_argument(
+        "--domain", choices=["retail", "retail_ours"], default="retail",
+        help="retail = official tau2 Retail; retail_ours = our patched, NON-OFFICIAL variant "
+        "(benchmarks/retail_ours/README.md). Never report retail_ours as an official score.",
+    )
+    parser.add_argument(
+        "--agent", choices=["deep_retail", "deep_generic", "llm_agent"], default="deep_retail",
+        help="llm_agent = tau2 bare LLMAgent (tools + policy); "
+        "deep_generic = general-purpose Deep Agents harness without retail scaffolding",
+    )
+    parser.add_argument(
+        "--reviewer", choices=["off", "shadow", "enforce"], default=None,
+        help="Deterministic turn reviewer for deep_retail (backend/reviewer.py). "
+        "Default: RETAIL_REVIEWER env or off, which keeps earlier runs reproducible.",
+    )
     args = parser.parse_args()
+    if args.reviewer:
+        os.environ["RETAIL_REVIEWER"] = args.reviewer
     if config.MODE != "live" or not config.API_KEY:
         parser.error(
             "评测需要 AGENT_MODE=live 和 MODEL_API_KEY，演示模式不提供有效 benchmark 分数。"
@@ -42,7 +61,14 @@ def main():
 
     from benchmarks.tau2_agent import factory
 
+    from benchmarks.tau2_generic_agent import factory as generic_factory
+
     registry.register_agent_factory(factory, "deep_retail")
+    registry.register_agent_factory(generic_factory, "deep_generic")
+    if args.domain == "retail_ours":
+        from benchmarks.retail_ours import register as register_retail_ours
+
+        register_retail_ours()
     user_model = args.user_model or (
         f"openai/{config.MODEL}" if config.IS_DEEPSEEK else "openai/gpt-4.1-mini"
     )
@@ -57,10 +83,11 @@ def main():
     evaluator_nl_assertions.DEFAULT_LLM_NL_ASSERTIONS_ARGS = provider_args
     result = run_domain(
         TextRunConfig(
-            domain="retail",
-            agent="deep_retail",
+            domain=args.domain,
+            agent=args.agent,
             user="user_simulator",
-            llm_agent=config.MODEL,
+            llm_agent=config.MODEL if args.agent.startswith("deep_") else f"openai/{config.MODEL}",
+            **({} if args.agent.startswith("deep_") else {"llm_args_agent": provider_args}),
             llm_user=user_model,
             llm_args_user=provider_args,
             communicate_scoring=CommunicateScoring(
@@ -68,7 +95,7 @@ def main():
             ),
             num_tasks=None if args.all or args.task_ids else args.num_tasks,
             task_ids=args.task_ids,
-            num_trials=1,
+            num_trials=args.num_trials,
             max_concurrency=args.concurrency,
             max_steps=args.max_steps,
             timeout=args.timeout,
@@ -76,6 +103,7 @@ def main():
             max_retries=0,
             auto_review=False,
             hallucination_retries=0,
+            auto_resume=args.auto_resume,
             save_to=args.save_to,
         )
     )
@@ -91,6 +119,9 @@ def main():
                 "user_model": user_model,
                 "judge_model": judge_model,
                 "seed": args.seed,
+                "domain": args.domain,
+                "reviewer": os.environ.get("RETAIL_REVIEWER", "off"),
+                "official": args.domain == "retail",
             },
             ensure_ascii=False,
         )

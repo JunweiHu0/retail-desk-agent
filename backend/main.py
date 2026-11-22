@@ -1,6 +1,7 @@
 """FastAPI transport. Localhost by default; session capabilities protect customer data."""
 
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -194,7 +195,18 @@ def create_app(store=None):
         return {
             k: session[k]
             for k in ("id", "title", "created_at", "updated_at", "messages", "transferred")
-        } | {"context": app.state.retail.context(sid), "events": app.state.store.events(sid)}
+        } | {
+            "context": app.state.retail.context(sid),
+            "events": app.state.store.events(sid),
+            "reviews": session_reviews(sid),
+        }
+
+    def session_reviews(sid):
+        with app.state.store.tx() as cx:
+            return [
+                {k: r[k] for k in ("id", "kind", "reason", "status", "created_at", "resolved_at")}
+                for r in app.state.store.reviews(cx, sid=sid)
+            ]
 
     @app.get("/api/health")
     def health():
@@ -323,6 +335,46 @@ def create_app(store=None):
             except (ValueError, PermissionError) as exc:
                 raise HTTPException(409, str(exc)) from None
         return {"receipt": receipt, "session": snapshot(sid)}
+
+    # Staff review queue (human fallback). Disabled unless STAFF_TOKEN is configured.
+    def staff(request: Request):
+        expected = os.getenv("STAFF_TOKEN", "")
+        if not expected:
+            raise HTTPException(404, "人工复核接口未启用")
+        given = request.headers.get("x-staff-token", "")
+        if not hmac.compare_digest(given.encode(), expected.encode()):
+            raise HTTPException(403, "无权访问人工复核队列")
+        return request.headers.get("x-staff-name", "staff")[:60] or "staff"
+
+    @app.get("/api/staff/reviews")
+    def staff_reviews(status: str = "open", who=Depends(staff)):
+        with app.state.store.tx() as cx:
+            cases = app.state.store.reviews(cx, status=None if status == "all" else status)
+        return {
+            "reviews": [
+                c | {"session": {k: v for k, v in snapshot(c["session_id"]).items()
+                                 if k in ("id", "title", "messages", "transferred", "context")}}
+                for c in cases
+            ]
+        }
+
+    class StaffDecision(BaseModel):
+        approve: bool
+        note: str = Field(default="", max_length=500)
+
+    @app.post("/api/staff/reviews/{rid}/decision")
+    def staff_decision(rid: str, body: StaffDecision, who=Depends(staff)):
+        with app.state.store.tx() as cx:
+            try:
+                sid = app.state.store.review(rid, cx)["session_id"]
+            except LookupError:
+                raise HTTPException(404, "复核单不存在") from None
+        with exclusive(sid):
+            try:
+                outcome = app.state.runner.staff_decide(rid, body.approve, who, body.note)
+            except (ValueError, PermissionError) as exc:
+                raise HTTPException(409, str(exc)) from None
+        return outcome | {"session": snapshot(sid)}
 
     dist = config.ROOT / "frontend/dist"
     if dist.is_dir():

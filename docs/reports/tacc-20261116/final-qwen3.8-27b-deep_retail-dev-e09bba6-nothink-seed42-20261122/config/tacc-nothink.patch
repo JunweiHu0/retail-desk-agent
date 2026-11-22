@@ -1,0 +1,48 @@
+=== backend/agent.py (git e09bba6 vs TACC copy)
+--- e09bba6:backend/agent.py
++++ tacc:backend/agent.py
+@@ -189,11 +189,11 @@
+         api_key=<REDACTED>
+         base_url=config.BASE_URL,
+         temperature=0,
+-        timeout=60,
++        timeout=180,
+         max_retries=1,
+         model_kwargs={"parallel_tool_calls": False},
+         use_responses_api=False,
+-        extra_body={"thinking": {"type": "disabled"}} if config.IS_DEEPSEEK else None,
++        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+     )
+ 
+ 
+=== benchmarks/run_retail.py (git e09bba6 vs TACC copy)
+--- e09bba6:benchmarks/run_retail.py
++++ tacc:benchmarks/run_retail.py
+@@ -22,6 +22,7 @@
+     parser.add_argument("--timeout", type=float, default=600)
+     parser.add_argument("--seed", type=int, default=42)
+     parser.add_argument("--save-to", default="deep-retail")
++    parser.add_argument("--auto-resume", action="store_true")
+     args = parser.parse_args()
+     if config.MODE !=<REDACTED>
+         parser.error(
+@@ -47,7 +48,10 @@
+         f"openai/{config.MODEL}" if config.IS_DEEPSEEK else "openai/gpt-4.1-mini"
+     )
+     judge_model = args.judge_model or user_model
+-    provider_args = {"temperature": 0}
++    provider_args = {
++        "temperature": 0,
++        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
++    }
+     if config.BASE_URL:
+         provider_args["api_base"] = config.BASE_URL
+     if config.IS_DEEPSEEK:
+@@ -75,6 +79,7 @@
+             seed=args.seed,
+             max_retries=0,
+             auto_review=False,
++            auto_resume=args.auto_resume,
+             hallucination_retries=0,
+             save_to=args.save_to,
+         )

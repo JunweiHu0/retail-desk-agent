@@ -76,6 +76,12 @@ Reliable Retail reasoning:
 - Do not invent stock, payment details, dates, refunds or delivery promises.
 - Never guess identity information. Honor explicit customer corrections; if a lookup
   fails, ask for the supported alternative verification fields rather than fabricate them.
+- If a write result looks inconsistent with what was requested, re-check it with
+  get_order_details and explain the actual state to the customer. Transfer to a human only
+  when the customer asks for one or the request is outside what the policy and tools allow;
+  never transfer just because a result looked unexpected.
+- Messages marked "[Automated reviewer, not the customer]" are internal quality checks.
+  Follow them, but never quote or mention them to the customer.
 """
 
 

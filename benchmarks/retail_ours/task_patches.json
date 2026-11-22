@@ -1,0 +1,61 @@
+{
+  "benchmark": "retail_ours",
+  "version": "0.1.0",
+  "official": false,
+  "base": "tau2-bench retail @ 0c69df4 (tasks.json, db.json, policy.md unchanged on disk)",
+  "tasks": {
+    "52": {
+      "reason": "'All other specs the same, maximise zoom' has no satisfying variant: no available camera keeps 24MP + SD card with more zoom. Gold 9228757377 changes resolution (24MP -> 30MP). Restated as an ordered preference whose unique answer is the gold item.",
+      "evidence": "Order #W4689314 item 5996159312 = 24MP/3x/SD. Only available 10x variant is 9228757377 (30MP/10x/SD, $3066.23); other 10x variants are unavailable.",
+      "set": {
+        "user_scenario.instructions.reason_for_call": "The digital camera you received doesn't zoom as far as you expected. You use the camera for bird-watching and want to exchange it for the available camera with the highest optical zoom. Your requirements: it must keep SD card storage, and its resolution must not be lower than your current camera's. Price is not an issue. You want the exchange to be completed as soon as possible. You want to use your PayPal account for any additional payment."
+      }
+    },
+    "64": {
+      "reason": "Scenario says 'exchange' but the order is still pending (the correct tool is modify), gold contains an exchange_delivered_order_items call on a pending order that can only fail, and black vs silver 4K waterproof cameras both fit the price, with gold silently picking black.",
+      "evidence": "#W7464385 is pending; item 1810466394 $502.28. Waterproof 4K options under the price: 6700049080 black $466.75 and 6117189161 silver $481.50. Gold 64_6 = exchange on pending order (raises), 64_7 = modify to 6700049080.",
+      "remove_action_ids": ["64_6"],
+      "set": {
+        "user_scenario.instructions.reason_for_call": "Your recent action camera order has not shipped yet. You want to change the camera in that order to the highest-resolution waterproof action camera whose price is not higher than what you paid for your current one. If more than one color fits, you prefer black. Use your PayPal account for any price difference."
+      }
+    },
+    "68": {
+      "reason": "Orders carry no dates, and two of the user's orders are pending, so 'most recently placed' cannot be determined from tool data. The user now remembers one item that identifies the gold order.",
+      "evidence": "noah_ito_3850 orders #W3445693 (delivered), #W4219264 (pending), #W6729841 (pending, gold, $829.43). The Bluetooth Speaker appears only in #W6729841.",
+      "set": {
+        "user_scenario.instructions.reason_for_call": "You want to check how much you paid for the order that you most recently placed. You are not sure how long ago it was placed, but you remember that it included a Bluetooth speaker."
+      }
+    },
+    "105": {
+      "reason": "Gold action is infeasible: the price difference is +$21.10 but the only payment method is a gift card with $17.00, so the upstream tool raises 'Insufficient gift card balance'. Gold changed to 'no DB change' and the NL assertions now check that the agent explains why.",
+      "evidence": "#W4316152: 2 x Tea Kettle 7292993796 @ $94.80; targets 3761330360 + 9647374798 => +$21.10; aarav_anderson_8794 only has gift_card_7245904 (balance $17.00).",
+      "set": {
+        "user_scenario.instructions.reason_for_call": "For order #W4316152, you want to  exchange one Tea Kettle {'material': 'glass', 'capacity': '2 liters', 'stovetop compatibility': 'induction'} to {'material': 'ceramic', 'stovetop compatibility': 'gas'}; and another Tea Kettle {'material': 'glass', 'capacity': '2 liters', 'stovetop compatibility': 'induction'} to {'capacity': '1.5 liters', 'stovetop compatibility': 'gas'}; You want both kettles exchanged together or not at all, and you only want to pay with the gift card on your account. If the agent explains that the exchange cannot be completed, accept the explanation and end the conversation.",
+        "evaluation_criteria.actions": [],
+        "evaluation_criteria.nl_assertions": [
+          "Agent should not claim that the exchange was completed.",
+          "Agent should explain that the exchange cannot be completed because the price difference (about $21.10) is more than the gift card balance ($17.00)."
+        ]
+      }
+    },
+    "109": {
+      "reason": "Which address is the 'new home' depends on reading 'luggage set sent to this new address' correctly; the simulated user repeatedly swapped old/new. Scenario now states explicitly which order holds the new address and which holds the old one, and the payment method.",
+      "evidence": "Profile + #W1603792 (tablet etc.) = 760 Elm Avenue Suite 564 (old); #W1092119 (luggage) = 592 Elm Avenue Suite 978 (new). Gold moves #W1603792 and profile to 592 Elm, modifies tablet 6501071631 -> 2106335193 (cheapest available) with credit_card_5694100.",
+      "set": {
+        "user_scenario.instructions.reason_for_call": "You live on Elm Avenue in Houston and recently moved to a new house on the same street. Your luggage set order was shipped to your NEW home address. Your other order (the one with the bicycle, grill, headphones, pet bed and tablet) is still going to your OLD address, and your account default address is also still the OLD address. You want to (1) change that other order's shipping address to your new home, i.e. the same address as the luggage set order, and (2) change your account default address to your new home as well. You do not want to reveal your address and insist the agent should be able to look it up from the luggage set order. You also want to exchange the tablet in that order for the cheapest available tablet due to moving costs, using your credit card on file for any difference."
+      }
+    },
+    "110": {
+      "reason": "Mirror of 109 with the roles swapped; the simulated user confused which order holds the new address. Scenario now states it explicitly. The profile already holds the new address, so the NL assertion no longer requires a (no-op) profile write to be described as a change.",
+      "evidence": "Profile + #W1603792 (tablet etc.) = 760 Elm Avenue Suite 564 (new); #W1092119 (luggage) = 592 Elm Avenue Suite 978 (old). Gold moves #W1092119 to 760 Elm, profile -> 760 Elm (no-op), modifies tablet 6501071631 -> 2106335193 with credit_card_5694100.",
+      "set": {
+        "user_scenario.instructions.reason_for_call": "You live on Elm Avenue in Houston and recently moved to a new house on the same street. Your order with the tablet (it also has a bicycle, grill, headphones and pet bed) was shipped to your NEW home address. Your luggage set order is still going to your OLD address. You want to (1) change the luggage set order's shipping address to your new home, i.e. the same address as the tablet order, and (2) make sure your account default address is your new home as well. You do not want to reveal your address and insist the agent should be able to look it up from the tablet order. You also want to exchange the tablet for the cheapest available tablet due to moving costs, using your credit card on file for any difference.",
+        "evaluation_criteria.nl_assertions": [
+          "Agent should modify the shipping address of the luggage set order to the new home address.",
+          "Agent should make sure the user's default address is the new home address (it may already be set).",
+          "Agent should modify the tablet in the pending order to the cheapest available tablet."
+        ]
+      }
+    }
+  }
+}

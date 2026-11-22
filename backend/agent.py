@@ -1,6 +1,8 @@
 """Deep Agents runtime, shared by the real model and an explicitly labelled demo model."""
 
 import json
+import logging
+import os
 import re
 import uuid
 from typing import Any
@@ -23,6 +25,24 @@ from langchain_openai import ChatOpenAI
 
 from backend import config
 from backend.observations import RETAIL_REASONING_RULES, enrich_observation
+from backend.reviewer import MAX_REVISIONS, MODES, actionable, feedback_messages, review_turn, sanitize
+
+log = logging.getLogger(__name__)
+
+TRANSFER_TEXT = "YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON."
+MODEL_ERROR_TEXT = (
+    "抱歉，智能客服暂时无法完成这次处理，已为您转接人工客服（工单 {case}）。"
+    "您的数据没有被修改，人工客服会接着处理；也可以稍后新建会话重试。"
+)
+REVIEW_ESCALATION_TEXT = (
+    "这个请求需要人工客服进一步确认，已为您转接人工客服（工单 {case}）。您的数据没有被修改。"
+)
+
+
+def web_reviewer_mode():
+    """Web default is enforce; RETAIL_REVIEWER_WEB=off|shadow|enforce overrides."""
+    value = os.environ.get("RETAIL_REVIEWER_WEB", "enforce").strip().lower()
+    return value if value in MODES else "enforce"
 
 
 class DemoRetailModel(BaseChatModel):
@@ -224,6 +244,7 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
             )
         )
     allowed = {t.name for t in tools}
+    mode = web_reviewer_mode()
 
     @wrap_model_call
     def retail_only(request, handler):
@@ -237,18 +258,43 @@ def build_agent(service, sid, emit=lambda event: None, model=None):
                 ]
             )
         if current["transferred"]:
-            return ModelResponse(
-                result=[
-                    AIMessage(content="YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON.")
-                ]
-            )
+            return ModelResponse(result=[AIMessage(content=TRANSFER_TEXT)])
         # Keep Deep Agents orchestration but expose only Retail business tools.
-        response = handler(request.override(tools=[t for t in request.tools if t.name in allowed]))
-        for message in response.result:
-            if isinstance(message, AIMessage) and message.tool_calls:
-                message.tool_calls = message.tool_calls[:1]
-                message.content = ""
-        return response
+        tools = [t for t in request.tools if t.name in allowed]
+        extra, raised = [], set()
+        for attempt in range(MAX_REVISIONS + 1):
+            response = handler(
+                request.override(tools=tools, messages=list(request.messages) + extra)
+            )
+            for message in response.result:
+                if isinstance(message, AIMessage) and message.tool_calls:
+                    message.tool_calls = message.tool_calls[:1]
+                    message.content = ""
+            proposal = next((m for m in response.result if isinstance(m, AIMessage)), None)
+            if mode == "off" or proposal is None:
+                return response
+            findings = review_turn(list(request.messages), proposal, channel="web")
+            todo = actionable(findings, raised)
+            if findings:
+                with service.store.tx() as cx:
+                    service.store.event(cx, sid, "review_turn", {
+                        "mode": mode,
+                        "attempt": attempt,
+                        "proposal": proposal.tool_calls[0]["name"] if proposal.tool_calls else "text",
+                        "findings": [f.as_dict() for f in findings],
+                        "acted_on": [f.rule for f in todo] if mode == "enforce" else [],
+                    })
+            if mode != "enforce" or not todo:
+                return response
+            raised |= {f.rule for f in todo if f.severity == "check"}
+            extra += feedback_messages(proposal, todo)
+        rules = sorted({f.rule for f in todo})
+        if rules == ["internal_text_leak"] and not proposal.tool_calls:
+            cleaned = sanitize(str(proposal.content))
+            if cleaned:
+                return ModelResponse(result=[AIMessage(content=cleaned)])
+        case = service.escalate(sid, "reviewer", {"rules": rules})
+        return ModelResponse(result=[AIMessage(content=REVIEW_ESCALATION_TEXT.format(case=case[:8]))])
 
     prompt = (
         config.POLICY_PATH.read_text()
@@ -300,19 +346,32 @@ class AgentRunner:
                 cx, sid, messages=ui, title=session["title"] if session["messages"] else text[:30]
             )
             history = messages_from_dict(session["history"])
-        graph = build_agent(self.service, sid, emit, model)
-        result = graph.invoke(
-            {"messages": history + [HumanMessage(content=text)]}, config={"recursion_limit": 60}
-        )
-        messages = result["messages"]
-        last = next(
-            (m for m in reversed(messages) if isinstance(m, AIMessage) and not m.tool_calls), None
-        )
-        content: Any = last.content if last else "请检查工具调用结果。"
-        if isinstance(content, list):
-            content = "".join(c.get("text", "") for c in content if isinstance(c, dict))
-        if self.store.session(sid)["transferred"]:
-            content = "YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON.\n已创建本地人工转接记录。"
+        turn = history + [HumanMessage(content=text)]
+        try:
+            graph = build_agent(self.service, sid, emit, model)
+            messages = graph.invoke({"messages": turn}, config={"recursion_limit": 60})["messages"]
+        except Exception as exc:
+            # Human fallback for model / transport / graph failures. Nothing executed: write
+            # tools only stage previews, and a staged preview still needs approval.
+            log.error("Agent turn failed, escalating to staff: %s", type(exc).__name__)
+            case = self.service.escalate(
+                sid, "model_error", {"error_type": type(exc).__name__}
+            )
+            messages, content = turn, MODEL_ERROR_TEXT.format(case=case[:8])
+        else:
+            last = next(
+                (m for m in reversed(messages) if isinstance(m, AIMessage) and not m.tool_calls),
+                None,
+            )
+            content: Any = last.content if last else "请检查工具调用结果。"
+            if isinstance(content, list):
+                content = "".join(c.get("text", "") for c in content if isinstance(c, dict))
+            by_tool = any(
+                isinstance(m, ToolMessage) and m.name == "transfer_to_human_agents"
+                for m in messages[len(turn):]
+            )
+            if by_tool and self.store.session(sid)["transferred"]:
+                content = TRANSFER_TEXT + "\n已创建本地人工转接记录。"
         with self.store.tx() as cx:
             current = self.store.session(sid, cx)
             self.store.update(
@@ -326,6 +385,15 @@ class AgentRunner:
 
     def decide(self, sid, action_id, approve):
         receipt = self.service.decide(sid, action_id, approve)
+        self.record(sid, receipt, "确认执行" if approve else "取消操作")
+        return receipt
+
+    def staff_decide(self, rid, approve, staff="staff", note=""):
+        outcome = self.service.staff_decide(rid, approve, staff, note)
+        self.record(outcome["session_id"], outcome["receipt"], None, role="staff")
+        return outcome
+
+    def record(self, sid, receipt, user_label, role="assistant"):
         # Persist the receipt as application context; a model may never infer success from a proposal.
         with self.store.tx() as cx:
             session = self.store.session(sid, cx)
@@ -341,18 +409,10 @@ class AgentRunner:
                 order = receipt["result"]
                 message += f"\n{order.get('order_id', order.get('user_id', ''))} · {order.get('status', '资料已更新')}"
                 message += "\n这是本地 Retail 数据变更；退款与邮件按 benchmark 规则模拟。"
+            if role == "staff":
+                message = "【人工客服】" + message
+            added = [{"id": uuid.uuid4().hex, "role": "user", "content": user_label}] if user_label else []
+            added.append({"id": uuid.uuid4().hex, "role": "assistant", "content": message})
             self.store.update(
-                cx,
-                sid,
-                history=messages_to_dict(history),
-                messages=session["messages"]
-                + [
-                    {
-                        "id": uuid.uuid4().hex,
-                        "role": "user",
-                        "content": "确认执行" if approve else "取消操作",
-                    },
-                    {"id": uuid.uuid4().hex, "role": "assistant", "content": message},
-                ],
+                cx, sid, history=messages_to_dict(history), messages=session["messages"] + added
             )
-        return receipt
