@@ -3,7 +3,7 @@
 **Course:** Advanced AI Computing and Systems
 **Group:** Junwei Hu, Shuhan Xu, Yun Zhu, Zechuan Huang
 **Submission date:** 2026-11-22
-**Submitted revision:** branch `v1`, commit `7949497564c1879350b55351a18841541f35856c`
+**Submitted revision:** tag `artifact-v1`
 
 This document contains the three items required for the course project's GitHub
 repository submission:
@@ -23,7 +23,7 @@ Instructions**.
 **Repository:** <https://github.com/JunweiHu0/retail-desk-agent>
 
 **Exact submitted revision:**
-<https://github.com/JunweiHu0/retail-desk-agent/tree/7949497564c1879350b55351a18841541f35856c>
+<https://github.com/JunweiHu0/retail-desk-agent/tree/artifact-v1>
 
 The repository is public and requires no credentials, so the teaching team can
 access it throughout grading. The artifact itself is the source code,
