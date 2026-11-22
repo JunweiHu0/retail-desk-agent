@@ -22,7 +22,7 @@ The system is Vue 3 + FastAPI + LangGraph. It reuses the official `tau2-bench` R
 
 | # | Claim | Evidence | Review cost |
 | --- | --- | --- | --- |
-| C1 | The complete offline flow runs through the real LangGraph graph and all 16 official Retail tools, with preview → explicit approval → transactional commit. | Offline demo below; 190 backend tests | ~10 min, no API key |
+| C1 | The complete offline flow runs through the real LangGraph graph and all 16 official Retail tools, with preview → explicit approval → transactional commit. | Offline demo below; 204 backend tests | ~10 min, no API key |
 | C2 | The evaluation compares business state, not tool calls: the final database is compared with a target database produced by replaying the official reference actions. | `benchmarks/reference/`; 114-task result below | ~30 min, model access |
 | C3 | Ten concurrent episodes are the reported configuration: across the full 114-task pool, strict `pass_3` is 86/114 (0.754) and standard `pass@3` is 105/114 (0.921); the 40-task test split alone is 31/40 strict and 101/120 episode successes. This is a mixed-budget diagnostic: test uses 600 s plus 14 wall-time reruns at 1800 s, development uses 1800 s, and validation uses 600 s plus 33 wall-time reruns at 1800 s. Test seed-0 peak KV was 37.4% with zero preemptions. A separate 20-concurrency diagnostic run was faster (~22 min vs ~33 min) but succeeded on only 24/40 seed-0 test episodes under the 600 s budget, because 4 episodes hit the 300 s model-request timeout and 8 hit the episode budget. | `docs/experiments/2026-11-22-full114/`; `docs/experiments/2026-11-21-formal-test40/`; `test40-c20` TACC run | inspect: 2 min; rerun: TACC access |
 | C4 | Every tool call, decision and turn is persisted and exposed; per-turn ATIF-v1.8 trajectories are written for the running app. | `/infra`; `infra/<run_id>/atif.jsonl`; `docs/experiments/2026-11-21-formal-test40/replay/` | ~5 min |
@@ -86,7 +86,7 @@ uv run pytest -q
 Expected result:
 
 ```text
-190 passed
+204 passed
 ```
 
 These tests use the deterministic offline model and scripted models; they make no paid model calls.
