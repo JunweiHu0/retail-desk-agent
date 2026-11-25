@@ -171,6 +171,8 @@ const assistantCopy: Record<string, string> = {
   '暂时无法继续：User not found\n请检查信息后再试。': '未找到这个账户，请核对下单邮箱后重试。',
   '已生成变更预览，尚未执行。请核对下方操作、商品与支付或退款明细，再点击「确认执行」；也可以取消本次操作。':
     '已为你准备好变更明细。请核对下方信息，再决定是否办理。',
+  '已生成变更预览，尚未执行。请核对操作、商品与支付或退款明细，再点击确认执行或取消。':
+    '已为你准备好变更明细。请核对下方信息，再决定是否办理。',
   '你好，我是 Retail 客服助手。请提供账户邮箱，我会先核验身份，再查询或处理你的订单。也可以选择下方的模拟客户场景。':
     '请告诉我下单时使用的邮箱，我会先核验账户，再帮你查询或处理订单。',
   '演示模式请明确「全部商品退货，退回原支付方式」。真实模型模式支持逐项选择商品、退款方式和其他 Retail 操作。':
@@ -191,6 +193,8 @@ const assistantCopyEn: Record<string, string> = {
   '暂时无法继续：User not found\n请检查信息后再试。': 'We could not find that account. Please check the email used for the order and try again.',
   '已生成变更预览，尚未执行。请核对下方操作、商品与支付或退款明细，再点击「确认执行」；也可以取消本次操作。':
     'Your change is ready for review. Check the details below, then confirm or cancel.',
+  '已生成变更预览，尚未执行。请核对操作、商品与支付或退款明细，再点击确认执行或取消。':
+    'A change preview is ready but not executed. Review the operation, items and payment or refund details, then approve or cancel.',
   '你好，我是 Retail 客服助手。请提供账户邮箱，我会先核验身份，再查询或处理你的订单。也可以选择下方的模拟客户场景。':
     'Tell me the email used for your order and I will verify the account before helping.',
   '演示模式请明确「全部商品退货，退回原支付方式」。真实模型模式支持逐项选择商品、退款方式和其他 Retail 操作。':
